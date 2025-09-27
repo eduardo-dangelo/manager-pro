@@ -1,0 +1,53 @@
+# Checkly workflow - Commented out to allow pushing to new repository
+# Uncomment and configure secrets if you want to use Checkly monitoring
+#
+# name: Checkly
+# on: [deployment_status]
+#
+# env:
+#   CHECKLY_API_KEY: ${{ secrets.CHECKLY_API_KEY }}
+#   CHECKLY_ACCOUNT_ID: ${{ secrets.CHECKLY_ACCOUNT_ID }}
+#   CHECKLY_TEST_ENVIRONMENT: ${{ github.event.deployment_status.environment }}
+#
+# jobs:
+#   test-e2e:
+#     strategy:
+#       matrix:
+#         node-version: [22.x]
+#
+#     # Only run when the deployment was successful
+#     if: github.event.deployment_status.state == 'success'
+#
+#     name: Test E2E on Checkly
+#     runs-on: ubuntu-latest
+#     timeout-minutes: 10
+#
+#     steps:
+#       - uses: actions/checkout@v4
+#         with:
+#           ref: '${{ github.event.deployment_status.deployment.ref }}'
+#           fetch-depth: 0
+#
+#       - name: Set branch name
+#         run: echo "CHECKLY_TEST_REPO_BRANCH=$(git show -s --pretty=%D HEAD | tr -s ',' '\n' | sed 's/^ //' | grep -e 'origin/' | head -1 | sed 's/\origin\///g')" >> $GITHUB_ENV
+#
+#       - name: Set up Node.js environment
+#         uses: ./.github/actions/setup-project
+#         with:
+#           node-version: ${{ matrix.node-version }}
+#
+#       - name: Run checks
+#         id: run-checks
+#         run: npx dotenv -c production -- npx checkly test --reporter=github --record
+#         env:
+#           VERCEL_BYPASS_TOKEN: ${{ secrets.VERCEL_BYPASS_TOKEN }}
+#           ENVIRONMENT_URL: ${{ github.event.deployment_status.environment_url }}
+#
+#       - name: Create summary
+#         id: create-summary
+#         run: cat checkly-github-report.md > $GITHUB_STEP_SUMMARY
+#
+#       - name: Deploy checks
+#         id: deploy-checks
+#         if: steps.run-checks.outcome == 'success' && github.event.deployment_status.environment == 'Production'
+#         run: npx dotenv -c production -- npx checkly deploy --force
