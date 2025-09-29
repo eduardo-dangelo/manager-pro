@@ -5,6 +5,7 @@ import { Sponsors } from './Sponsors';
 export const Hello = async () => {
   const t = await getTranslations('Dashboard');
   const user = await currentUser();
+  console.log('user', user);
 
   return (
     <>
