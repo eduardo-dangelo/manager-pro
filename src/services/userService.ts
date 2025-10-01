@@ -1,15 +1,15 @@
+import { eq } from 'drizzle-orm';
 import { db } from '@/libs/DB';
 import { usersSchema } from '@/models/Schema';
-import { eq } from 'drizzle-orm';
 
-export interface UserData {
+export type UserData = {
   id: string;
   email: string;
   firstName?: string | null;
   lastName?: string | null;
   imageUrl?: string | null;
   theme?: string;
-}
+};
 
 export class UserService {
   /**
@@ -108,6 +108,7 @@ export class UserService {
   /**
    * Create or update user (upsert operation)
    * This is useful for handling both sign-up and sign-in events
+   * Returns the user and a flag indicating if the user was created
    */
   static async upsertUser(userData: UserData) {
     try {
@@ -116,10 +117,12 @@ export class UserService {
 
       if (existingUser) {
         // Update existing user
-        return await this.updateUser(userData.id, userData);
+        const updatedUser = await this.updateUser(userData.id, userData);
+        return { user: updatedUser, wasCreated: false };
       } else {
         // Create new user
-        return await this.createUser(userData);
+        const newUser = await this.createUser(userData);
+        return { user: newUser, wasCreated: true };
       }
     } catch (error) {
       console.error('Error upserting user:', error);

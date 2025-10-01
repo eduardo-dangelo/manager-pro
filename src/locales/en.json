@@ -62,6 +62,7 @@
   "Dashboard": {
     "meta_title": "Dashboard",
     "hello_message": "Hello {email}!",
+    "hello_db_message": "Hello {email} from the database!",
     "alternative_message": "Want to build your SaaS faster using the same stack? Try <url></url>."
   },
   "UserProfile": {
