@@ -71,6 +71,12 @@
   "DashboardLayout": {
     "dashboard_link": "Dashboard",
     "user_profile_link": "Manage your account",
-    "sign_out": "Sign out"
+    "sign_out": "Sign out",
+    "menu_overview": "Overview",
+    "menu_projects": "Projects",
+    "menu_tasks": "Tasks",
+    "menu_team": "Team",
+    "menu_analytics": "Analytics",
+    "menu_settings": "Settings"
   }
 }

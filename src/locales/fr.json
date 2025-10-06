@@ -70,6 +70,12 @@
   "DashboardLayout": {
     "dashboard_link": "Tableau de bord",
     "user_profile_link": "Gérer votre compte",
-    "sign_out": "Se déconnecter"
+    "sign_out": "Se déconnecter",
+    "menu_overview": "Aperçu",
+    "menu_projects": "Projets",
+    "menu_tasks": "Tâches",
+    "menu_team": "Équipe",
+    "menu_analytics": "Analytique",
+    "menu_settings": "Paramètres"
   }
 }

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { UserProfile } from '@clerk/nextjs';
+import { Box } from '@mui/material';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { getI18nPath } from '@/utils/Helpers';
 
@@ -24,10 +25,16 @@ export default async function UserProfilePage(props: IUserProfilePageProps) {
   setRequestLocale(locale);
 
   return (
-    <div className="my-6 -ml-16">
+    <Box
+      sx={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'flex-start',
+      }}
+    >
       <UserProfile
         path={getI18nPath('/dashboard/user-profile', locale)}
       />
-    </div>
+    </Box>
   );
 };
