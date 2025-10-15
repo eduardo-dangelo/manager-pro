@@ -118,14 +118,18 @@ export class UserService {
       if (existingUser) {
         // Update existing user
         const updatedUser = await this.updateUser(userData.id, userData);
+        console.error('user updated', updatedUser?.firstName);
         return { user: updatedUser, wasCreated: false };
       } else {
         // Create new user
         const newUser = await this.createUser(userData);
+        console.error('user created', newUser?.firstName);
         return { user: newUser, wasCreated: true };
       }
     } catch (error) {
       console.error('Error upserting user:', error);
+      console.error('Error details:', error instanceof Error ? error.message : error);
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
       throw error;
     }
   }

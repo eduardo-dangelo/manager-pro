@@ -4,9 +4,9 @@ import {
   Container,
   Stack,
   Toolbar,
-  Typography,
 } from '@mui/material';
 import Link from 'next/link';
+import { Logo } from '../Logo';
 
 export const Navigation = () => {
   return (
@@ -22,16 +22,7 @@ export const Navigation = () => {
       <Container maxWidth="xl">
         <Toolbar sx={{ justifyContent: 'space-between', minHeight: 64 }}>
           {/* Logo/Title */}
-          <Typography
-            variant="h5"
-            component="h1"
-            sx={{
-              fontWeight: 'bold',
-              color: 'grey.900',
-            }}
-          >
-            LoremSaaS
-          </Typography>
+          <Logo variant="dark" />
 
           {/* Navigation Links */}
           <Stack

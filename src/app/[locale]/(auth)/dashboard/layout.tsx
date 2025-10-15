@@ -7,10 +7,10 @@ import {
   Settings as SettingsIcon,
 } from '@mui/icons-material';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { Sidebar } from '@/components/Sidebar';
 import { AppConfig } from '@/utils/AppConfig';
-import { ResponsiveDrawer } from './ResponsiveDrawer';
 
-const DRAWER_WIDTH = 280;
+const DRAWER_WIDTH = 230;
 
 export default async function DashboardLayout(props: {
   children: React.ReactNode;
@@ -57,14 +57,13 @@ export default async function DashboardLayout(props: {
   ];
 
   return (
-    <ResponsiveDrawer
+    <Sidebar
       drawerWidth={DRAWER_WIDTH}
       menuItems={menuItems}
-      userProfileLabel={t('user_profile_link')}
-      userProfileHref={`/${locale}/dashboard/user-profile`}
       appName={AppConfig.name}
+      signOutLabel={t('sign_out')}
     >
       {props.children}
-    </ResponsiveDrawer>
+    </Sidebar>
   );
 }

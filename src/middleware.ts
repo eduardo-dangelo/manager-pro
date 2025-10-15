@@ -13,6 +13,19 @@ const isProtectedRoute = createRouteMatcher([
   '/:locale/dashboard(.*)',
 ]);
 
+const isProtectedApiRoute = createRouteMatcher([
+  '/api/projects(.*)',
+  '/api/objectives(.*)',
+  '/api/tasks(.*)',
+  '/api/sprints(.*)',
+  '/api/users(.*)',
+  '/:locale/api/projects(.*)',
+  '/:locale/api/objectives(.*)',
+  '/:locale/api/tasks(.*)',
+  '/:locale/api/sprints(.*)',
+  '/:locale/api/users(.*)',
+]);
+
 const isAuthPage = createRouteMatcher([
   '/sign-in(.*)',
   '/:locale/sign-in(.*)',
@@ -46,6 +59,13 @@ export default async function middleware(
     if (decision.isDenied()) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
+  }
+
+  // Handle protected API routes (no i18n routing needed)
+  if (isProtectedApiRoute(request)) {
+    return clerkMiddleware(async (auth) => {
+      await auth.protect();
+    })(request, event);
   }
 
   // Clerk keyless mode doesn't work with i18n, this is why we need to run the middleware conditionally

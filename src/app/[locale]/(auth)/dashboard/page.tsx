@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { currentUser } from '@clerk/nextjs/server';
 import {
   Avatar,
   Box,
@@ -11,6 +12,7 @@ import {
 } from '@mui/material';
 import { getTranslations } from 'next-intl/server';
 import { Hello } from '@/components/Hello';
+import { UserService } from '@/services/userService';
 
 export async function generateMetadata(props: {
   params: Promise<{ locale: string }>;
@@ -26,7 +28,21 @@ export async function generateMetadata(props: {
   };
 }
 
-export default function Dashboard() {
+export default async function Dashboard() {
+  const user = await currentUser();
+
+  // Sync user with database - creates if doesn't exist, updates if it does
+  let dbUser = null;
+  if (user) {
+    const result = await UserService.upsertUser({
+      id: user.id,
+      email: user.primaryEmailAddress?.emailAddress || '',
+      firstName: user.firstName,
+      lastName: user.lastName,
+      imageUrl: user.imageUrl,
+    });
+    dbUser = result.user;
+  }
   return (
     <Box>
       {/* Page Header */}
@@ -44,7 +60,10 @@ export default function Dashboard() {
           Dashboard
         </Typography>
         <Typography variant="body1" sx={{ color: 'grey.600' }}>
-          Welcome back! Here's an overview of your workspace.
+          Welcome back
+          {' '}
+          {dbUser?.firstName}
+          ! Here's an overview of your workspace.
         </Typography>
       </Box>
 

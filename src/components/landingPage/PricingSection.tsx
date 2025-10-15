@@ -1,3 +1,4 @@
+import { Check } from '@mui/icons-material';
 import {
   Box,
   Button,
@@ -11,7 +12,6 @@ import {
   ListItemText,
   Typography,
 } from '@mui/material';
-import { Check } from '@mui/icons-material';
 import Link from 'next/link';
 
 export const PricingSection = () => {

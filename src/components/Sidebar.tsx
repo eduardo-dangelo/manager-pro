@@ -1,7 +1,8 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { Menu as MenuIcon } from '@mui/icons-material';
+import { SignOutButton } from '@clerk/nextjs';
+import { Logout as LogoutIcon, Menu as MenuIcon } from '@mui/icons-material';
 import {
   AppBar,
   Box,
@@ -13,12 +14,12 @@ import {
   ListItemIcon,
   ListItemText,
   Toolbar,
-  Typography,
   useMediaQuery,
   useTheme,
 } from '@mui/material';
 import Link from 'next/link';
 import { useState } from 'react';
+import { Logo } from './Logo';
 
 type MenuItem = {
   icon: React.ComponentType<any>;
@@ -26,23 +27,21 @@ type MenuItem = {
   href: string;
 };
 
-type ResponsiveDrawerProps = {
+type SidebarProps = {
   children: ReactNode;
   drawerWidth: number;
   menuItems: MenuItem[];
-  userProfileLabel: string;
-  userProfileHref: string;
   appName: string;
+  signOutLabel: string;
 };
 
-export function ResponsiveDrawer({
+export function Sidebar({
   children,
   drawerWidth,
   menuItems,
-  userProfileLabel,
-  userProfileHref,
-  appName,
-}: ResponsiveDrawerProps) {
+  appName: _appName,
+  signOutLabel,
+}: SidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
@@ -55,22 +54,8 @@ export function ResponsiveDrawer({
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Logo - Hidden on mobile */}
       {!isMobile && (
-        <Box
-          sx={{
-            p: 3,
-            pb: 0,
-          }}
-        >
-          <Typography
-            variant="h6"
-            component="h1"
-            sx={{
-              fontWeight: 'bold',
-              color: 'white',
-            }}
-          >
-            {appName}
-          </Typography>
+        <Box sx={{ px: 3, pt: 2, pb: 0 }}>
+          <Logo variant={isMobile ? 'dark' : 'light'} />
         </Box>
       )}
 
@@ -117,29 +102,42 @@ export function ResponsiveDrawer({
         })}
       </List>
 
-      {/* Footer */}
+      {/* Footer - Logout */}
       <Box>
         <List sx={{ px: 2, py: 2 }}>
           <ListItem disablePadding>
-            <ListItemButton
-              component={Link}
-              href={userProfileHref}
-              sx={{
-                'borderRadius': 2,
-                'color': 'rgba(255, 255, 255, 0.7)',
-                '&:hover': {
-                  bgcolor: 'rgba(255, 255, 255, 0.08)',
-                  color: 'white',
-                },
-              }}
-            >
-              <ListItemText
-                primary={userProfileLabel}
-                primaryTypographyProps={{
-                  fontSize: '0.875rem',
+            <SignOutButton>
+              <ListItemButton
+                sx={{
+                  'borderRadius': 2,
+                  'color': 'rgba(255, 255, 255, 0.7)',
+                  '&:hover': {
+                    'bgcolor': 'rgba(255, 255, 255, 0.08)',
+                    'color': 'white',
+                    '& .MuiListItemIcon-root': {
+                      color: '#60a5fa',
+                    },
+                  },
                 }}
-              />
-            </ListItemButton>
+              >
+                <ListItemIcon sx={{ minWidth: 40 }}>
+                  <LogoutIcon
+                    sx={{
+                      fontSize: 20,
+                      color: '#60a5fa',
+                      transition: 'color 0.2s',
+                    }}
+                  />
+                </ListItemIcon>
+                <ListItemText
+                  primary={signOutLabel}
+                  primaryTypographyProps={{
+                    fontSize: '0.875rem',
+                    fontWeight: 500,
+                  }}
+                />
+              </ListItemButton>
+            </SignOutButton>
           </ListItem>
         </List>
       </Box>
@@ -166,23 +164,15 @@ export function ResponsiveDrawer({
               edge="start"
               onClick={handleDrawerToggle}
               sx={{
-                mr: 2,
+                mr: 0.5,
                 color: mobileOpen ? 'white' : 'grey.900',
               }}
             >
               <MenuIcon />
             </IconButton>
-            <Typography
-              variant="h6"
-              noWrap
-              component="div"
-              sx={{
-                color: mobileOpen ? 'white' : 'grey.900',
-                fontWeight: 'bold',
-              }}
-            >
-              {appName}
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Logo variant={mobileOpen ? 'light' : 'dark'} />
+            </Box>
           </Toolbar>
         </AppBar>
       )}

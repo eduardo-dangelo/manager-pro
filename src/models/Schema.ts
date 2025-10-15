@@ -54,6 +54,7 @@ export const projectsSchema = pgTable('projects', {
   id: serial('id').primaryKey(),
   name: text('name').notNull(),
   description: text('description').notNull(),
+  userId: text('user_id').references(() => usersSchema.id).notNull(),
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { mode: 'date' })
     .defaultNow()
@@ -68,6 +69,7 @@ export const objectivesSchema = pgTable('objectives', {
   name: text('name').notNull(),
   description: text('description').notNull(),
   projectId: integer('project_id').references(() => projectsSchema.id),
+  userId: text('user_id').references(() => usersSchema.id).notNull(),
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { mode: 'date' })
     .defaultNow()
@@ -83,6 +85,7 @@ export const tasksSchema = pgTable('tasks', {
   objectiveId: integer('objective_id').references((): any => objectivesSchema.id),
   projectId: integer('project_id').references((): any => projectsSchema.id),
   parentTaskId: integer('parent_task_id').references((): any => tasksSchema.id),
+  userId: text('user_id').references(() => usersSchema.id).notNull(),
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { mode: 'date' })
     .defaultNow()
@@ -99,6 +102,7 @@ export const sprintsSchema = pgTable('sprints', {
   id: serial('id').primaryKey(),
   name: text('name').notNull(),
   description: text('description').notNull(),
+  userId: text('user_id').references(() => usersSchema.id).notNull(),
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { mode: 'date' })
     .defaultNow()
@@ -106,12 +110,18 @@ export const sprintsSchema = pgTable('sprints', {
     .notNull(),
   projectId: integer('project_id').references(() => projectsSchema.id),
   workSpaceId: integer('work_space_id').references(() => workSpacesSchema.id),
+  startDate: timestamp('start_date', { mode: 'date' }),
+  endDate: timestamp('end_date', { mode: 'date' }),
+  status: text('status').notNull().default('planned'),
 });
 
 // Define relationships
 export const userRelations = relations(usersSchema, ({ many }) => ({
   projects: many(projectsSchema),
-  tasks: many(tasksSchema),
+  objectives: many(objectivesSchema),
+  createdTasks: many(tasksSchema, { relationName: 'createdTasks' }),
+  assignedTasks: many(tasksSchema, { relationName: 'assignedTasks' }),
+  sprints: many(sprintsSchema),
   workSpaces: many(workSpacesSchema),
 }));
 
@@ -121,16 +131,24 @@ export const workSpacesRelations = relations(workSpacesSchema, ({ many }) => ({
   sprints: many(sprintsSchema),
 }));
 
-export const projectsRelations = relations(projectsSchema, ({ many }) => ({
+export const projectsRelations = relations(projectsSchema, ({ many, one }) => ({
   objectives: many(objectivesSchema),
-  users: many(usersSchema),
   tasks: many(tasksSchema),
+  sprints: many(sprintsSchema),
+  user: one(usersSchema, {
+    fields: [projectsSchema.userId],
+    references: [usersSchema.id],
+  }),
 }));
 
 export const objectivesRelations = relations(objectivesSchema, ({ one, many }) => ({
   project: one(projectsSchema, {
     fields: [objectivesSchema.projectId],
     references: [projectsSchema.id],
+  }),
+  user: one(usersSchema, {
+    fields: [objectivesSchema.userId],
+    references: [usersSchema.id],
   }),
   tasks: many(tasksSchema),
 }));
@@ -144,9 +162,15 @@ export const tasksRelations = relations(tasksSchema, ({ one, many }) => ({
     fields: [tasksSchema.projectId],
     references: [projectsSchema.id],
   }),
+  user: one(usersSchema, {
+    fields: [tasksSchema.userId],
+    references: [usersSchema.id],
+    relationName: 'createdTasks',
+  }),
   assignee: one(usersSchema, {
     fields: [tasksSchema.assigneeId],
     references: [usersSchema.id],
+    relationName: 'assignedTasks',
   }),
   parentTask: one(tasksSchema, {
     fields: [tasksSchema.parentTaskId],
@@ -160,7 +184,7 @@ export const tasksRelations = relations(tasksSchema, ({ one, many }) => ({
 }));
 
 export const sprintsRelations = relations(sprintsSchema, ({ many, one }) => ({
-  stasks: many(tasksSchema),
+  tasks: many(tasksSchema),
   workSpace: one(workSpacesSchema, {
     fields: [sprintsSchema.workSpaceId],
     references: [workSpacesSchema.id],
@@ -168,5 +192,9 @@ export const sprintsRelations = relations(sprintsSchema, ({ many, one }) => ({
   project: one(projectsSchema, {
     fields: [sprintsSchema.projectId],
     references: [projectsSchema.id],
+  }),
+  user: one(usersSchema, {
+    fields: [sprintsSchema.userId],
+    references: [usersSchema.id],
   }),
 }));

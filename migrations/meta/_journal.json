@@ -15,6 +15,13 @@
       "when": 1759351629897,
       "tag": "0001_conscious_titanium_man",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1760481292680,
+      "tag": "0002_many_cannonball",
+      "breakpoints": true
     }
   ]
 }

@@ -1,4 +1,9 @@
 import {
+  Facebook,
+  LinkedIn,
+  Twitter,
+} from '@mui/icons-material';
+import {
   Box,
   Button,
   Container,
@@ -7,11 +12,7 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
-import {
-  Facebook,
-  LinkedIn,
-  Twitter,
-} from '@mui/icons-material';
+import { Logo } from '../Logo';
 
 export const Footer = () => {
   return (
@@ -29,16 +30,7 @@ export const Footer = () => {
           {/* Company Info */}
           <Grid item xs={12} md={6} lg={3}>
             <Box sx={{ mb: 3 }}>
-              <Typography
-                variant="h5"
-                component="h3"
-                sx={{
-                  fontWeight: 'bold',
-                  mb: 2,
-                }}
-              >
-                LoremSaaS
-              </Typography>
+              <Logo variant="light" />
               <Typography
                 variant="body2"
                 sx={{
@@ -344,7 +336,7 @@ export const Footer = () => {
             spacing={2}
           >
             <Typography variant="body2" sx={{ color: 'grey.400' }}>
-              © 2024 LoremSaaS. All rights reserved.
+              © 2024 ManagerPro. All rights reserved.
             </Typography>
             <Stack direction="row" spacing={3}>
               <Button

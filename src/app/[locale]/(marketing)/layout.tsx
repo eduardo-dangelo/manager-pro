@@ -6,7 +6,7 @@ export default async function Layout(props: {
 }) {
   const { locale } = await props.params;
   setRequestLocale(locale);
-  const t = await getTranslations({
+  const _t = await getTranslations({
     locale,
     namespace: 'RootLayout',
   });
