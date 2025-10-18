@@ -16,6 +16,7 @@ import {
   Accordion,
   AccordionDetails,
   AccordionSummary,
+  Badge,
   Box,
   Button,
   Chip,
@@ -633,17 +634,30 @@ export function ProjectDetail({
                 onChange={() => {
                   if (hasContent) {
                     setExpandedObjective(isExpanded ? null : objective.id);
+                  } else {
+                    // If row can't be expanded, focus the input
+                    setTimeout(() => {
+                      const input = objectiveRefs.current[objective.id];
+                      if (input) {
+                        input.focus();
+                        const length = input.value.length;
+                        input.setSelectionRange(length, length);
+                      }
+                    }, 0);
                   }
                 }}
                 onMouseEnter={() => setHoveredObjective(objective.id)}
                 onMouseLeave={() => setHoveredObjective(null)}
                 sx={{
-                  'backgroundColor': 'transparent',
+                  'backgroundColor': !isExpanded ? 'transparent' : 'grey.100',
+                  'borderRadius': isExpanded ? 4 : 2,
                   'boxShadow': 'none',
+                  'transition': 'border-radius 0.2s ease',
                   '&:before': { display: 'none' },
                   '&:hover': {
-                    backgroundColor: isExpanded ? 'transparent' : 'grey.200',
+                    backgroundColor: 'grey.200',
                   },
+
                   '&.Mui-expanded': {
                     margin: 0,
                   },
@@ -686,7 +700,7 @@ export function ProjectDetail({
                       width: '100%',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: 2,
+                      // gap: 2,
                     }}
                   >
                     <Box
@@ -754,6 +768,14 @@ export function ProjectDetail({
                         onKeyDown: (e: React.KeyboardEvent) => {
                           if (e.key === ' ' || e.key === 'Spacebar') {
                             e.stopPropagation();
+                          } else if (e.key === 'Escape') {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            // Blur the input
+                            const input = objectiveRefs.current[objective.id];
+                            if (input) {
+                              input.blur();
+                            }
                           } else if (e.key === 'Enter' && !e.shiftKey) {
                             e.preventDefault();
                             e.stopPropagation();
@@ -809,6 +831,7 @@ export function ProjectDetail({
                       sx={{
                         'width': `${Math.max(objective.name.length * 9, 100)}px`,
                         'maxWidth': '600px',
+                        'minWidth': '0',
                         '& .MuiInput-root': {
                           'fontSize': '1.063rem',
                           'fontWeight': 500,
@@ -828,7 +851,7 @@ export function ProjectDetail({
                         sx={{
                           display: 'flex',
                           gap: 0.5,
-                          ml: 0.5,
+                          ml: 0,
                         }}
                         onClick={e => e.stopPropagation()}
                       >
@@ -842,36 +865,55 @@ export function ProjectDetail({
                             // TODO: Focus description field when implemented
                           }}
                           sx={{
-                            'color': 'grey.400',
+                            'color': objective.description ? 'primary.main' : 'grey.400',
                             'padding': '4px',
                             '&:hover': {
-                              color: 'primary.main',
+                              color: objective.description ? 'primary.main' : 'grey.500',
                               backgroundColor: 'primary.50',
                             },
                           }}
                         >
                           <DescriptionIcon fontSize="small" />
                         </IconButton>
-                        <IconButton
-                          size="small"
-                          onClick={(e: React.MouseEvent) => {
-                            e.stopPropagation();
-                            if (!isExpanded) {
-                              setExpandedObjective(objective.id);
-                            }
-                            setAddingTask({ ...addingTask, [objective.id]: true });
-                          }}
-                          sx={{
-                            'color': 'grey.400',
-                            'padding': '4px',
-                            '&:hover': {
-                              color: 'primary.main',
-                              backgroundColor: 'primary.50',
-                            },
-                          }}
-                        >
-                          <FormatListBulleted fontSize="small" />
-                        </IconButton>
+                        {(() => {
+                          const incompleteTasks = tasks.filter(t => t.status !== 'done').length;
+                          return (
+                            <IconButton
+                              size="small"
+                              onClick={(e: React.MouseEvent) => {
+                                e.stopPropagation();
+                                if (!isExpanded) {
+                                  setExpandedObjective(objective.id);
+                                }
+                                setAddingTask({ ...addingTask, [objective.id]: true });
+                              }}
+                              sx={{
+                                'color': tasks.length > 0 ? 'primary.main' : 'grey.400',
+                                'padding': '4px',
+                                '&:hover': {
+                                  color: tasks.length > 0 ? 'primary.main' : 'grey.500',
+                                  backgroundColor: 'primary.50',
+                                },
+                              }}
+                            >
+                              <Badge
+                                badgeContent={incompleteTasks > 0 ? incompleteTasks : null}
+                                sx={{
+                                  '& .MuiBadge-badge': {
+                                    backgroundColor: 'error.light',
+                                    color: 'white',
+                                    fontSize: '0.625rem',
+                                    height: '16px',
+                                    minWidth: '16px',
+                                    padding: '0 4px',
+                                  },
+                                }}
+                              >
+                                <FormatListBulleted fontSize="small" />
+                              </Badge>
+                            </IconButton>
+                          );
+                        })()}
                         <IconButton
                           size="small"
                           onClick={(e: React.MouseEvent) => {
@@ -1059,7 +1101,14 @@ export function ProjectDetail({
                               }
                             }}
                             onKeyDown={async (e) => {
-                              if (e.key === 'Enter' && !e.shiftKey) {
+                              if (e.key === 'Escape') {
+                                e.preventDefault();
+                                // Blur the input
+                                const input = taskRefs.current[task.id];
+                                if (input) {
+                                  input.blur();
+                                }
+                              } else if (e.key === 'Enter' && !e.shiftKey) {
                                 e.preventDefault();
 
                                 // Save the current task
