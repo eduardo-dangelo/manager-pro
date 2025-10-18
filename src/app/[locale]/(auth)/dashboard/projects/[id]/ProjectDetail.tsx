@@ -6,6 +6,7 @@ import {
   CheckBoxOutlineBlank,
   CheckCircleOutline,
   Delete as DeleteIcon,
+  Description as DescriptionIcon,
   ExpandLess,
   ExpandMore,
   FormatListBulleted,
@@ -18,6 +19,7 @@ import {
   Box,
   Button,
   Chip,
+  IconButton,
   LinearProgress,
   MenuItem,
   Select,
@@ -77,12 +79,17 @@ export function ProjectDetail({
   const router = useRouter();
   const titleRef = useRef<HTMLInputElement>(null);
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
+  const newObjectiveRef = useRef<HTMLInputElement>(null);
+  const newTaskRefs = useRef<Record<number, HTMLInputElement | null>>({});
+  const objectiveRefs = useRef<Record<number, HTMLInputElement | null>>({});
+  const taskRefs = useRef<Record<number, HTMLInputElement | null>>({});
 
   const [project, setProject] = useState(initialProject);
   const [saving, setSaving] = useState(false);
   const [expandedObjective, setExpandedObjective] = useState<number | null>(
     null,
   );
+  const [hoveredObjective, setHoveredObjective] = useState<number | null>(null);
   const [newObjective, setNewObjective] = useState({
     name: '',
     description: '',
@@ -112,6 +119,13 @@ export function ProjectDetail({
       titleRef.current.focus();
     }
   }, []);
+
+  useEffect(() => {
+    // Auto-focus new objective input when addingObjective changes
+    if (addingObjective && newObjectiveRef.current) {
+      newObjectiveRef.current.focus();
+    }
+  }, [addingObjective]);
 
   const handleTitleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && descriptionRef.current) {
@@ -167,7 +181,10 @@ export function ProjectDetail({
         objectives: [...project.objectives, objective],
       });
       setNewObjective({ name: '', description: '' });
-      setAddingObjective(false);
+      // Keep form open and refocus
+      if (newObjectiveRef.current) {
+        newObjectiveRef.current.focus();
+      }
     } catch (error) {
       console.error('Error creating objective:', error);
     }
@@ -266,7 +283,10 @@ export function ProjectDetail({
         tasks: [...project.tasks, task],
       });
       setNewTask({ ...newTask, [objectiveId]: { name: '', description: '' } });
-      setAddingTask({ ...addingTask, [objectiveId]: false });
+      // Keep form open and refocus
+      if (newTaskRefs.current[objectiveId]) {
+        newTaskRefs.current[objectiveId]?.focus();
+      }
     } catch (error) {
       console.error('Error creating task:', error);
     }
@@ -408,6 +428,11 @@ export function ProjectDetail({
       obj => obj.status === 'completed',
     ).length;
     return (completed / project.objectives.length) * 100;
+  };
+
+  const objectiveHasContent = (objective: Objective) => {
+    const tasks = getObjectiveTasks(objective.id);
+    return tasks.length > 0 || (objective.description && objective.description.trim().length > 0);
   };
 
   return (
@@ -594,23 +619,27 @@ export function ProjectDetail({
             {t('no_objectives')}
           </Typography>
         ) : (
-          project.objectives.map((objective, index) => {
+          project.objectives.map((objective) => {
             const tasks = getObjectiveTasks(objective.id);
             const progress = getObjectiveProgress(objective.id);
             const isExpanded = expandedObjective === objective.id;
-            const isLast = index === project.objectives.length - 1;
+            const hasContent = objectiveHasContent(objective);
+            const isHovered = hoveredObjective === objective.id;
 
             return (
               <Accordion
                 key={objective.id}
                 expanded={isExpanded}
-                onChange={() =>
-                  setExpandedObjective(isExpanded ? null : objective.id)}
+                onChange={() => {
+                  if (hasContent) {
+                    setExpandedObjective(isExpanded ? null : objective.id);
+                  }
+                }}
+                onMouseEnter={() => setHoveredObjective(objective.id)}
+                onMouseLeave={() => setHoveredObjective(null)}
                 sx={{
                   'backgroundColor': 'transparent',
                   'boxShadow': 'none',
-                  'borderBottom': isLast ? 'none' : '1px solid',
-                  'borderColor': 'grey.200',
                   '&:before': { display: 'none' },
                   '&:hover': {
                     backgroundColor: isExpanded ? 'transparent' : 'grey.200',
@@ -622,18 +651,29 @@ export function ProjectDetail({
               >
                 <AccordionSummary
                   expandIcon={
-                    isExpanded
+                    hasContent
                       ? (
-                          <ExpandLess fontSize="small" sx={{ color: 'grey.500' }} />
+                          isExpanded
+                            ? (
+                                <ExpandLess fontSize="small" sx={{ color: 'grey.500' }} />
+                              )
+                            : (
+                                <ExpandMore fontSize="small" sx={{ color: 'grey.500' }} />
+                              )
                         )
-                      : (
-                          <ExpandMore fontSize="small" sx={{ color: 'grey.500' }} />
-                        )
+                      : null
                   }
+                  onKeyDown={(e) => {
+                    if (e.key === ' ' || e.key === 'Spacebar') {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }
+                  }}
                   sx={{
                     'minHeight': '40px',
                     'px': 0.75,
                     'py': 0.75,
+                    'cursor': hasContent ? 'pointer' : 'default',
                     '& .MuiAccordionSummary-content': { my: 0 },
                     '&.Mui-focusVisible': { backgroundColor: 'transparent' },
                     '&.Mui-expanded': {
@@ -691,6 +731,9 @@ export function ProjectDetail({
                           )}
                     </Box>
                     <TextField
+                      inputRef={(el) => {
+                        objectiveRefs.current[objective.id] = el;
+                      }}
                       value={objective.name}
                       onChange={(e) => {
                         setProject({
@@ -707,8 +750,64 @@ export function ProjectDetail({
                       onClick={e => e.stopPropagation()}
                       variant="standard"
                       multiline
+                      inputProps={{
+                        onKeyDown: (e: React.KeyboardEvent) => {
+                          if (e.key === ' ' || e.key === 'Spacebar') {
+                            e.stopPropagation();
+                          } else if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            updateObjectiveName(objective.id, objective.name);
+
+                            const objectiveIndex = project.objectives.findIndex(
+                              obj => obj.id === objective.id,
+                            );
+                            const nextObjective = project.objectives[objectiveIndex + 1];
+
+                            if (nextObjective) {
+                              // Focus next objective with cursor at the end
+                              setTimeout(() => {
+                                const input = objectiveRefs.current[nextObjective.id];
+                                if (input) {
+                                  input.focus();
+                                  // Move cursor to end
+                                  const length = input.value.length;
+                                  input.setSelectionRange(length, length);
+                                }
+                              }, 0);
+                            } else {
+                              // Last objective, open new objective form
+                              setAddingObjective(true);
+                            }
+                          } else if ((e.key === 'Backspace' || e.key === 'Delete') && !hasContent) {
+                            // If objective has no content and name is empty, delete the objective
+                            if (objective.name.trim() === '') {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              deleteObjective(objective.id);
+
+                              // Focus previous objective if exists
+                              const objectiveIndex = project.objectives.findIndex(
+                                obj => obj.id === objective.id,
+                              );
+                              const prevObjective = project.objectives[objectiveIndex - 1];
+
+                              if (prevObjective) {
+                                setTimeout(() => {
+                                  const input = objectiveRefs.current[prevObjective.id];
+                                  if (input) {
+                                    input.focus();
+                                    const length = input.value.length;
+                                    input.setSelectionRange(length, length);
+                                  }
+                                }, 0);
+                              }
+                            }
+                          }
+                        },
+                      }}
                       sx={{
-                        'width': `${Math.max(objective.name.length * 10 + 15, 115)}px`,
+                        'width': `${Math.max(objective.name.length * 9, 100)}px`,
                         'maxWidth': '600px',
                         '& .MuiInput-root': {
                           'fontSize': '1.063rem',
@@ -724,26 +823,129 @@ export function ProjectDetail({
                         },
                       }}
                     />
+                    {isHovered && (
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          gap: 0.5,
+                          ml: 0.5,
+                        }}
+                        onClick={e => e.stopPropagation()}
+                      >
+                        <IconButton
+                          size="small"
+                          onClick={(e: React.MouseEvent) => {
+                            e.stopPropagation();
+                            if (!isExpanded) {
+                              setExpandedObjective(objective.id);
+                            }
+                            // TODO: Focus description field when implemented
+                          }}
+                          sx={{
+                            'color': 'grey.400',
+                            'padding': '4px',
+                            '&:hover': {
+                              color: 'primary.main',
+                              backgroundColor: 'primary.50',
+                            },
+                          }}
+                        >
+                          <DescriptionIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          onClick={(e: React.MouseEvent) => {
+                            e.stopPropagation();
+                            if (!isExpanded) {
+                              setExpandedObjective(objective.id);
+                            }
+                            setAddingTask({ ...addingTask, [objective.id]: true });
+                          }}
+                          sx={{
+                            'color': 'grey.400',
+                            'padding': '4px',
+                            '&:hover': {
+                              color: 'primary.main',
+                              backgroundColor: 'primary.50',
+                            },
+                          }}
+                        >
+                          <FormatListBulleted fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          onClick={(e: React.MouseEvent) => {
+                            e.stopPropagation();
+                            deleteObjective(objective.id);
+                          }}
+                          sx={{
+                            'color': 'grey.400',
+                            'padding': '4px',
+                            '&:hover': {
+                              color: 'error.main',
+                              backgroundColor: 'error.50',
+                            },
+                          }}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Box>
+                    )}
                     <Box sx={{ flex: 1, minWidth: 0 }} />
-                    <DeleteIcon
-                      fontSize="small"
-                      sx={{
-                        'cursor': 'pointer',
-                        'color': 'grey.400',
-                        'flexShrink': 0,
-                        '&:hover': { color: 'error.main' },
-                      }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteObjective(objective.id);
-                      }}
-                    />
                   </Box>
                 </AccordionSummary>
                 <AccordionDetails
                   sx={{ pt: 1, pb: 1, px: 0, backgroundColor: 'transparent' }}
                 >
                   <Box>
+                    {/* Description Section */}
+                    <Box sx={{ mb: 2, ml: 2 }}>
+                      <TextField
+                        placeholder="Add description..."
+                        value={objective.description || ''}
+                        onChange={(e) => {
+                          const newDescription = e.target.value;
+                          setProject({
+                            ...project,
+                            objectives: project.objectives.map(obj =>
+                              obj.id === objective.id
+                                ? { ...obj, description: newDescription }
+                                : obj,
+                            ),
+                          });
+                        }}
+                        onBlur={async () => {
+                          try {
+                            const response = await fetch(`/${locale}/api/objectives/${objective.id}`, {
+                              method: 'PUT',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ description: objective.description }),
+                            });
+                            if (!response.ok) {
+                              throw new Error('Failed to update objective description');
+                            }
+                          } catch (error) {
+                            console.error('Error updating objective description:', error);
+                          }
+                        }}
+                        fullWidth
+                        multiline
+                        rows={2}
+                        variant="standard"
+                        sx={{
+                          '& .MuiInput-root': {
+                            'fontSize': '0.875rem',
+                            'color': 'grey.600',
+                            '&:before': { borderBottom: 'none' },
+                            '&:after': { borderBottom: 'none' },
+                            '&:hover:not(.Mui-disabled):before': {
+                              borderBottom: 'none',
+                            },
+                          },
+                        }}
+                      />
+                    </Box>
+
                     {tasks.length > 0 && (
                       <Box
                         sx={{
@@ -827,11 +1029,86 @@ export function ProjectDetail({
                                   <CheckBoxOutlineBlank fontSize="small" />
                                 )}
                           </Box>
-                          <Box sx={{ flex: 1 }}>
-                            <Typography
-                              variant="body2"
-                              sx={{
-                                fontSize: '0.875rem',
+                          <TextField
+                            inputRef={(el) => {
+                              taskRefs.current[task.id] = el;
+                            }}
+                            value={task.name}
+                            onChange={(e) => {
+                              setProject({
+                                ...project,
+                                tasks: project.tasks.map(t =>
+                                  t.id === task.id
+                                    ? { ...t, name: e.target.value }
+                                    : t,
+                                ),
+                              });
+                            }}
+                            onBlur={async () => {
+                              try {
+                                const response = await fetch(`/${locale}/api/tasks/${task.id}`, {
+                                  method: 'PUT',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ name: task.name }),
+                                });
+                                if (!response.ok) {
+                                  throw new Error('Failed to update task');
+                                }
+                              } catch (error) {
+                                console.error('Error updating task:', error);
+                              }
+                            }}
+                            onKeyDown={async (e) => {
+                              if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+
+                                // Save the current task
+                                try {
+                                  const response = await fetch(`/${locale}/api/tasks/${task.id}`, {
+                                    method: 'PUT',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ name: task.name }),
+                                  });
+                                  if (!response.ok) {
+                                    throw new Error('Failed to update task');
+                                  }
+                                } catch (error) {
+                                  console.error('Error updating task:', error);
+                                }
+
+                                const taskIndex = tasks.findIndex(t => t.id === task.id);
+                                const nextTask = tasks[taskIndex + 1];
+
+                                if (nextTask) {
+                                  // Focus next task with cursor at the end
+                                  setTimeout(() => {
+                                    const input = taskRefs.current[nextTask.id];
+                                    if (input) {
+                                      input.focus();
+                                      // Move cursor to end
+                                      const length = input.value.length;
+                                      input.setSelectionRange(length, length);
+                                    }
+                                  }, 0);
+                                } else {
+                                  // Last task, open add task form
+                                  setAddingTask({ ...addingTask, [objective.id]: true });
+                                }
+                              }
+                            }}
+                            variant="standard"
+                            fullWidth
+                            sx={{
+                              'flex': 1,
+                              '& .MuiInput-root': {
+                                'fontSize': '0.875rem',
+                                '&:before': { borderBottom: 'none' },
+                                '&:after': { borderBottom: 'none' },
+                                '&:hover:not(.Mui-disabled):before': {
+                                  borderBottom: 'none',
+                                },
+                              },
+                              '& input': {
                                 textDecoration:
                                   task.status === 'done'
                                     ? 'line-through'
@@ -840,11 +1117,9 @@ export function ProjectDetail({
                                   task.status === 'done'
                                     ? 'grey.500'
                                     : 'inherit',
-                              }}
-                            >
-                              {task.name}
-                            </Typography>
-                          </Box>
+                              },
+                            }}
+                          />
                         </Box>
                         <Box
                           sx={{
@@ -876,121 +1151,101 @@ export function ProjectDetail({
                       </Box>
                     ))}
 
-                    {addingTask[objective.id]
-                      ? (
-                          <Box
-                            sx={{
-                              mt: 1.5,
-                              py: 1.5,
-                              px: 2,
-                              border: '1px solid',
-                              borderColor: 'grey.200',
-                              borderRadius: 1,
-                            }}
-                          >
-                            <TextField
-                              placeholder={t('task_name')}
-                              value={newTask[objective.id]?.name || ''}
-                              onChange={e =>
-                                setNewTask({
-                                  ...newTask,
-                                  [objective.id]: {
-                                    name: e.target.value,
-                                    description:
-                                  newTask[objective.id]?.description || '',
-                                  },
-                                })}
-                              fullWidth
-                              size="small"
-                              variant="standard"
-                              sx={{
-                                'mb': 1,
-                                '& .MuiInput-root:before': {
-                                  borderBottomColor: 'grey.200',
-                                },
-                                '& .MuiInput-root:hover:not(.Mui-disabled):before':
-                              { borderBottomColor: 'grey.300' },
-                              }}
-                            />
-                            <TextField
-                              placeholder={t('task_description')}
-                              value={newTask[objective.id]?.description || ''}
-                              onChange={e =>
-                                setNewTask({
-                                  ...newTask,
-                                  [objective.id]: {
-                                    name: newTask[objective.id]?.name || '',
-                                    description: e.target.value,
-                                  },
-                                })}
-                              fullWidth
-                              size="small"
-                              multiline
-                              rows={2}
-                              variant="standard"
-                              sx={{
-                                'mb': 1.5,
-                                '& .MuiInput-root:before': {
-                                  borderBottomColor: 'grey.200',
-                                },
-                                '& .MuiInput-root:hover:not(.Mui-disabled):before':
-                              { borderBottomColor: 'grey.300' },
-                              }}
-                            />
-                            <Box sx={{ display: 'flex', gap: 1 }}>
-                              <Button
-                                size="small"
-                                variant="contained"
-                                onClick={() => addTask(objective.id)}
-                                sx={{
-                                  'textTransform': 'none',
-                                  'fontSize': '0.813rem',
-                                  'py': 0.5,
-                                  'boxShadow': 'none',
-                                  '&:hover': { boxShadow: 'none' },
-                                }}
-                              >
-                                {t('save')}
-                              </Button>
-                              <Button
-                                size="small"
-                                onClick={() =>
-                                  setAddingTask({
-                                    ...addingTask,
-                                    [objective.id]: false,
-                                  })}
-                                sx={{
-                                  textTransform: 'none',
-                                  fontSize: '0.813rem',
-                                  color: 'grey.600',
-                                }}
-                              >
-                                {t('cancel')}
-                              </Button>
-                            </Box>
-                          </Box>
-                        )
-                      : (
-                          <Button
-                            size="small"
-                            startIcon={<AddIcon fontSize="small" />}
-                            onClick={() =>
+                    {addingTask[objective.id] && (
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 1.5,
+                          py: 0.5,
+                          ml: 4,
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            color: 'grey.300',
+                          }}
+                        >
+                          <CheckBoxOutlineBlank fontSize="small" />
+                        </Box>
+                        <TextField
+                          inputRef={(el) => {
+                            newTaskRefs.current[objective.id] = el;
+                          }}
+                          placeholder={t('task_name')}
+                          value={newTask[objective.id]?.name || ''}
+                          onChange={e =>
+                            setNewTask({
+                              ...newTask,
+                              [objective.id]: {
+                                name: e.target.value,
+                                description:
+                              newTask[objective.id]?.description || '',
+                              },
+                            })}
+                          onBlur={() => {
+                            setAddingTask({
+                              ...addingTask,
+                              [objective.id]: false,
+                            });
+                            setNewTask({
+                              ...newTask,
+                              [objective.id]: { name: '', description: '' },
+                            });
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              addTask(objective.id);
+                            } else if (e.key === 'Escape') {
+                              e.preventDefault();
                               setAddingTask({
                                 ...addingTask,
-                                [objective.id]: true,
-                              })}
-                            sx={{
-                              'mt': 1,
-                              'ml': 4,
-                              'textTransform': 'none',
-                              'fontSize': '0.813rem',
-                              'color': 'grey.600',
-                              '&:hover': { backgroundColor: 'grey.50' },
-                            }}
-                          >
-                            {t('add_task')}
-                          </Button>
-                        )}
+                                [objective.id]: false,
+                              });
+                              setNewTask({
+                                ...newTask,
+                                [objective.id]: { name: '', description: '' },
+                              });
+                            }
+                          }}
+                          fullWidth
+                          size="small"
+                          variant="standard"
+                          sx={{
+                            '& .MuiInput-root': {
+                              'fontSize': '0.875rem',
+                              '&:before': { borderBottom: 'none' },
+                              '&:after': { borderBottom: 'none' },
+                              '&:hover:not(.Mui-disabled):before': {
+                                borderBottom: 'none',
+                              },
+                            },
+                          }}
+                        />
+                      </Box>
+                    )}
+                    <Button
+                      size="small"
+                      startIcon={<AddIcon fontSize="small" />}
+                      onClick={() =>
+                        setAddingTask({
+                          ...addingTask,
+                          [objective.id]: true,
+                        })}
+                      sx={{
+                        'mt': 1,
+                        'ml': 4,
+                        'textTransform': 'none',
+                        'fontSize': '0.813rem',
+                        'color': 'grey.600',
+                        '&:hover': { backgroundColor: 'grey.50' },
+                      }}
+                    >
+                      {t('add_task')}
+                    </Button>
                   </Box>
                 </AccordionDetails>
               </Accordion>
@@ -999,100 +1254,83 @@ export function ProjectDetail({
         )}
 
         {/* Add Objective Button and Form */}
-        {addingObjective
-          ? (
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 2,
-                  py: 0.75,
-                  px: 0.75,
-                  backgroundColor: 'grey.50',
-                }}
-              >
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: 28,
-                    height: 28,
-                    borderRadius: '50%',
-                    color: 'grey.300',
-                    cursor: 'not-allowed',
-                  }}
-                >
-                  <RadioButtonUnchecked fontSize="small" />
-                </Box>
-                <TextField
-                  placeholder={t('objective_name')}
-                  value={newObjective.name}
-                  onChange={e =>
-                    setNewObjective({ ...newObjective, name: e.target.value })}
-                  variant="standard"
-                  multiline
-                  sx={{
-                    'width': `${Math.max(newObjective.name.length * 10 + 15, 165)}px`,
-                    'maxWidth': '600px',
-                    '& .MuiInput-root': {
-                      'fontSize': '1.063rem',
-                      'fontWeight': 500,
-                      '&:before': { borderBottom: 'none' },
-                      '&:after': { borderBottom: 'none' },
-                      '&:hover:not(.Mui-disabled):before': { borderBottom: 'none' },
-                    },
-                    '& textarea': {
-                      cursor: 'text',
-                    },
-                  }}
-                />
-                <Box sx={{ flex: 1, minWidth: 0 }} />
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <Button
-                    size="small"
-                    variant="contained"
-                    onClick={addObjective}
-                    sx={{
-                      'textTransform': 'none',
-                      'fontSize': '0.813rem',
-                      'py': 0.5,
-                      'boxShadow': 'none',
-                      '&:hover': { boxShadow: 'none' },
-                    }}
-                  >
-                    {t('save')}
-                  </Button>
-                  <Button
-                    size="small"
-                    onClick={() => setAddingObjective(false)}
-                    sx={{
-                      textTransform: 'none',
-                      fontSize: '0.813rem',
-                      color: 'grey.600',
-                    }}
-                  >
-                    {t('cancel')}
-                  </Button>
-                </Box>
-              </Box>
-            )
-          : (
-              <Button
-                size="small"
-                startIcon={<AddIcon fontSize="small" />}
-                onClick={() => setAddingObjective(true)}
-                sx={{
-                  'textTransform': 'none',
-                  'fontSize': '0.813rem',
-                  'color': 'grey.600',
-                  'mb': 1.5,
-                  '&:hover': { backgroundColor: 'grey.100' },
-                }}
-              >
-                {t('add_objective')}
-              </Button>
-            )}
+        {addingObjective && (
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 2,
+              py: 0.75,
+              px: 0.75,
+            }}
+          >
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 28,
+                height: 28,
+                borderRadius: '50%',
+                color: 'grey.300',
+              }}
+            >
+              <RadioButtonUnchecked fontSize="small" />
+            </Box>
+            <TextField
+              inputRef={newObjectiveRef}
+              placeholder={t('objective_name')}
+              value={newObjective.name}
+              onChange={e =>
+                setNewObjective({ ...newObjective, name: e.target.value })}
+              onBlur={() => {
+                setAddingObjective(false);
+                setNewObjective({ name: '', description: '' });
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  addObjective();
+                } else if (e.key === 'Escape') {
+                  e.preventDefault();
+                  setAddingObjective(false);
+                  setNewObjective({ name: '', description: '' });
+                }
+              }}
+              variant="standard"
+              multiline
+              sx={{
+                'width': `${Math.max(newObjective.name.length * 9, 165)}px`,
+                'maxWidth': '600px',
+                '& .MuiInput-root': {
+                  'fontSize': '1.063rem',
+                  'fontWeight': 500,
+                  '&:before': { borderBottom: 'none' },
+                  '&:after': { borderBottom: 'none' },
+                  '&:hover:not(.Mui-disabled):before': { borderBottom: 'none' },
+                },
+                '& textarea': {
+                  cursor: 'text',
+                },
+              }}
+            />
+            <Box sx={{ flex: 1, minWidth: 0 }} />
+          </Box>
+        )}
+        <Button
+          size="small"
+          startIcon={<AddIcon fontSize="small" />}
+          onClick={() => setAddingObjective(true)}
+          sx={{
+            'textTransform': 'none',
+            'fontSize': '0.813rem',
+            'color': 'grey.600',
+            'mb': 1.5,
+            '&:hover': { backgroundColor: 'grey.100' },
+          }}
+        >
+          {t('add_objective')}
+        </Button>
 
         {/* Sprints Section */}
 
