@@ -4,13 +4,13 @@ import {
   Add as AddIcon,
   CheckBox,
   CheckBoxOutlineBlank,
-  CheckCircleOutline,
+  CheckCircle as CheckCircleIcon,
   Delete as DeleteIcon,
   Description as DescriptionIcon,
   ExpandLess,
   ExpandMore,
   FormatListBulleted,
-  RadioButtonUnchecked,
+  RadioButtonUnchecked as RadioButtonUncheckedIcon,
 } from '@mui/icons-material';
 import {
   Accordion,
@@ -632,27 +632,15 @@ export function ProjectDetail({
                 key={objective.id}
                 expanded={isExpanded}
                 onChange={() => {
-                  if (hasContent) {
-                    setExpandedObjective(isExpanded ? null : objective.id);
-                  } else {
-                    // If row can't be expanded, focus the input
-                    setTimeout(() => {
-                      const input = objectiveRefs.current[objective.id];
-                      if (input) {
-                        input.focus();
-                        const length = input.value.length;
-                        input.setSelectionRange(length, length);
-                      }
-                    }, 0);
-                  }
+                  setExpandedObjective(isExpanded ? null : objective.id);
                 }}
                 onMouseEnter={() => setHoveredObjective(objective.id)}
                 onMouseLeave={() => setHoveredObjective(null)}
                 sx={{
                   'backgroundColor': !isExpanded ? 'transparent' : 'grey.100',
                   'borderRadius': isExpanded ? 4 : 2,
-                  'boxShadow': 'none',
-                  'transition': 'border-radius 0.2s ease',
+                  'boxShadow': isExpanded ? '0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04)' : 'none',
+                  'transition': 'border-radius 0.2s ease, box-shadow 0.2s ease',
                   '&:before': { display: 'none' },
                   '&:hover': {
                     backgroundColor: 'grey.200',
@@ -665,17 +653,13 @@ export function ProjectDetail({
               >
                 <AccordionSummary
                   expandIcon={
-                    hasContent
+                    isExpanded
                       ? (
-                          isExpanded
-                            ? (
-                                <ExpandLess fontSize="small" sx={{ color: 'grey.500' }} />
-                              )
-                            : (
-                                <ExpandMore fontSize="small" sx={{ color: 'grey.500' }} />
-                              )
+                          <ExpandLess fontSize="small" sx={{ color: 'grey.500' }} />
                         )
-                      : null
+                      : (
+                          <ExpandMore fontSize="small" sx={{ color: 'grey.500' }} />
+                        )
                   }
                   onKeyDown={(e) => {
                     if (e.key === ' ' || e.key === 'Spacebar') {
@@ -687,8 +671,9 @@ export function ProjectDetail({
                     'minHeight': '40px',
                     'px': 0.75,
                     'py': 0.75,
-                    'cursor': hasContent ? 'pointer' : 'default',
+                    'cursor': 'pointer',
                     '& .MuiAccordionSummary-content': { my: 0 },
+                    '& .MuiAccordionSummary-expandIconWrapper': { mr: 0.75 },
                     '&.Mui-focusVisible': { backgroundColor: 'transparent' },
                     '&.Mui-expanded': {
                       minHeight: '40px',
@@ -713,35 +698,28 @@ export function ProjectDetail({
                         updateObjectiveStatus(objective.id, newStatus);
                       }}
                       sx={{
-                        'cursor': 'pointer',
-                        'display': 'flex',
-                        'alignItems': 'center',
-                        'justifyContent': 'center',
-                        'width': 28,
-                        'height': 28,
-                        'borderRadius': '50%',
-                        'backgroundColor':
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: 28,
+                        height: 28,
+                        borderRadius: '50%',
+                        backgroundColor: 'transparent',
+                        mr: 1,
+                        color:
                           objective.status === 'completed'
                             ? 'primary.main'
-                            : 'transparent',
-                        'color':
-                          objective.status === 'completed'
-                            ? 'white'
                             : 'grey.400',
-                        '&:hover': {
-                          backgroundColor:
-                            objective.status === 'completed'
-                              ? 'primary.dark'
-                              : 'grey.100',
-                        },
+
                       }}
                     >
                       {objective.status === 'completed'
                         ? (
-                            <CheckCircleOutline fontSize="small" />
+                            <CheckCircleIcon fontSize="small" />
                           )
                         : (
-                            <RadioButtonUnchecked fontSize="small" />
+                            <RadioButtonUncheckedIcon fontSize="small" />
                           )}
                     </Box>
                     <TextField
@@ -937,7 +915,7 @@ export function ProjectDetail({
                   </Box>
                 </AccordionSummary>
                 <AccordionDetails
-                  sx={{ pt: 1, pb: 1, px: 0, backgroundColor: 'transparent' }}
+                  sx={{ pt: 2, pb: 2, px: 2, backgroundColor: 'transparent' }}
                 >
                   <Box>
                     {/* Description Section */}
@@ -1001,7 +979,7 @@ export function ProjectDetail({
                         <Typography
                           variant="subtitle2"
                           sx={{
-                            fontWeight: 600,
+                            fontWeight: 500,
                             fontSize: '1rem',
                             color: 'grey.700',
                             display: 'flex',
@@ -1245,10 +1223,21 @@ export function ProjectDetail({
                             });
                           }}
                           onKeyDown={(e) => {
+                            const target = e.target as HTMLInputElement;
                             if (e.key === 'Enter' && !e.shiftKey) {
                               e.preventDefault();
                               addTask(objective.id);
                             } else if (e.key === 'Escape') {
+                              e.preventDefault();
+                              setAddingTask({
+                                ...addingTask,
+                                [objective.id]: false,
+                              });
+                              setNewTask({
+                                ...newTask,
+                                [objective.id]: { name: '', description: '' },
+                              });
+                            } else if (e.key === 'Backspace' && target.value === '') {
                               e.preventDefault();
                               setAddingTask({
                                 ...addingTask,
@@ -1308,7 +1297,6 @@ export function ProjectDetail({
             sx={{
               display: 'flex',
               alignItems: 'center',
-              gap: 2,
               py: 0.75,
               px: 0.75,
             }}
@@ -1322,9 +1310,10 @@ export function ProjectDetail({
                 height: 28,
                 borderRadius: '50%',
                 color: 'grey.300',
+                mr: 1,
               }}
             >
-              <RadioButtonUnchecked fontSize="small" />
+              <RadioButtonUncheckedIcon fontSize="small" />
             </Box>
             <TextField
               inputRef={newObjectiveRef}
@@ -1337,10 +1326,15 @@ export function ProjectDetail({
                 setNewObjective({ name: '', description: '' });
               }}
               onKeyDown={(e) => {
+                const target = e.target as HTMLInputElement | HTMLTextAreaElement;
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
                   addObjective();
                 } else if (e.key === 'Escape') {
+                  e.preventDefault();
+                  setAddingObjective(false);
+                  setNewObjective({ name: '', description: '' });
+                } else if (e.key === 'Backspace' && target.value === '') {
                   e.preventDefault();
                   setAddingObjective(false);
                   setNewObjective({ name: '', description: '' });
@@ -1375,6 +1369,7 @@ export function ProjectDetail({
             'fontSize': '0.813rem',
             'color': 'grey.600',
             'mb': 1.5,
+            'ml': 0.75,
             '&:hover': { backgroundColor: 'grey.100' },
           }}
         >
