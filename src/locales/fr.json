@@ -139,6 +139,23 @@
     "no_tasks": "Aucune tâche pour le moment",
     "no_sprints": "Aucun sprint pour le moment",
     "progress": "Progrès",
-    "tasks_completed": "{completed} sur {total} tâches terminées"
+    "tasks_completed": "{completed} sur {total} tâches terminées",
+    "tabs_objectives": "Objectifs",
+    "tabs_tasks": "Tâches",
+    "tabs_sprints": "Sprints",
+    "tabs_calendar": "Calendrier",
+    "tabs_timeline": "Chronologie",
+    "tabs_report": "Rapport",
+    "tabs_settings": "Paramètres",
+    "kanban_todo": "À Faire",
+    "kanban_in_progress": "En Cours",
+    "kanban_done": "Terminé",
+    "report_completion_rate": "Taux d'Achèvement",
+    "report_task_distribution": "Distribution des Tâches",
+    "report_timeline": "Chronologie",
+    "report_objectives_completed": "Objectifs Terminés",
+    "report_tasks_by_status": "Tâches par Statut",
+    "report_tasks_by_priority": "Tâches par Priorité",
+    "export_pdf": "Exporter en PDF"
   }
 }

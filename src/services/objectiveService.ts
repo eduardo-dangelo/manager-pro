@@ -7,6 +7,9 @@ export type ObjectiveData = {
   description: string;
   projectId: number;
   status?: string;
+  priority?: string;
+  startDate?: Date | null;
+  dueDate?: Date | null;
 };
 
 export class ObjectiveService {

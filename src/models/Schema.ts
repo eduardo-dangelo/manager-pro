@@ -76,6 +76,9 @@ export const objectivesSchema = pgTable('objectives', {
     .$onUpdate(() => new Date())
     .notNull(),
   status: text('status').notNull().default('active'),
+  priority: text('priority').notNull().default('medium'),
+  startDate: timestamp('start_date', { mode: 'date' }),
+  dueDate: timestamp('due_date', { mode: 'date' }),
 });
 
 export const tasksSchema = pgTable('tasks', {

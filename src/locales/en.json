@@ -140,6 +140,23 @@
     "no_tasks": "No tasks yet",
     "no_sprints": "No sprints yet",
     "progress": "Progress",
-    "tasks_completed": "{completed} of {total} tasks completed"
+    "tasks_completed": "{completed} of {total} tasks completed",
+    "tabs_objectives": "Objectives",
+    "tabs_tasks": "Tasks",
+    "tabs_sprints": "Sprints",
+    "tabs_calendar": "Calendar",
+    "tabs_timeline": "Timeline",
+    "tabs_report": "Report",
+    "tabs_settings": "Settings",
+    "kanban_todo": "To Do",
+    "kanban_in_progress": "In Progress",
+    "kanban_done": "Done",
+    "report_completion_rate": "Completion Rate",
+    "report_task_distribution": "Task Distribution",
+    "report_timeline": "Timeline",
+    "report_objectives_completed": "Objectives Completed",
+    "report_tasks_by_status": "Tasks by Status",
+    "report_tasks_by_priority": "Tasks by Priority",
+    "export_pdf": "Export PDF"
   }
 }

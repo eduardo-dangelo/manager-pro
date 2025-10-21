@@ -5,6 +5,9 @@ export const ObjectiveValidation = z.object({
   description: z.string().min(0).max(5000),
   projectId: z.number().int().positive(),
   status: z.enum(['active', 'completed', 'archived']).default('active'),
+  priority: z.enum(['low', 'medium', 'high']).default('medium'),
+  startDate: z.coerce.date().nullable().optional(),
+  dueDate: z.coerce.date().nullable().optional(),
 });
 
 export const UpdateObjectiveValidation = ObjectiveValidation.partial().extend({
