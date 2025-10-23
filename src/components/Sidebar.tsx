@@ -18,6 +18,7 @@ import {
   useTheme,
 } from '@mui/material';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { Logo } from './Logo';
 
@@ -25,6 +26,7 @@ type MenuItem = {
   icon: React.ComponentType<any>;
   label: string;
   href: string;
+  isSubItem?: boolean;
 };
 
 type SidebarProps = {
@@ -45,9 +47,14 @@ export function Sidebar({
   const [mobileOpen, setMobileOpen] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
+  const pathname = usePathname();
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
+  };
+
+  const isActive = (href: string) => {
+    return pathname === href;
   };
 
   const drawerContent = (
@@ -63,6 +70,7 @@ export function Sidebar({
       <List sx={{ flexGrow: 1, px: 2, py: isMobile ? 3 : 2, mt: isMobile ? 5 : 0 }}>
         {menuItems.map((item) => {
           const Icon = item.icon;
+          const active = isActive(item.href);
           return (
             <ListItem key={item.href} disablePadding sx={{ mb: 0.5 }}>
               <ListItemButton
@@ -70,7 +78,9 @@ export function Sidebar({
                 href={item.href}
                 sx={{
                   'borderRadius': 2,
-                  'color': 'rgba(255, 255, 255, 0.7)',
+                  'color': active ? 'white' : 'rgba(255, 255, 255, 0.7)',
+                  'bgcolor': active ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
+                  'pl': item.isSubItem ? 4 : 2,
                   '&:hover': {
                     'bgcolor': 'rgba(255, 255, 255, 0.08)',
                     'color': 'white',

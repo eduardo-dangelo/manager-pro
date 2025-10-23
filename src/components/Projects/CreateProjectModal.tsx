@@ -1,12 +1,22 @@
 'use client';
 
 import {
+  AttachMoney as AttachMoneyIcon,
+  Close as CloseIcon,
+  DirectionsCar as DirectionsCarIcon,
+  Flight as FlightIcon,
+  Home as HomeIcon,
+  MusicNote as MusicNoteIcon,
+} from '@mui/icons-material';
+import {
   Box,
   Button,
-  Card,
-  CardContent,
+  Dialog,
+  DialogContent,
+  DialogTitle,
   FormControl,
   FormHelperText,
+  IconButton,
   InputLabel,
   MenuItem,
   Select,
@@ -41,31 +51,33 @@ const colorMap: Record<string, string> = {
   pink: '#ec4899',
 };
 
-type ProjectFormProps = {
+const projectTypes = [
+  { value: 'vehicle', label: 'type_vehicle', icon: DirectionsCarIcon },
+  { value: 'property', label: 'type_property', icon: HomeIcon },
+  { value: 'cashflow', label: 'type_cashflow', icon: AttachMoneyIcon },
+  { value: 'trip', label: 'type_trip', icon: FlightIcon },
+  { value: 'band', label: 'type_band', icon: MusicNoteIcon },
+];
+
+type CreateProjectModalProps = {
+  open: boolean;
+  onClose: () => void;
   locale: string;
-  project?: {
-    id: number;
-    name: string;
-    description: string;
-    color: string;
-    status: string;
-    type?: string | null;
-    tabs?: string[];
-  };
+  preSelectedType?: string;
 };
 
-export function ProjectForm({ locale, project }: ProjectFormProps) {
+export function CreateProjectModal({ open, onClose, locale, preSelectedType }: CreateProjectModalProps) {
   const t = useTranslations('Projects');
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
-    name: project?.name || '',
-    description: project?.description || '',
-    color: project?.color || 'blue',
-    status: project?.status || 'active',
-    type: project?.type || null,
+    name: '',
+    description: '',
+    color: 'blue',
+    status: 'active',
+    type: preSelectedType || '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -74,14 +86,8 @@ export function ProjectForm({ locale, project }: ProjectFormProps) {
     setError(null);
 
     try {
-      const url = project
-        ? `/${locale}/api/projects/${project.id}`
-        : `/${locale}/api/projects`;
-
-      const method = project ? 'PUT' : 'POST';
-
-      const response = await fetch(url, {
-        method,
+      const response = await fetch(`/${locale}/api/projects`, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -96,6 +102,18 @@ export function ProjectForm({ locale, project }: ProjectFormProps) {
 
       const data = await response.json();
 
+      // Reset form
+      setFormData({
+        name: '',
+        description: '',
+        color: 'blue',
+        status: 'active',
+        type: '',
+      });
+
+      // Close modal
+      onClose();
+
       // Redirect to project detail page
       router.push(`/${locale}/dashboard/projects/${data.project.id}`);
       router.refresh();
@@ -105,18 +123,76 @@ export function ProjectForm({ locale, project }: ProjectFormProps) {
     }
   };
 
+  const handleClose = () => {
+    if (!loading) {
+      setFormData({
+        name: '',
+        description: '',
+        color: 'blue',
+        status: 'active',
+        type: preSelectedType || '',
+      });
+      setError(null);
+      onClose();
+    }
+  };
+
   return (
-    <Card
-      sx={{
-        border: 1,
-        borderColor: 'grey.200',
-        borderRadius: 2,
-        maxWidth: 800,
+    <Dialog
+      open={open}
+      onClose={handleClose}
+      maxWidth="sm"
+      fullWidth
+      PaperProps={{
+        sx: {
+          borderRadius: 2,
+        },
       }}
     >
-      <CardContent sx={{ p: 4 }}>
+      <DialogTitle sx={{ pb: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
+            {t('new_project')}
+          </Typography>
+          <IconButton
+            edge="end"
+            onClick={handleClose}
+            disabled={loading}
+            aria-label="close"
+            size="small"
+          >
+            <CloseIcon />
+          </IconButton>
+        </Box>
+      </DialogTitle>
+
+      <DialogContent>
         <form onSubmit={handleSubmit}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 1 }}>
+            {/* Project Type - REQUIRED and FIRST - Hidden when preSelectedType is provided */}
+            {!preSelectedType && (
+              <FormControl fullWidth required>
+                <InputLabel>{t('project_type')}</InputLabel>
+                <Select
+                  value={formData.type}
+                  label={t('project_type')}
+                  onChange={e => setFormData({ ...formData, type: e.target.value })}
+                >
+                  {projectTypes.map((type) => {
+                    const Icon = type.icon;
+                    return (
+                      <MenuItem key={type.value} value={type.value}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                          <Icon sx={{ fontSize: 20, color: 'grey.600' }} />
+                          <Typography>{t(type.label)}</Typography>
+                        </Box>
+                      </MenuItem>
+                    );
+                  })}
+                </Select>
+              </FormControl>
+            )}
+
             {/* Name */}
             <TextField
               label={t('project_name')}
@@ -124,8 +200,6 @@ export function ProjectForm({ locale, project }: ProjectFormProps) {
               onChange={e => setFormData({ ...formData, name: e.target.value })}
               required
               fullWidth
-              // eslint-disable-next-line jsx-a11y/no-autofocus
-              autoFocus
             />
 
             {/* Description */}
@@ -137,17 +211,6 @@ export function ProjectForm({ locale, project }: ProjectFormProps) {
               rows={4}
               fullWidth
             />
-
-            {/* Project Type - Read Only in Edit Mode */}
-            {project && project.type && (
-              <TextField
-                label={t('project_type')}
-                value={t(`type_${project.type}` as any)}
-                disabled
-                fullWidth
-                helperText={t('type_readonly_message')}
-              />
-            )}
 
             {/* Color */}
             <FormControl fullWidth>
@@ -198,10 +261,10 @@ export function ProjectForm({ locale, project }: ProjectFormProps) {
             )}
 
             {/* Actions */}
-            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', pt: 1 }}>
               <Button
                 variant="outlined"
-                onClick={() => router.back()}
+                onClick={handleClose}
                 disabled={loading}
                 sx={{
                   textTransform: 'none',
@@ -224,12 +287,13 @@ export function ProjectForm({ locale, project }: ProjectFormProps) {
                   },
                 }}
               >
-                {loading ? 'Saving...' : t('save')}
+                {loading ? 'Creating...' : t('create_project')}
               </Button>
             </Box>
           </Box>
         </form>
-      </CardContent>
-    </Card>
+      </DialogContent>
+    </Dialog>
   );
 }
+

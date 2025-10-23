@@ -3,7 +3,7 @@ import { currentUser } from '@clerk/nextjs/server';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { redirect } from 'next/navigation';
 import { ProjectService } from '@/services/projectService';
-import { ProjectsPageClient } from './ProjectsPageClient';
+import { ProjectsPageClient } from '../ProjectsPageClient';
 
 export async function generateMetadata(props: {
   params: Promise<{ locale: string }>;
@@ -15,11 +15,11 @@ export async function generateMetadata(props: {
   });
 
   return {
-    title: t('meta_title'),
+    title: t('type_trip'),
   };
 }
 
-export default async function ProjectsPage(props: {
+export default async function TripProjectsPage(props: {
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await props.params;
@@ -31,7 +31,7 @@ export default async function ProjectsPage(props: {
     redirect(`/${locale}/sign-in`);
   }
 
-  // Sync user with database - ensures user exists before creating projects
+  // Sync user with database
   const { UserService } = await import('@/services/userService');
   await UserService.upsertUser({
     id: user.id,
@@ -41,7 +41,10 @@ export default async function ProjectsPage(props: {
     imageUrl: user.imageUrl,
   });
 
-  const projects = await ProjectService.getProjectsByUserId(user.id);
+  // Fetch only trip projects
+  const allProjects = await ProjectService.getProjectsByUserId(user.id);
+  const projects = allProjects.filter(p => p.type === 'trip');
 
-  return <ProjectsPageClient projects={projects} locale={locale} />;
+  return <ProjectsPageClient projects={projects} locale={locale} projectType="trip" />;
 }
+

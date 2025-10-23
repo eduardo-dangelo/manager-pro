@@ -62,7 +62,7 @@ export const projectsSchema = pgTable('projects', {
     .notNull(),
   color: text('color').notNull().default('gray'),
   status: text('status').notNull().default('active'),
-  type: text('type'),
+  type: text('type').notNull(),
   tabs: text('tabs').array().notNull().default(['overview']),
 });
 
