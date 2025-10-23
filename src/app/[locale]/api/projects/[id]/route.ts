@@ -31,7 +31,7 @@ export const GET = async (
 
     return NextResponse.json({ project });
   } catch (error) {
-    logger.error('Error fetching project:', error);
+    logger.error(`Error fetching project: ${error instanceof Error ? error.message : String(error)}`);
     return NextResponse.json(
       { error: 'Failed to fetch project' },
       { status: 500 },
@@ -64,6 +64,17 @@ export const PUT = async (
       return NextResponse.json(z.treeifyError(parse.error), { status: 422 });
     }
 
+    // Check if type is being changed when it's already set
+    if (parse.data.type !== undefined) {
+      const existingProject = await ProjectService.getProjectById(projectId, user.id);
+      if (existingProject && existingProject.type && existingProject.type !== parse.data.type) {
+        return NextResponse.json(
+          { error: 'Project type cannot be changed once set' },
+          { status: 400 },
+        );
+      }
+    }
+
     const project = await ProjectService.updateProject(projectId, parse.data, user.id);
 
     if (!project) {
@@ -74,7 +85,7 @@ export const PUT = async (
 
     return NextResponse.json({ project });
   } catch (error) {
-    logger.error('Error updating project:', error);
+    logger.error(`Error updating project: ${error instanceof Error ? error.message : String(error)}`);
     return NextResponse.json(
       { error: 'Failed to update project' },
       { status: 500 },
@@ -106,7 +117,7 @@ export const DELETE = async (
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    logger.error('Error deleting project:', error);
+    logger.error(`Error deleting project: ${error instanceof Error ? error.message : String(error)}`);
     return NextResponse.json(
       { error: 'Failed to delete project' },
       { status: 500 },

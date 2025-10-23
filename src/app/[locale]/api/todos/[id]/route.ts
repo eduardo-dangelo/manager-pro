@@ -2,8 +2,8 @@ import { currentUser } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import z from 'zod';
 import { logger } from '@/libs/Logger';
-import { TaskService } from '@/services/taskService';
-import { UpdateTaskValidation } from '@/validations/TaskValidation';
+import { TodoService } from '@/services/todoService';
+import { UpdateTodoValidation } from '@/validations/TodoValidation';
 
 export const PUT = async (
   request: Request,
@@ -17,37 +17,37 @@ export const PUT = async (
     }
 
     const { id } = await props.params;
-    const taskId = Number.parseInt(id, 10);
+    const todoId = Number.parseInt(id, 10);
 
-    if (Number.isNaN(taskId)) {
-      return NextResponse.json({ error: 'Invalid task ID' }, { status: 400 });
+    if (Number.isNaN(todoId)) {
+      return NextResponse.json({ error: 'Invalid todo ID' }, { status: 400 });
     }
 
     const json = await request.json();
-    const parse = UpdateTaskValidation.safeParse({ ...json, id: taskId });
+    const parse = UpdateTodoValidation.safeParse({ ...json, id: todoId });
 
     if (!parse.success) {
       return NextResponse.json(z.treeifyError(parse.error), { status: 422 });
     }
 
-    const taskData = {
+    const todoData = {
       ...parse.data,
       dueDate: parse.data.dueDate ? new Date(parse.data.dueDate) : undefined,
     };
 
-    const task = await TaskService.updateTask(taskId, taskData, user.id);
+    const todo = await TodoService.updateTodo(todoId, todoData, user.id);
 
-    if (!task) {
-      return NextResponse.json({ error: 'Task not found' }, { status: 404 });
+    if (!todo) {
+      return NextResponse.json({ error: 'Todo not found' }, { status: 404 });
     }
 
-    logger.info('Task has been updated', { taskId: task.id });
+    logger.info('Todo has been updated', { todoId: todo.id });
 
-    return NextResponse.json({ task });
+    return NextResponse.json({ todo });
   } catch (error) {
-    logger.error('Error updating task:', error);
+    logger.error('Error updating todo:', error);
     return NextResponse.json(
-      { error: 'Failed to update task' },
+      { error: 'Failed to update todo' },
       { status: 500 },
     );
   }
@@ -65,22 +65,23 @@ export const DELETE = async (
     }
 
     const { id } = await props.params;
-    const taskId = Number.parseInt(id, 10);
+    const todoId = Number.parseInt(id, 10);
 
-    if (Number.isNaN(taskId)) {
-      return NextResponse.json({ error: 'Invalid task ID' }, { status: 400 });
+    if (Number.isNaN(todoId)) {
+      return NextResponse.json({ error: 'Invalid todo ID' }, { status: 400 });
     }
 
-    await TaskService.deleteTask(taskId, user.id);
+    await TodoService.deleteTodo(todoId, user.id);
 
-    logger.info('Task has been deleted', { taskId });
+    logger.info('Todo has been deleted', { todoId });
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    logger.error('Error deleting task:', error);
+    logger.error('Error deleting todo:', error);
     return NextResponse.json(
-      { error: 'Failed to delete task' },
+      { error: 'Failed to delete todo' },
       { status: 500 },
     );
   }
 };
+

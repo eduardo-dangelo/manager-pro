@@ -1,9 +1,10 @@
 import {
-  BarChart,
-  CheckBox,
+  AccountBalanceWallet,
+  CalendarMonth,
   Dashboard as DashboardIcon,
+  DirectionsCar,
   Folder,
-  People,
+  HomeWork,
   Settings as SettingsIcon,
 } from '@mui/icons-material';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
@@ -26,8 +27,18 @@ export default async function DashboardLayout(props: {
   const menuItems = [
     {
       icon: DashboardIcon,
-      label: t('menu_overview'),
+      label: t('menu_dashboard'),
       href: `/${locale}/dashboard`,
+    },
+    {
+      icon: CalendarMonth,
+      label: t('menu_year_planner'),
+      href: `/${locale}/dashboard/year-planner`,
+    },
+    {
+      icon: AccountBalanceWallet,
+      label: t('menu_cash_flow'),
+      href: `/${locale}/dashboard/cash-flow`,
     },
     {
       icon: Folder,
@@ -35,19 +46,14 @@ export default async function DashboardLayout(props: {
       href: `/${locale}/dashboard/projects`,
     },
     {
-      icon: CheckBox,
-      label: t('menu_tasks'),
-      href: `/${locale}/dashboard/tasks`,
+      icon: HomeWork,
+      label: t('menu_properties'),
+      href: `/${locale}/dashboard/properties`,
     },
     {
-      icon: People,
-      label: t('menu_team'),
-      href: `/${locale}/dashboard/team`,
-    },
-    {
-      icon: BarChart,
-      label: t('menu_analytics'),
-      href: `/${locale}/dashboard/analytics`,
+      icon: DirectionsCar,
+      label: t('menu_vehicles'),
+      href: `/${locale}/dashboard/vehicles`,
     },
     {
       icon: SettingsIcon,

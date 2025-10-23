@@ -247,7 +247,7 @@ export function ObjectivesTab({ project, locale, onUpdateProject }: ObjectivesTa
     }
 
     try {
-      const response = await fetch(`/${locale}/api/tasks`, {
+      const response = await fetch(`/${locale}/api/todos`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -277,7 +277,7 @@ export function ObjectivesTab({ project, locale, onUpdateProject }: ObjectivesTa
 
   const updateTaskStatus = async (taskId: number, status: string) => {
     try {
-      const response = await fetch(`/${locale}/api/tasks/${taskId}`, {
+      const response = await fetch(`/${locale}/api/todos/${taskId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
@@ -300,7 +300,7 @@ export function ObjectivesTab({ project, locale, onUpdateProject }: ObjectivesTa
 
   const updateTaskName = async (taskId: number, name: string) => {
     try {
-      const response = await fetch(`/${locale}/api/tasks/${taskId}`, {
+      const response = await fetch(`/${locale}/api/todos/${taskId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name }),
@@ -323,7 +323,7 @@ export function ObjectivesTab({ project, locale, onUpdateProject }: ObjectivesTa
 
   const deleteTask = async (taskId: number) => {
     try {
-      const response = await fetch(`/${locale}/api/tasks/${taskId}`, {
+      const response = await fetch(`/${locale}/api/todos/${taskId}`, {
         method: 'DELETE',
       });
 

@@ -5,6 +5,8 @@ export const ProjectValidation = z.object({
   description: z.string().min(0).max(5000),
   color: z.string().default('gray'),
   status: z.enum(['active', 'completed', 'archived', 'on-hold']).default('active'),
+  type: z.enum(['vehicle', 'property', 'cashflow', 'trip', 'band']).nullable().optional(),
+  tabs: z.array(z.string()).default(['overview']),
 });
 
 export const UpdateProjectValidation = ProjectValidation.partial();

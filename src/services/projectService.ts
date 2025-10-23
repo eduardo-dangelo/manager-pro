@@ -1,12 +1,14 @@
 import { and, eq } from 'drizzle-orm';
 import { db } from '@/libs/DB';
-import { objectivesSchema, projectsSchema, sprintsSchema, tasksSchema } from '@/models/Schema';
+import { objectivesSchema, projectsSchema, sprintsSchema, todosSchema } from '@/models/Schema';
 
 export type ProjectData = {
   name: string;
   description: string;
   color?: string;
   status?: string;
+  type?: string | null;
+  tabs?: string[];
 };
 
 export class ProjectService {
@@ -21,6 +23,8 @@ export class ProjectService {
         description: projectData.description,
         color: projectData.color || 'gray',
         status: projectData.status || 'active',
+        type: projectData.type || null,
+        tabs: projectData.tabs || ['overview'],
         userId,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -88,15 +92,15 @@ export class ProjectService {
       }
 
       // Fetch related data
-      const [objectives, tasks, sprints] = await Promise.all([
+      const [objectives, todos, sprints] = await Promise.all([
         db
           .select()
           .from(objectivesSchema)
           .where(eq(objectivesSchema.projectId, projectId)),
         db
           .select()
-          .from(tasksSchema)
-          .where(eq(tasksSchema.projectId, projectId)),
+          .from(todosSchema)
+          .where(eq(todosSchema.projectId, projectId)),
         db
           .select()
           .from(sprintsSchema)
@@ -106,7 +110,7 @@ export class ProjectService {
       return {
         ...project,
         objectives,
-        tasks,
+        todos,
         sprints,
       };
     } catch (error) {
@@ -153,7 +157,7 @@ export class ProjectService {
       // Delete related data first
       await Promise.all([
         db.delete(objectivesSchema).where(eq(objectivesSchema.projectId, projectId)),
-        db.delete(tasksSchema).where(eq(tasksSchema.projectId, projectId)),
+        db.delete(todosSchema).where(eq(todosSchema.projectId, projectId)),
         db.delete(sprintsSchema).where(eq(sprintsSchema.projectId, projectId)),
       ]);
 

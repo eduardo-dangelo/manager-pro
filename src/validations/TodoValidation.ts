@@ -1,6 +1,6 @@
 import z from 'zod';
 
-export const TaskValidation = z.object({
+export const TodoValidation = z.object({
   name: z.string().min(1, 'Name is required').max(200),
   description: z.string().min(0).max(5000),
   projectId: z.number().int().positive(),
@@ -13,9 +13,9 @@ export const TaskValidation = z.object({
   sprintIds: z.array(z.number().int().positive()).optional().nullable(),
 });
 
-export const UpdateTaskValidation = TaskValidation.partial().extend({
+export const UpdateTodoValidation = TodoValidation.partial().extend({
   id: z.number().int().positive(),
 });
 
-export type TaskInput = z.infer<typeof TaskValidation>;
-export type UpdateTaskInput = z.infer<typeof UpdateTaskValidation>;
+export type TodoInput = z.infer<typeof TodoValidation>;
+export type UpdateTodoInput = z.infer<typeof UpdateTodoValidation>;

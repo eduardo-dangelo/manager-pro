@@ -62,6 +62,8 @@ export const projectsSchema = pgTable('projects', {
     .notNull(),
   color: text('color').notNull().default('gray'),
   status: text('status').notNull().default('active'),
+  type: text('type'),
+  tabs: text('tabs').array().notNull().default(['overview']),
 });
 
 export const objectivesSchema = pgTable('objectives', {
@@ -81,13 +83,13 @@ export const objectivesSchema = pgTable('objectives', {
   dueDate: timestamp('due_date', { mode: 'date' }),
 });
 
-export const tasksSchema = pgTable('tasks', {
+export const todosSchema = pgTable('todos', {
   id: serial('id').primaryKey(),
   name: text('name').notNull(),
   description: text('description').notNull(),
   objectiveId: integer('objective_id').references((): any => objectivesSchema.id),
   projectId: integer('project_id').references((): any => projectsSchema.id),
-  parentTaskId: integer('parent_task_id').references((): any => tasksSchema.id),
+  parentTaskId: integer('parent_task_id').references((): any => todosSchema.id),
   userId: text('user_id').references(() => usersSchema.id).notNull(),
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { mode: 'date' })
@@ -122,8 +124,8 @@ export const sprintsSchema = pgTable('sprints', {
 export const userRelations = relations(usersSchema, ({ many }) => ({
   projects: many(projectsSchema),
   objectives: many(objectivesSchema),
-  createdTasks: many(tasksSchema, { relationName: 'createdTasks' }),
-  assignedTasks: many(tasksSchema, { relationName: 'assignedTasks' }),
+  createdTodos: many(todosSchema, { relationName: 'createdTodos' }),
+  assignedTodos: many(todosSchema, { relationName: 'assignedTodos' }),
   sprints: many(sprintsSchema),
   workSpaces: many(workSpacesSchema),
 }));
@@ -136,7 +138,7 @@ export const workSpacesRelations = relations(workSpacesSchema, ({ many }) => ({
 
 export const projectsRelations = relations(projectsSchema, ({ many, one }) => ({
   objectives: many(objectivesSchema),
-  tasks: many(tasksSchema),
+  todos: many(todosSchema),
   sprints: many(sprintsSchema),
   user: one(usersSchema, {
     fields: [projectsSchema.userId],
@@ -153,41 +155,41 @@ export const objectivesRelations = relations(objectivesSchema, ({ one, many }) =
     fields: [objectivesSchema.userId],
     references: [usersSchema.id],
   }),
-  tasks: many(tasksSchema),
+  todos: many(todosSchema),
 }));
 
-export const tasksRelations = relations(tasksSchema, ({ one, many }) => ({
+export const todosRelations = relations(todosSchema, ({ one, many }) => ({
   objective: one(objectivesSchema, {
-    fields: [tasksSchema.objectiveId],
+    fields: [todosSchema.objectiveId],
     references: [objectivesSchema.id],
   }),
   project: one(projectsSchema, {
-    fields: [tasksSchema.projectId],
+    fields: [todosSchema.projectId],
     references: [projectsSchema.id],
   }),
   user: one(usersSchema, {
-    fields: [tasksSchema.userId],
+    fields: [todosSchema.userId],
     references: [usersSchema.id],
-    relationName: 'createdTasks',
+    relationName: 'createdTodos',
   }),
   assignee: one(usersSchema, {
-    fields: [tasksSchema.assigneeId],
+    fields: [todosSchema.assigneeId],
     references: [usersSchema.id],
-    relationName: 'assignedTasks',
+    relationName: 'assignedTodos',
   }),
-  parentTask: one(tasksSchema, {
-    fields: [tasksSchema.parentTaskId],
-    references: [tasksSchema.id],
-    relationName: 'subtasks',
+  parentTodo: one(todosSchema, {
+    fields: [todosSchema.parentTaskId],
+    references: [todosSchema.id],
+    relationName: 'subtodos',
   }),
-  subtasks: many(tasksSchema, {
-    relationName: 'subtasks',
+  subtodos: many(todosSchema, {
+    relationName: 'subtodos',
   }),
   sprints: many(sprintsSchema),
 }));
 
 export const sprintsRelations = relations(sprintsSchema, ({ many, one }) => ({
-  tasks: many(tasksSchema),
+  todos: many(todosSchema),
   workSpace: one(workSpacesSchema, {
     fields: [sprintsSchema.workSpaceId],
     references: [workSpacesSchema.id],

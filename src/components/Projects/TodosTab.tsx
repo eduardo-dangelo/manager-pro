@@ -26,7 +26,7 @@ import {
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
-type Task = {
+type Todo = {
   id: number;
   name: string;
   description: string;
@@ -48,107 +48,107 @@ type Project = {
   description: string;
   color: string;
   status: string;
-  tasks: Task[];
+  todos: Todo[];
   objectives: Objective[];
 };
 
-type TasksTabProps = {
+type TodosTabProps = {
   project: Project;
   locale: string;
   onUpdateProject: (project: Project) => void;
 };
 
-export function TasksTab({ project, locale, onUpdateProject }: TasksTabProps) {
+export function TodosTab({ project, locale, onUpdateProject }: TodosTabProps) {
   const t = useTranslations('Projects');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterPriority, setFilterPriority] = useState<string>('all');
   const [filterAnchorEl, setFilterAnchorEl] = useState<null | HTMLElement>(null);
 
-  const updateTaskStatus = async (taskId: number, newStatus: string) => {
+  const updateTodoStatus = async (todoId: number, newStatus: string) => {
     try {
-      const response = await fetch(`/${locale}/api/tasks/${taskId}`, {
+      const response = await fetch(`/${locale}/api/todos/${todoId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update task');
+        throw new Error('Failed to update todo');
       }
 
       onUpdateProject({
         ...project,
-        tasks: project.tasks.map(task =>
-          task.id === taskId ? { ...task, status: newStatus } : task,
+        todos: project.todos.map(todo =>
+          todo.id === todoId ? { ...todo, status: newStatus } : todo,
         ),
       });
     } catch (error) {
-      console.error('Error updating task:', error);
+      console.error('Error updating todo:', error);
     }
   };
 
-  const updateTaskPriority = async (taskId: number, newPriority: string) => {
+  const updateTodoPriority = async (todoId: number, newPriority: string) => {
     try {
-      const response = await fetch(`/${locale}/api/tasks/${taskId}`, {
+      const response = await fetch(`/${locale}/api/todos/${todoId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ priority: newPriority }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update task');
+        throw new Error('Failed to update todo');
       }
 
       onUpdateProject({
         ...project,
-        tasks: project.tasks.map(task =>
-          task.id === taskId ? { ...task, priority: newPriority } : task,
+        todos: project.todos.map(todo =>
+          todo.id === todoId ? { ...todo, priority: newPriority } : todo,
         ),
       });
     } catch (error) {
-      console.error('Error updating task:', error);
+      console.error('Error updating todo:', error);
     }
   };
 
-  const updateTaskName = async (taskId: number, name: string) => {
+  const updateTodoName = async (todoId: number, name: string) => {
     try {
-      const response = await fetch(`/${locale}/api/tasks/${taskId}`, {
+      const response = await fetch(`/${locale}/api/todos/${todoId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update task');
+        throw new Error('Failed to update todo');
       }
 
       onUpdateProject({
         ...project,
-        tasks: project.tasks.map(task =>
-          task.id === taskId ? { ...task, name } : task,
+        todos: project.todos.map(todo =>
+          todo.id === todoId ? { ...todo, name } : todo,
         ),
       });
     } catch (error) {
-      console.error('Error updating task:', error);
+      console.error('Error updating todo:', error);
     }
   };
 
-  const deleteTask = async (taskId: number) => {
+  const deleteTodo = async (todoId: number) => {
     try {
-      const response = await fetch(`/${locale}/api/tasks/${taskId}`, {
+      const response = await fetch(`/${locale}/api/todos/${todoId}`, {
         method: 'DELETE',
       });
 
       if (!response.ok) {
-        throw new Error('Failed to delete task');
+        throw new Error('Failed to delete todo');
       }
 
       onUpdateProject({
         ...project,
-        tasks: project.tasks.filter(task => task.id !== taskId),
+        todos: project.todos.filter(todo => todo.id !== todoId),
       });
     } catch (error) {
-      console.error('Error deleting task:', error);
+      console.error('Error deleting todo:', error);
     }
   };
 
@@ -158,15 +158,15 @@ export function TasksTab({ project, locale, onUpdateProject }: TasksTabProps) {
     return objective ? objective.name : '-';
   };
 
-  const getFilteredTasks = () => {
-    return project.tasks.filter((task) => {
-      const statusMatch = filterStatus === 'all' || task.status === filterStatus;
-      const priorityMatch = filterPriority === 'all' || task.priority === filterPriority;
+  const getFilteredTodos = () => {
+    return project.todos.filter((todo) => {
+      const statusMatch = filterStatus === 'all' || todo.status === filterStatus;
+      const priorityMatch = filterPriority === 'all' || todo.priority === filterPriority;
       return statusMatch && priorityMatch;
     });
   };
 
-  const filteredTasks = getFilteredTasks();
+  const filteredTodos = getFilteredTodos();
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -214,10 +214,10 @@ export function TasksTab({ project, locale, onUpdateProject }: TasksTabProps) {
         }}
       >
         <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.25rem' }}>
-          {t('tasks_title')}
+          {t('todos_title')}
           {' '}
           <Chip
-            label={filteredTasks.length}
+            label={filteredTodos.length}
             size="small"
             sx={{
               height: 24,
@@ -284,7 +284,7 @@ export function TasksTab({ project, locale, onUpdateProject }: TasksTabProps) {
         </Menu>
       </Box>
 
-      {filteredTasks.length === 0
+      {filteredTodos.length === 0
         ? (
             <Paper
               sx={{
@@ -297,7 +297,7 @@ export function TasksTab({ project, locale, onUpdateProject }: TasksTabProps) {
                 variant="body1"
                 sx={{ color: 'grey.400', fontSize: '0.938rem' }}
               >
-                {t('no_tasks')}
+                {t('no_todos')}
               </Typography>
             </Paper>
           )
@@ -307,21 +307,21 @@ export function TasksTab({ project, locale, onUpdateProject }: TasksTabProps) {
                 <TableHead>
                   <TableRow>
                     <TableCell sx={{ width: 40 }} />
-                    <TableCell sx={{ fontWeight: 600 }}>{t('task_name')}</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>{t('todo_name')}</TableCell>
                     <TableCell sx={{ fontWeight: 600, width: 180 }}>Objective</TableCell>
-                    <TableCell sx={{ fontWeight: 600, width: 140 }}>{t('task_status')}</TableCell>
-                    <TableCell sx={{ fontWeight: 600, width: 120 }}>{t('task_priority')}</TableCell>
+                    <TableCell sx={{ fontWeight: 600, width: 140 }}>{t('todo_status')}</TableCell>
+                    <TableCell sx={{ fontWeight: 600, width: 120 }}>{t('todo_priority')}</TableCell>
                     <TableCell sx={{ width: 60 }} />
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredTasks.map(task => {
-                    const statusColors = getStatusColor(task.status);
-                    const priorityColors = getPriorityColor(task.priority);
+                  {filteredTodos.map(todo => {
+                    const statusColors = getStatusColor(todo.status);
+                    const priorityColors = getPriorityColor(todo.priority);
 
                     return (
                       <TableRow
-                        key={task.id}
+                        key={todo.id}
                         sx={{
                           '&:hover': {
                             backgroundColor: 'grey.50',
@@ -331,33 +331,33 @@ export function TasksTab({ project, locale, onUpdateProject }: TasksTabProps) {
                         <TableCell>
                           <Box
                             onClick={() => {
-                              const newStatus = task.status === 'done' ? 'todo' : 'done';
-                              updateTaskStatus(task.id, newStatus);
+                              const newStatus = todo.status === 'done' ? 'todo' : 'done';
+                              updateTodoStatus(todo.id, newStatus);
                             }}
                             sx={{
                               cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
-                              color: task.status === 'done' ? 'success.main' : 'grey.400',
+                              color: todo.status === 'done' ? 'success.main' : 'grey.400',
                             }}
                           >
-                            {task.status === 'done'
+                            {todo.status === 'done'
                               ? <CheckBox fontSize="small" />
                               : <CheckBoxOutlineBlank fontSize="small" />}
                           </Box>
                         </TableCell>
                         <TableCell>
                           <TextField
-                            value={task.name}
+                            value={todo.name}
                             onChange={(e) => {
                               onUpdateProject({
                                 ...project,
-                                tasks: project.tasks.map(t =>
-                                  t.id === task.id ? { ...t, name: e.target.value } : t,
+                                todos: project.todos.map(t =>
+                                  t.id === todo.id ? { ...t, name: e.target.value } : t,
                                 ),
                               });
                             }}
-                            onBlur={() => updateTaskName(task.id, task.name)}
+                            onBlur={() => updateTodoName(todo.id, todo.name)}
                             variant="standard"
                             fullWidth
                             sx={{
@@ -370,8 +370,8 @@ export function TasksTab({ project, locale, onUpdateProject }: TasksTabProps) {
                                 },
                               },
                               '& input': {
-                                textDecoration: task.status === 'done' ? 'line-through' : 'none',
-                                color: task.status === 'done' ? 'grey.500' : 'inherit',
+                                textDecoration: todo.status === 'done' ? 'line-through' : 'none',
+                                color: todo.status === 'done' ? 'grey.500' : 'inherit',
                               },
                             }}
                           />
@@ -387,13 +387,13 @@ export function TasksTab({ project, locale, onUpdateProject }: TasksTabProps) {
                               whiteSpace: 'nowrap',
                             }}
                           >
-                            {getObjectiveName(task.objectiveId)}
+                            {getObjectiveName(todo.objectiveId)}
                           </Typography>
                         </TableCell>
                         <TableCell>
                           <Select
-                            value={task.status}
-                            onChange={e => updateTaskStatus(task.id, e.target.value)}
+                            value={todo.status}
+                            onChange={e => updateTodoStatus(todo.id, e.target.value)}
                             size="small"
                             variant="standard"
                             sx={{
@@ -419,8 +419,8 @@ export function TasksTab({ project, locale, onUpdateProject }: TasksTabProps) {
                         </TableCell>
                         <TableCell>
                           <Select
-                            value={task.priority}
-                            onChange={e => updateTaskPriority(task.id, e.target.value)}
+                            value={todo.priority}
+                            onChange={e => updateTodoPriority(todo.id, e.target.value)}
                             size="small"
                             variant="standard"
                             sx={{
@@ -448,7 +448,7 @@ export function TasksTab({ project, locale, onUpdateProject }: TasksTabProps) {
                         <TableCell>
                           <IconButton
                             size="small"
-                            onClick={() => deleteTask(task.id)}
+                            onClick={() => deleteTodo(todo.id)}
                             sx={{
                               'color': 'grey.400',
                               '&:hover': {

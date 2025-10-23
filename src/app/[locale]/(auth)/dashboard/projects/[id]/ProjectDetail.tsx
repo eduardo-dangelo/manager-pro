@@ -4,10 +4,10 @@ import { Box } from '@mui/material';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { Breadcrumb } from '@/components/Breadcrumb';
-import { ProjectHeader } from './components/Projects/ProjectHeader';
-import { ProjectTabs } from './components/Projects/ProjectTabs';
+import { ProjectHeader } from '@/components/Projects/ProjectHeader';
+import { ProjectTabs } from '@/components/Projects/ProjectTabs';
 
-type Task = {
+type Todo = {
   id: number;
   name: string;
   description: string;
@@ -41,8 +41,10 @@ type Project = {
   description: string;
   color: string;
   status: string;
+  type?: string | null;
+  tabs?: string[];
   objectives: Objective[];
-  tasks: Task[];
+  todos: Todo[];
   sprints: Sprint[];
 };
 
@@ -59,7 +61,7 @@ export function ProjectDetail({
   const [project, setProject] = useState(initialProject);
 
   const breadcrumbItems = [
-    { label: dashboardT('menu_overview'), href: `/${locale}/dashboard` },
+    { label: dashboardT('menu_dashboard'), href: `/${locale}/dashboard` },
     { label: t('page_title'), href: `/${locale}/dashboard/projects` },
     { label: project.name },
   ];

@@ -49,6 +49,8 @@ type ProjectFormProps = {
     description: string;
     color: string;
     status: string;
+    type?: string | null;
+    tabs?: string[];
   };
 };
 
@@ -63,6 +65,7 @@ export function ProjectForm({ locale, project }: ProjectFormProps) {
     description: project?.description || '',
     color: project?.color || 'blue',
     status: project?.status || 'active',
+    type: project?.type || null,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -134,6 +137,27 @@ export function ProjectForm({ locale, project }: ProjectFormProps) {
               rows={4}
               fullWidth
             />
+
+            {/* Project Type */}
+            <FormControl fullWidth>
+              <InputLabel>{t('project_type')}</InputLabel>
+              <Select
+                value={formData.type || ''}
+                label={t('project_type')}
+                onChange={e => setFormData({ ...formData, type: e.target.value || null })}
+                disabled={!!(project && project.type)}
+              >
+                <MenuItem value="">{t('type_none')}</MenuItem>
+                <MenuItem value="vehicle">{t('type_vehicle')}</MenuItem>
+                <MenuItem value="property">{t('type_property')}</MenuItem>
+                <MenuItem value="cashflow">{t('type_cashflow')}</MenuItem>
+                <MenuItem value="trip">{t('type_trip')}</MenuItem>
+                <MenuItem value="band">{t('type_band')}</MenuItem>
+              </Select>
+              {project && project.type && (
+                <FormHelperText>{t('type_readonly_message')}</FormHelperText>
+              )}
+            </FormControl>
 
             {/* Color */}
             <FormControl fullWidth>

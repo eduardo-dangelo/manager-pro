@@ -16,12 +16,12 @@ const isProtectedRoute = createRouteMatcher([
 const isProtectedApiRoute = createRouteMatcher([
   '/api/projects(.*)',
   '/api/objectives(.*)',
-  '/api/tasks(.*)',
+  '/api/todos(.*)',
   '/api/sprints(.*)',
   '/api/users(.*)',
   '/:locale/api/projects(.*)',
   '/:locale/api/objectives(.*)',
-  '/:locale/api/tasks(.*)',
+  '/:locale/api/todos(.*)',
   '/:locale/api/sprints(.*)',
   '/:locale/api/users(.*)',
 ]);
