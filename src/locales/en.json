@@ -152,6 +152,8 @@
     "tabs_docs": "Docs",
     "tabs_musics": "Musics",
     "tabs_insights": "Insights",
+    "tabs_finance": "Finance",
+    "finance_title": "Finance",
     "kanban_todo": "To Do",
     "kanban_in_progress": "In Progress",
     "kanban_done": "Done",

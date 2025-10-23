@@ -1,7 +1,6 @@
 'use client';
 
-import { MenuItem, Select, TextField, Typography } from '@mui/material';
-import { Box } from '@mui/material';
+import { Box, MenuItem, Select, TextField, Typography } from '@mui/material';
 import { useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
 
@@ -151,7 +150,7 @@ export function ProjectHeader({
           )}
         </Box>
       </Box>
-      <TextField
+      {/* <TextField
         inputRef={descriptionRef}
         value={localProject.description}
         onChange={e =>
@@ -175,8 +174,7 @@ export function ProjectHeader({
           },
           'mb': 3,
         }}
-      />
+      /> */}
     </>
   );
 }
-

@@ -151,6 +151,8 @@
     "tabs_docs": "Documents",
     "tabs_musics": "Musiques",
     "tabs_insights": "Aperçus",
+    "tabs_finance": "Finances",
+    "finance_title": "Finances",
     "kanban_todo": "À Faire",
     "kanban_in_progress": "En Cours",
     "kanban_done": "Terminé",
