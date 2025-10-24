@@ -54,7 +54,18 @@ export function Sidebar({
   };
 
   const isActive = (href: string) => {
-    return pathname === href;
+    // Remove locale prefix from both pathname and href for comparison
+    const pathnameWithoutLocale = pathname.replace(/^\/[a-z]{2}\//, '/');
+    const hrefWithoutLocale = href.replace(/^\/[a-z]{2}\//, '/');
+
+    // Exact match
+    if (pathnameWithoutLocale === hrefWithoutLocale) {
+      return true;
+    }
+
+    // For parent routes, only highlight if it's a direct child (no more specific match)
+    // Don't highlight parent if we're on a sub-route
+    return false;
   };
 
   const drawerContent = (
@@ -79,10 +90,10 @@ export function Sidebar({
                 sx={{
                   'borderRadius': 2,
                   'color': active ? 'white' : 'rgba(255, 255, 255, 0.7)',
-                  'bgcolor': active ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
+                  'bgcolor': active ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
                   'pl': item.isSubItem ? 4 : 2,
                   '&:hover': {
-                    'bgcolor': 'rgba(255, 255, 255, 0.08)',
+                    'bgcolor': 'rgba(255, 255, 255, 0.12)',
                     'color': 'white',
                     '& .MuiListItemIcon-root': {
                       color: '#60a5fa',

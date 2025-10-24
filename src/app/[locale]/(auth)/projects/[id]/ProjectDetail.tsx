@@ -62,7 +62,7 @@ export function ProjectDetail({
 
   const breadcrumbItems = [
     { label: dashboardT('menu_dashboard'), href: `/${locale}/dashboard` },
-    { label: t('page_title'), href: `/${locale}/dashboard/projects` },
+    { label: t('page_title'), href: `/${locale}/projects` },
     { label: project.name },
   ];
 

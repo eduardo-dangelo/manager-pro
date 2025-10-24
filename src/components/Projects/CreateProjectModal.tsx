@@ -27,6 +27,18 @@ import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
+// Helper function to pluralize project types for routes
+const pluralizeType = (type: string): string => {
+  const pluralMap: Record<string, string> = {
+    vehicle: 'vehicles',
+    property: 'properties',
+    cashflow: 'cashflow',
+    trip: 'trips',
+    band: 'bands',
+  };
+  return pluralMap[type] || `${type}s`;
+};
+
 const colors = [
   { value: 'gray', label: 'Gray' },
   { value: 'red', label: 'Red' },
@@ -115,7 +127,7 @@ export function CreateProjectModal({ open, onClose, locale, preSelectedType }: C
       onClose();
 
       // Redirect to project detail page
-      router.push(`/${locale}/dashboard/projects/${data.project.id}`);
+      router.push(`/${locale}/projects/${pluralizeType(data.project.type)}/${data.project.id}`);
       router.refresh();
     } catch (err: any) {
       setError(err.message);

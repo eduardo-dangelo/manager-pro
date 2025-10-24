@@ -33,7 +33,7 @@ export default async function UserProfilePage(props: IUserProfilePageProps) {
       }}
     >
       <UserProfile
-        path={getI18nPath('/dashboard/user-profile', locale)}
+        path={getI18nPath('/user-profile', locale)}
       />
     </Box>
   );

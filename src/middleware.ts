@@ -10,7 +10,15 @@ const handleI18nRouting = createMiddleware(routing);
 
 const isProtectedRoute = createRouteMatcher([
   '/dashboard(.*)',
+  '/projects(.*)',
+  '/year-planner(.*)',
+  '/settings(.*)',
+  '/user-profile(.*)',
   '/:locale/dashboard(.*)',
+  '/:locale/projects(.*)',
+  '/:locale/year-planner(.*)',
+  '/:locale/settings(.*)',
+  '/:locale/user-profile(.*)',
 ]);
 
 const isProtectedApiRoute = createRouteMatcher([
@@ -74,7 +82,8 @@ export default async function middleware(
   ) {
     return clerkMiddleware(async (auth, req) => {
       if (isProtectedRoute(req)) {
-        const locale = req.nextUrl.pathname.match(/(\/.*)\/dashboard/)?.at(1) ?? '';
+        // Extract locale from pathname (e.g., /en/projects -> /en)
+        const locale = req.nextUrl.pathname.match(/^\/([a-z]{2})\//)?.[1] ? `/${req.nextUrl.pathname.match(/^\/([a-z]{2})\//)?.[1]}` : '';
 
         const signInUrl = new URL(`${locale}/sign-in`, req.url);
 

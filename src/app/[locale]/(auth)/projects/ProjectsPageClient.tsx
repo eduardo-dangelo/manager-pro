@@ -1,11 +1,28 @@
 'use client';
 
-import { Add as AddIcon, Folder as FolderIcon } from '@mui/icons-material';
+import {
+  Add as AddIcon,
+  AttachMoney as AttachMoneyIcon,
+  DirectionsCar as DirectionsCarIcon,
+  Flight as FlightIcon,
+  Folder as FolderIcon,
+  HomeWork as HomeWorkIcon,
+  MusicNote as MusicNoteIcon,
+} from '@mui/icons-material';
 import { Box, Button, Typography } from '@mui/material';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { CreateProjectModal } from '@/components/Projects/CreateProjectModal';
 import { ProjectsList } from './ProjectsList';
+
+// Map project types to their icons
+const projectTypeIcons = {
+  vehicle: DirectionsCarIcon,
+  property: HomeWorkIcon,
+  cashflow: AttachMoneyIcon,
+  trip: FlightIcon,
+  band: MusicNoteIcon,
+};
 
 type Project = {
   id: number;
@@ -43,24 +60,36 @@ export function ProjectsPageClient({ projects, locale, projectType }: ProjectsPa
     return t('page_title');
   };
 
+  // Get icon component based on project type
+  const getTitleIcon = () => {
+    if (projectType) {
+      return projectTypeIcons[projectType as keyof typeof projectTypeIcons];
+    }
+    return FolderIcon;
+  };
+
+  const TitleIcon = getTitleIcon();
+
   return (
     <>
       <Box>
         {/* Page Header */}
         <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Box>
-            <Typography
-              variant="h3"
-              component="h1"
-              sx={{
-                fontSize: '2rem',
-                fontWeight: 'bold',
-                color: 'grey.900',
-                mb: 1,
-              }}
-            >
-              {getPageTitle()}
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+              <TitleIcon sx={{ fontSize: 32, color: 'grey.700' }} />
+              <Typography
+                variant="h3"
+                component="h1"
+                sx={{
+                  fontSize: '2rem',
+                  fontWeight: 600,
+                  color: 'grey.900',
+                }}
+              >
+                {getPageTitle()}
+              </Typography>
+            </Box>
             <Typography variant="body1" sx={{ color: 'grey.600' }}>
               {t('page_description')}
             </Typography>
@@ -169,4 +198,3 @@ export function ProjectsPageClient({ projects, locale, projectType }: ProjectsPa
     </>
   );
 }
-

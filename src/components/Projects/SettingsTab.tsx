@@ -30,7 +30,7 @@ export function SettingsTab({ projectId, projectName, locale }: SettingsTabProps
         throw new Error('Failed to delete project');
       }
 
-      router.push(`/${locale}/dashboard/projects`);
+      router.push(`/${locale}/projects`);
       router.refresh();
     } catch (error) {
       console.error('Error deleting project:', error);
