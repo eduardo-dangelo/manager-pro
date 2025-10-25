@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { Breadcrumb } from '@/components/Breadcrumb';
 import { ProjectHeader } from '@/components/Projects/ProjectHeader';
-import { ProjectTabs } from '@/components/Projects/ProjectTabs';
+import { ProjectTabs } from '@/components/Projects/Project/ProjectTabs';
 
 type Todo = {
   id: number;

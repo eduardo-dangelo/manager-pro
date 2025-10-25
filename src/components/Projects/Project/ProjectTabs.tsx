@@ -33,13 +33,13 @@ import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, List, L
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
-import { CalendarTab } from './CalendarTab';
-import { FinanceTab } from './FinanceTab';
 import { ObjectivesTab } from './ObjectivesTab';
-import { ReportTab } from './ReportTab';
-import { SprintsTab } from './SprintsTab';
-import { TimelineTab } from './TimelineTab';
-import { TodosTab } from './TodosTab';
+import { CalendarTab } from './tabs/CalendarTab';
+import { FinanceTab } from './tabs/FinanceTab';
+import { ReportTab } from './tabs/ReportTab';
+import { SprintsTab } from './tabs/SprintsTab';
+import { TimelineTab } from './tabs/TimelineTab';
+import { TodosTab } from './tabs/TodosTab';
 
 type Todo = {
   id: number;
