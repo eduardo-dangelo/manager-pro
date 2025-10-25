@@ -1,26 +1,26 @@
 'use client';
 
 import {
-  ViewModule as FolderIcon,
-  ViewList as ListIcon,
   ViewColumn as ColumnsIcon,
+  ViewModule as FolderIcon,
+  ViewModule as LargeIcon,
+  ViewList as ListIcon,
+  ViewModule as MediumIcon,
   Search as SearchIcon,
   ViewModule as SmallIcon,
-  ViewModule as MediumIcon,
-  ViewModule as LargeIcon,
 } from '@mui/icons-material';
 import {
   Box,
-  TextField,
+  FormControl,
   InputAdornment,
+  InputLabel,
+  MenuItem,
+  Select,
+  TextField,
   ToggleButton,
   ToggleButtonGroup,
-  FormControl,
-  Select,
-  MenuItem,
-  Typography,
 } from '@mui/material';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 type ViewMode = 'folder' | 'list' | 'columns';
 type CardSize = 'small' | 'medium' | 'large';
@@ -50,6 +50,7 @@ export function ProjectsTopBar({
   locale,
 }: ProjectsTopBarProps) {
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   const handleViewModeChange = async (event: React.MouseEvent<HTMLElement>, newMode: ViewMode | null) => {
     if (newMode !== null) {
@@ -115,11 +116,20 @@ export function ProjectsTopBar({
     >
       {/* Search Bar */}
       <TextField
-        placeholder="Search projects..."
+        label="Search projects"
         value={searchQuery}
-        onChange={(e) => onSearchChange(e.target.value)}
+        onChange={e => onSearchChange(e.target.value)}
         size="small"
+        variant="outlined"
         sx={{ minWidth: 200 }}
+        InputLabelProps={{
+          shrink: searchQuery.length > 0 || isSearchFocused,
+          sx: {
+            left: !isSearchFocused ? 30 : 0, // Move label to the right to avoid icon overlap
+          },
+        }}
+        onFocus={() => setIsSearchFocused(true)}
+        onBlur={() => setIsSearchFocused(false)}
         InputProps={{
           startAdornment: (
             <InputAdornment position="start">
@@ -141,9 +151,9 @@ export function ProjectsTopBar({
             disabled={isUpdating}
             sx={{
               '& .MuiToggleButton-root': {
-                border: '1px solid',
-                borderColor: 'grey.300',
-                bgcolor: 'white',
+                'border': '1px solid',
+                'borderColor': 'grey.300',
+                'bgcolor': 'white',
                 '&:hover': {
                   bgcolor: 'grey.50',
                 },
@@ -175,9 +185,9 @@ export function ProjectsTopBar({
           disabled={isUpdating}
           sx={{
             '& .MuiToggleButton-root': {
-              border: '1px solid',
-              borderColor: 'grey.300',
-              bgcolor: 'white',
+              'border': '1px solid',
+              'borderColor': 'grey.300',
+              'bgcolor': 'white',
               '&:hover': {
                 bgcolor: 'grey.50',
               },
@@ -200,18 +210,15 @@ export function ProjectsTopBar({
         </ToggleButtonGroup>
 
         {/* Sort Controls */}
-        <FormControl size="small" sx={{ minWidth: 120 }}>
+        <FormControl size="small" sx={{ minWidth: 120 }} variant="outlined">
+          <InputLabel>Sort by</InputLabel>
           <Select
             value={sortBy}
             onChange={handleSortByChange}
             disabled={isUpdating}
+            label="Sort by"
             sx={{
               bgcolor: 'white',
-              border: '1px solid',
-              borderColor: 'grey.300',
-              '&:hover': {
-                borderColor: 'grey.400',
-              },
             }}
           >
             <MenuItem value="dateCreated">Date Created</MenuItem>
