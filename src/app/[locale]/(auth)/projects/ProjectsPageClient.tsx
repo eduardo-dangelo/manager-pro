@@ -13,6 +13,7 @@ import { Box, Button, Typography } from '@mui/material';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { CreateProjectModal } from '@/components/Projects/CreateProjectModal';
+import { ProjectsTopBar } from '@/components/Projects/ProjectsTopBar';
 import { ProjectsList } from './ProjectsList';
 
 // Map project types to their icons
@@ -34,15 +35,30 @@ type Project = {
   updatedAt: Date;
 };
 
+type ViewMode = 'folder' | 'list' | 'columns';
+type CardSize = 'small' | 'medium' | 'large';
+type SortBy = 'dateCreated' | 'dateModified' | 'name' | 'type' | 'status';
+
 type ProjectsPageClientProps = {
   projects: Project[];
   locale: string;
   projectType?: string;
+  userPreferences?: {
+    projectsViewMode: ViewMode;
+    projectsCardSize: CardSize;
+    projectsSortBy: SortBy;
+  };
 };
 
-export function ProjectsPageClient({ projects, locale, projectType }: ProjectsPageClientProps) {
+export function ProjectsPageClient({ projects, locale, projectType, userPreferences }: ProjectsPageClientProps) {
   const t = useTranslations('Projects');
   const [modalOpen, setModalOpen] = useState(false);
+  
+  // State for view controls
+  const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState<ViewMode>(userPreferences?.projectsViewMode || 'folder');
+  const [cardSize, setCardSize] = useState<CardSize>(userPreferences?.projectsCardSize || 'medium');
+  const [sortBy, setSortBy] = useState<SortBy>(userPreferences?.projectsSortBy || 'dateModified');
 
   // Determine button label based on project type
   const getButtonLabel = () => {
@@ -116,6 +132,21 @@ export function ProjectsPageClient({ projects, locale, projectType }: ProjectsPa
           )}
         </Box>
 
+        {/* Projects TopBar */}
+        {projects.length > 0 && (
+          <ProjectsTopBar
+            searchQuery={searchQuery}
+            viewMode={viewMode}
+            cardSize={cardSize}
+            sortBy={sortBy}
+            onSearchChange={setSearchQuery}
+            onViewModeChange={setViewMode}
+            onCardSizeChange={setCardSize}
+            onSortByChange={setSortBy}
+            locale={locale}
+          />
+        )}
+
         {/* Empty State or Project List */}
         {projects.length === 0
           ? (
@@ -184,7 +215,14 @@ export function ProjectsPageClient({ projects, locale, projectType }: ProjectsPa
               </Box>
             )
           : (
-              <ProjectsList projects={projects} locale={locale} />
+              <ProjectsList 
+                projects={projects} 
+                locale={locale}
+                viewMode={viewMode}
+                cardSize={cardSize}
+                sortBy={sortBy}
+                searchQuery={searchQuery}
+              />
             )}
       </Box>
 

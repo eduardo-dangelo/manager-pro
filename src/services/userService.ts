@@ -9,6 +9,9 @@ export type UserData = {
   lastName?: string | null;
   imageUrl?: string | null;
   theme?: string;
+  projectsViewMode?: string;
+  projectsCardSize?: string;
+  projectsSortBy?: string;
 };
 
 export class UserService {
@@ -24,6 +27,9 @@ export class UserService {
         lastName: userData.lastName || null,
         imageUrl: userData.imageUrl || null,
         theme: userData.theme || 'system',
+        projectsViewMode: userData.projectsViewMode || 'folder',
+        projectsCardSize: userData.projectsCardSize || 'medium',
+        projectsSortBy: userData.projectsSortBy || 'dateModified',
         createdAt: new Date(),
         updatedAt: new Date(),
       }).returning();

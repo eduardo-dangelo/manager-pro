@@ -37,6 +37,9 @@ export const usersSchema = pgTable('users', {
     .$onUpdate(() => new Date())
     .notNull(),
   theme: text('theme').notNull().default('system'),
+  projectsViewMode: text('projects_view_mode').notNull().default('folder'),
+  projectsCardSize: text('projects_card_size').notNull().default('medium'),
+  projectsSortBy: text('projects_sort_by').notNull().default('dateModified'),
 });
 
 export const workSpacesSchema = pgTable('work_spaces', {

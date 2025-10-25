@@ -1,8 +1,10 @@
 'use client';
 
-import { Box, Chip, Grid2 as Grid, Typography } from '@mui/material';
+import { Box, Chip, Typography, Grid } from '@mui/material';
 import { format } from 'date-fns';
 import Link from 'next/link';
+import { ProjectListView } from '@/components/Projects/ProjectListView';
+import { ProjectColumnsView } from '@/components/Projects/ProjectColumnsView';
 
 type Project = {
   id: number;
@@ -15,9 +17,17 @@ type Project = {
   updatedAt: Date;
 };
 
+type ViewMode = 'folder' | 'list' | 'columns';
+type CardSize = 'small' | 'medium' | 'large';
+type SortBy = 'dateCreated' | 'dateModified' | 'name' | 'type' | 'status';
+
 type ProjectsListProps = {
   projects: Project[];
   locale: string;
+  viewMode: ViewMode;
+  cardSize: CardSize;
+  sortBy: SortBy;
+  searchQuery: string;
 };
 
 const colorMap: Record<string, string> = {
@@ -51,11 +61,107 @@ const pluralizeType = (type: string): string => {
   return pluralMap[type] || `${type}s`;
 };
 
-export function ProjectsList({ projects, locale }: ProjectsListProps) {
+export function ProjectsList({ projects, locale, viewMode, cardSize, sortBy, searchQuery }: ProjectsListProps) {
+  // Filter projects by search query
+  const filteredProjects = projects.filter(project =>
+    project.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Sort projects based on sortBy
+  const sortedProjects = [...filteredProjects].sort((a, b) => {
+    switch (sortBy) {
+      case 'name':
+        return a.name.localeCompare(b.name);
+      case 'type':
+        return a.type.localeCompare(b.type);
+      case 'status':
+        return a.status.localeCompare(b.status);
+      case 'dateCreated':
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      case 'dateModified':
+      default:
+        return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+    }
+  });
+
+  // Get grid column sizes based on card size
+  const getGridSizes = () => {
+    switch (cardSize) {
+      case 'small':
+        return { xs: 12, sm: 6, md: 4, lg: 2.4, xl: 2 }; // Smaller cards
+      case 'large':
+        return { xs: 12, sm: 6, md: 3, lg: 3, xl: 3 }; // Full width alignment
+      case 'medium':
+      default:
+        return { xs: 12, sm: 6, md: 4, lg: 4, xl: 4 }; // 3 items per row
+    }
+  };
+
+  // Get card height based on card size
+  const getCardHeight = () => {
+    switch (cardSize) {
+      case 'small':
+        return '200px'; // Smaller
+      case 'large':
+        return '280px'; // What was medium before
+      case 'medium':
+      default:
+        return '240px'; // Smaller than before
+    }
+  };
+
+  // Get font sizes based on card size
+  const getFontSizes = () => {
+    switch (cardSize) {
+      case 'small':
+        return {
+          title: '1rem',
+          description: '0.75rem',
+          caption: '0.6875rem',
+        };
+      case 'large':
+        return {
+          title: '1.125rem', // What was medium before
+          description: '0.75rem',
+          caption: '0.75rem',
+        };
+      case 'medium':
+      default:
+        return {
+          title: '1rem',
+          description: '0.75rem',
+          caption: '0.6875rem',
+        };
+    }
+  };
+
+  const gridSizes = getGridSizes();
+  const cardHeight = getCardHeight();
+  const fontSizes = getFontSizes();
+
+  // Render different views
+  if (viewMode === 'list') {
+    return <ProjectListView projects={sortedProjects} locale={locale} />;
+  }
+
+  if (viewMode === 'columns') {
+    return <ProjectColumnsView projects={sortedProjects} locale={locale} />;
+  }
+
+  // Default folder view
   return (
     <Grid container spacing={3}>
-      {projects.map(project => (
-        <Grid item xs={12} sm={6} md={4} lg={3} xl={2.4} key={project.id}>
+      {sortedProjects.map(project => (
+        <Grid 
+          item 
+          xs={gridSizes.xs} 
+          sm={gridSizes.sm} 
+          md={gridSizes.md} 
+          lg={gridSizes.lg} 
+          xl={gridSizes.xl} 
+          key={project.id}
+          {...({} as any)}
+        >
           <Box
             component={Link}
             href={`/${locale}/projects/${pluralizeType(project.type)}/${project.id}`}
@@ -65,8 +171,8 @@ export function ProjectsList({ projects, locale }: ProjectsListProps) {
               'display': 'block',
               'perspective': '1000px',
               'position': 'relative',
-              'height': '280px',
-              'minWidth': '300px',
+              'height': cardHeight,
+              'minWidth': cardSize === 'small' ? '200px' : cardSize === 'large' ? '300px' : '250px',
               'paddingTop': '20px',
               '&:hover .folder-tab': {
                 // transform: 'rotateX(-10deg)',
@@ -143,7 +249,7 @@ export function ProjectsList({ projects, locale }: ProjectsListProps) {
                 variant="h6"
                 component="h3"
                 sx={{
-                  fontSize: '1.125rem',
+                  fontSize: fontSizes.title,
                   fontWeight: 600,
                   color: 'grey.900',
                   mb: 1,
@@ -157,6 +263,7 @@ export function ProjectsList({ projects, locale }: ProjectsListProps) {
               <Typography
                 variant="body2"
                 sx={{
+                  fontSize: fontSizes.description,
                   color: 'grey.600',
                   mb: 2,
                   display: '-webkit-box',
@@ -183,7 +290,7 @@ export function ProjectsList({ projects, locale }: ProjectsListProps) {
                   variant="caption"
                   sx={{
                     color: 'grey.500',
-                    fontSize: '0.75rem',
+                    fontSize: fontSizes.caption,
                   }}
                 >
                   {format(new Date(project.updatedAt), 'MMM d, yyyy')}

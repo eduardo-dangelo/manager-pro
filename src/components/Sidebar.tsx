@@ -63,8 +63,22 @@ export function Sidebar({
       return true;
     }
 
-    // For parent routes, only highlight if it's a direct child (no more specific match)
-    // Don't highlight parent if we're on a sub-route
+    // For sub-routes, only highlight the most specific matching route
+    // This prevents multiple parent routes from being highlighted
+    if (pathnameWithoutLocale.startsWith(`${hrefWithoutLocale}/`)) {
+      // Check if there's a more specific route in the menu that also matches
+      // If we're on /projects/vehicles/123, we want to highlight /projects/vehicles, not /projects
+      const allMenuHrefs = menuItems.map(item => item.href.replace(/^\/[a-z]{2}\//, '/'));
+
+      // Find the most specific matching route
+      const matchingRoutes = allMenuHrefs.filter(menuHref =>
+        pathnameWithoutLocale.startsWith(`${menuHref}/`) || pathnameWithoutLocale === menuHref,
+      );
+
+      // Only highlight if this is the most specific match
+      return matchingRoutes.length > 0 && hrefWithoutLocale === matchingRoutes.sort((a, b) => b.length - a.length)[0];
+    }
+
     return false;
   };
 

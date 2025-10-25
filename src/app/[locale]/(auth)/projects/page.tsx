@@ -33,7 +33,7 @@ export default async function ProjectsPage(props: {
 
   // Sync user with database - ensures user exists before creating projects
   const { UserService } = await import('@/services/userService');
-  await UserService.upsertUser({
+  const { user: dbUser } = await UserService.upsertUser({
     id: user.id,
     email: user.primaryEmailAddress?.emailAddress || '',
     firstName: user.firstName,
@@ -43,5 +43,12 @@ export default async function ProjectsPage(props: {
 
   const projects = await ProjectService.getProjectsByUserId(user.id);
 
-  return <ProjectsPageClient projects={projects} locale={locale} />;
+  // Get user preferences
+  const userPreferences = {
+    projectsViewMode: dbUser.projectsViewMode || 'folder',
+    projectsCardSize: dbUser.projectsCardSize || 'medium',
+    projectsSortBy: dbUser.projectsSortBy || 'dateModified',
+  };
+
+  return <ProjectsPageClient projects={projects} locale={locale} userPreferences={userPreferences} />;
 }
