@@ -15,7 +15,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { CreateProjectModal } from '@/components/Projects/CreateProjectModal';
 import { ProjectsTopBar } from '@/components/Projects/ProjectsTopBar';
-import { ProjectsList } from './ProjectsList';
+import { ProjectsList } from '@/components/Projects/Views/ProjectsList';
 
 // Map project types to their icons
 const projectTypeIcons = {
@@ -91,68 +91,67 @@ export function ProjectsPageClient({ projects, locale, projectType, userPreferen
     <>
       <Box>
         {/* Page Header */}
-        <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Box>
-            <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.5, mb: 1 }}>
-              {projectType ? (
-                <>
-                  {/* Projects breadcrumb */}
-                  <Link
-                    href={`/${locale}/projects`}
-                    style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 1.5 }}
-                  >
-                    <FolderIcon sx={{ fontSize: 24, color: 'grey.500', mr: 1, mb: 0 }} />
-                    <Typography
-                      variant="h3"
-                      component="h1"
-                      sx={{
-                        'fontSize': '1.2rem',
-                        'fontWeight': 600,
-                        'color': 'grey.500',
-                        '&:hover': {
-                          color: 'grey.700',
-                        },
-                      }}
-                    >
-                      Projects
-                    </Typography>
-                  </Link>
-                  {/* Separator */}
-                  <Typography sx={{ color: 'grey.400', fontSize: '1.2rem' }}>/</Typography>
-                  {/* Project type */}
-                  <TitleIcon sx={{ fontSize: 32, color: 'grey.700' }} />
-                  <Typography
-                    variant="h3"
-                    component="h1"
-                    sx={{
-                      fontSize: '2rem',
-                      fontWeight: 600,
-                      color: 'grey.900',
-                    }}
-                  >
-                    {getPageTitle()}
-                  </Typography>
-                </>
-              ) : (
-                <>
-                  <TitleIcon sx={{ fontSize: 32, color: 'grey.700' }} />
-                  <Typography
-                    variant="h3"
-                    component="h1"
-                    sx={{
-                      fontSize: '2rem',
-                      fontWeight: 600,
-                      color: 'grey.900',
-                    }}
-                  >
-                    {getPageTitle()}
-                  </Typography>
-                </>
-              )}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+              {projectType
+                ? (
+                    <>
+                      {/* Projects breadcrumb */}
+                      <Link
+                        href={`/${locale}/projects`}
+                        style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 1.5 }}
+                      >
+                        <FolderIcon sx={{ fontSize: 24, color: 'grey.500', mr: 1, mb: 0 }} />
+                        <Typography
+                          variant="h3"
+                          component="h1"
+                          sx={{
+                            'fontSize': '1.2rem',
+                            'fontWeight': 600,
+                            'color': 'grey.500',
+                            '&:hover': {
+                              color: 'grey.700',
+                            },
+                          }}
+                        >
+                          Projects
+                        </Typography>
+                      </Link>
+                      {/* Separator */}
+                      <Typography sx={{ color: 'grey.400', fontSize: '1.2rem' }}>/</Typography>
+                      {/* Project type */}
+                      <TitleIcon sx={{ fontSize: 32, color: 'grey.700' }} />
+                      <Typography
+                        variant="h3"
+                        component="h1"
+                        sx={{
+                          fontSize: '2rem',
+                          fontWeight: 600,
+                          color: 'grey.900',
+                        }}
+                      >
+                        {getPageTitle()}
+                      </Typography>
+                    </>
+                  )
+                : (
+                    <>
+                      <TitleIcon sx={{ fontSize: 32, color: 'grey.700' }} />
+                      <Typography
+                        variant="h3"
+                        component="h1"
+                        sx={{
+                          fontSize: '2rem',
+                          fontWeight: 600,
+                          color: 'grey.900',
+                        }}
+                      >
+                        {getPageTitle()}
+                      </Typography>
+                    </>
+                  )}
             </Box>
-            <Typography variant="body1" sx={{ color: 'grey.600' }}>
-              {t('page_description')}
-            </Typography>
           </Box>
           {projects.length > 0 && (
             <Button

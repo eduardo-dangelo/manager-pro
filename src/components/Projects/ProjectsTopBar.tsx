@@ -8,19 +8,24 @@ import {
   ViewModule as MediumIcon,
   Search as SearchIcon,
   ViewModule as SmallIcon,
+  SwapVert as SortIcon,
 } from '@mui/icons-material';
 import {
+  Badge,
   Box,
-  FormControl,
-  InputAdornment,
-  InputLabel,
+  ClickAwayListener,
+  Grow,
+  IconButton,
   MenuItem,
-  Select,
+  MenuList,
+  Paper,
+  Popper,
   TextField,
   ToggleButton,
   ToggleButtonGroup,
+  Tooltip,
 } from '@mui/material';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 type ViewMode = 'folder' | 'list' | 'columns';
 type CardSize = 'small' | 'medium' | 'large';
@@ -49,48 +54,49 @@ export function ProjectsTopBar({
   onSortByChange,
   locale,
 }: ProjectsTopBarProps) {
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+  const [sortAnchorEl, setSortAnchorEl] = useState<null | HTMLElement>(null);
+  const searchFieldRef = useRef<HTMLInputElement>(null);
+  const sortOpen = Boolean(sortAnchorEl);
 
-  const handleViewModeChange = async (event: React.MouseEvent<HTMLElement>, newMode: ViewMode | null) => {
+  // Optimistic UI updates with error rollback
+  const handleViewModeChange = async (_event: React.MouseEvent<HTMLElement>, newMode: ViewMode | null) => {
     if (newMode !== null) {
-      setIsUpdating(true);
+      const oldMode = viewMode;
+      onViewModeChange(newMode); // Immediate UI update
+
       try {
         await fetch(`/${locale}/api/users/preferences`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ projectsViewMode: newMode }),
         });
-        onViewModeChange(newMode);
       } catch (error) {
         console.error('Failed to update view mode:', error);
-      } finally {
-        setIsUpdating(false);
+        onViewModeChange(oldMode); // Rollback on error
       }
     }
   };
 
-  const handleCardSizeChange = async (event: React.MouseEvent<HTMLElement>, newSize: CardSize | null) => {
+  const handleCardSizeChange = async (_event: React.MouseEvent<HTMLElement>, newSize: CardSize | null) => {
     if (newSize !== null) {
-      setIsUpdating(true);
+      const oldSize = cardSize;
+      onCardSizeChange(newSize); // Immediate UI update
+
       try {
         await fetch(`/${locale}/api/users/preferences`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ projectsCardSize: newSize }),
         });
-        onCardSizeChange(newSize);
       } catch (error) {
         console.error('Failed to update card size:', error);
-      } finally {
-        setIsUpdating(false);
+        onCardSizeChange(oldSize); // Rollback on error
       }
     }
   };
 
-  const handleSortByChange = async (event: any) => {
-    const newSort = event.target.value as SortBy;
-    setIsUpdating(true);
+  const handleSortByChange = async (newSort: SortBy) => {
     try {
       await fetch(`/${locale}/api/users/preferences`, {
         method: 'PATCH',
@@ -100,9 +106,85 @@ export function ProjectsTopBar({
       onSortByChange(newSort);
     } catch (error) {
       console.error('Failed to update sort preference:', error);
-    } finally {
-      setIsUpdating(false);
     }
+  };
+
+  const handleSortClick = (event: React.MouseEvent<HTMLElement>) => {
+    setSortAnchorEl(event.currentTarget);
+  };
+
+  const handleSortClose = () => {
+    setSortAnchorEl(null);
+  };
+
+  const handleSortSelect = (value: SortBy) => {
+    handleSortByChange(value);
+    handleSortClose();
+  };
+
+  // Collapsible search handlers
+  const handleSearchFocus = () => {
+    setIsSearchExpanded(true);
+  };
+
+  const handleSearchBlur = () => {
+    setIsSearchExpanded(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      setIsSearchExpanded(false);
+      onSearchChange('');
+      if (searchFieldRef.current) {
+        searchFieldRef.current.blur();
+      }
+    }
+    if (e.key === 'Enter') {
+      if (!searchQuery.length) {
+        setIsSearchExpanded(false);
+      }
+    }
+  };
+
+  // Button group styling
+  const buttonGroupSx = {
+    '&:hover': {
+      bgcolor: 'grey.200',
+    },
+    '& .MuiToggleButtonGroup-root': {
+      border: 'none',
+    },
+    '& .MuiToggleButton-root': {
+      'height': 30,
+      'width': 30,
+      'border': 'none',
+      'bgcolor': 'transparent',
+      'borderRadius': '6px',
+      'transition': 'all 0.2s ease',
+      '&:hover': {
+        bgcolor: 'grey.200',
+      },
+      '&.Mui-selected': {
+        'bgcolor': 'grey.300',
+        'borderRadius': '6px',
+        '&:hover': {
+          bgcolor: 'grey.300',
+        },
+      },
+    },
+  };
+
+  // Icon button styling matching button group
+  const iconButtonSx = {
+    'height': 30,
+    'width': 30,
+    'border': 'none',
+    'bgcolor': 'transparent',
+    'borderRadius': '6px',
+    'transition': 'all 0.2s ease',
+    '&:hover': {
+      bgcolor: 'grey.200',
+    },
   };
 
   return (
@@ -114,66 +196,48 @@ export function ProjectsTopBar({
         mb: 3,
       }}
     >
-      {/* Search Bar */}
-      <TextField
-        label="Search projects"
-        value={searchQuery}
-        onChange={e => onSearchChange(e.target.value)}
-        size="small"
-        variant="outlined"
-        sx={{ minWidth: 200 }}
-        InputLabelProps={{
-          shrink: searchQuery.length > 0 || isSearchFocused,
-          sx: {
-            left: !isSearchFocused ? 30 : 0, // Move label to the right to avoid icon overlap
-          },
-        }}
-        onFocus={() => setIsSearchFocused(true)}
-        onBlur={() => setIsSearchFocused(false)}
-        InputProps={{
-          startAdornment: (
-            <InputAdornment position="start">
-              <SearchIcon sx={{ color: 'grey.500' }} />
-            </InputAdornment>
-          ),
-        }}
-      />
+      {/* Left side - empty for now */}
+      <Box />
 
       {/* Right side controls */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         {/* Card Size Controls (only visible in folder view) */}
         {viewMode === 'folder' && (
-          <ToggleButtonGroup
-            value={cardSize}
-            exclusive
-            onChange={handleCardSizeChange}
-            size="small"
-            disabled={isUpdating}
-            sx={{
-              '& .MuiToggleButton-root': {
-                'border': '1px solid',
-                'borderColor': 'grey.300',
-                'bgcolor': 'white',
-                '&:hover': {
-                  bgcolor: 'grey.50',
-                },
-                '&.Mui-selected': {
-                  bgcolor: 'grey.200',
-                  borderColor: 'grey.400',
-                },
-              },
-            }}
-          >
-            <ToggleButton value="small" aria-label="small cards">
-              <SmallIcon sx={{ fontSize: 16 }} />
-            </ToggleButton>
-            <ToggleButton value="medium" aria-label="medium cards">
-              <MediumIcon sx={{ fontSize: 18 }} />
-            </ToggleButton>
-            <ToggleButton value="large" aria-label="large cards">
-              <LargeIcon sx={{ fontSize: 20 }} />
-            </ToggleButton>
-          </ToggleButtonGroup>
+          <>
+            <ToggleButtonGroup
+              value={cardSize}
+              exclusive
+              onChange={handleCardSizeChange}
+              size="small"
+              sx={buttonGroupSx}
+            >
+              <Tooltip title="Small cards">
+                <ToggleButton value="small" aria-label="small cards">
+                  <SmallIcon sx={{ fontSize: 16 }} />
+                </ToggleButton>
+              </Tooltip>
+              <Tooltip title="Medium cards">
+                <ToggleButton value="medium" aria-label="medium cards">
+                  <MediumIcon sx={{ fontSize: 18 }} />
+                </ToggleButton>
+              </Tooltip>
+              <Tooltip title="Large cards">
+                <ToggleButton value="large" aria-label="large cards">
+                  <LargeIcon sx={{ fontSize: 20 }} />
+                </ToggleButton>
+              </Tooltip>
+            </ToggleButtonGroup>
+
+            {/* Vertical Divider */}
+            <Box
+              sx={{
+                // width: '1px',
+                height: 20,
+                bgcolor: 'grey.300',
+                mx: 1,
+              }}
+            />
+          </>
         )}
 
         {/* View Mode Controls */}
@@ -182,52 +246,214 @@ export function ProjectsTopBar({
           exclusive
           onChange={handleViewModeChange}
           size="small"
-          disabled={isUpdating}
-          sx={{
-            '& .MuiToggleButton-root': {
-              'border': '1px solid',
-              'borderColor': 'grey.300',
-              'bgcolor': 'white',
-              '&:hover': {
-                bgcolor: 'grey.50',
-              },
-              '&.Mui-selected': {
-                bgcolor: 'grey.200',
-                borderColor: 'grey.400',
-              },
-            },
-          }}
+          sx={buttonGroupSx}
         >
-          <ToggleButton value="folder" aria-label="folder view">
-            <FolderIcon sx={{ fontSize: 18 }} />
-          </ToggleButton>
-          <ToggleButton value="list" aria-label="list view">
-            <ListIcon sx={{ fontSize: 18 }} />
-          </ToggleButton>
-          <ToggleButton value="columns" aria-label="columns view">
-            <ColumnsIcon sx={{ fontSize: 18 }} />
-          </ToggleButton>
+          <Tooltip title="Folder view">
+            <ToggleButton value="folder" aria-label="folder view">
+              <FolderIcon sx={{ fontSize: 18 }} />
+            </ToggleButton>
+          </Tooltip>
+          <Tooltip title="List view">
+            <ToggleButton value="list" aria-label="list view">
+              <ListIcon sx={{ fontSize: 18 }} />
+            </ToggleButton>
+          </Tooltip>
+          <Tooltip title="Columns view">
+            <ToggleButton value="columns" aria-label="columns view">
+              <ColumnsIcon sx={{ fontSize: 18 }} />
+            </ToggleButton>
+          </Tooltip>
         </ToggleButtonGroup>
 
         {/* Sort Controls */}
-        <FormControl size="small" sx={{ minWidth: 120 }} variant="outlined">
-          <InputLabel>Sort by</InputLabel>
-          <Select
-            value={sortBy}
-            onChange={handleSortByChange}
-            disabled={isUpdating}
-            label="Sort by"
+        <Tooltip title="Sort by">
+          <Badge
+            badgeContent="1"
+            invisible={sortBy === 'dateModified'}
+            overlap="circular"
+            anchorOrigin={{
+              vertical: 'bottom',
+              horizontal: 'right',
+            }}
+            onClick={handleSortClick}
             sx={{
-              bgcolor: 'white',
+              'cursor': 'pointer',
+              '& .MuiBadge-badge': {
+                bgcolor: 'primary.main',
+                color: 'white',
+                fontSize: '0.625rem',
+                fontWeight: 600,
+                width: 14,
+                height: 14,
+                minWidth: 16,
+                cursor: 'pointer',
+              },
             }}
           >
-            <MenuItem value="dateCreated">Date Created</MenuItem>
-            <MenuItem value="dateModified">Date Modified</MenuItem>
-            <MenuItem value="name">Name</MenuItem>
-            <MenuItem value="type">Type</MenuItem>
-            <MenuItem value="status">Status</MenuItem>
-          </Select>
-        </FormControl>
+            <IconButton
+              size="small"
+              onClick={handleSortClick}
+              sx={{ ...iconButtonSx, bgcolor: sortOpen ? 'grey.200' : 'transparent' }}
+            >
+              <SortIcon sx={{ color: 'grey.700', fontSize: 18 }} />
+            </IconButton>
+          </Badge>
+        </Tooltip>
+
+        <Popper
+          open={sortOpen}
+          anchorEl={sortAnchorEl}
+          role={undefined}
+          placement="bottom-end"
+          transition
+          disablePortal
+          style={{ zIndex: 1300 }}
+        >
+          {({ TransitionProps, placement }) => (
+            <Grow
+              {...TransitionProps}
+              style={{
+                transformOrigin:
+                  placement === 'bottom-start' ? 'left top' : 'right top',
+              }}
+            >
+              <Paper>
+                <ClickAwayListener onClickAway={handleSortClose}>
+                  <MenuList autoFocusItem={sortOpen} id="sort-menu">
+                    <MenuItem
+                      onClick={() => handleSortSelect('dateModified')}
+                      selected={sortBy === 'dateModified'}
+                    >
+                      Date Modified
+                    </MenuItem>
+                    <MenuItem
+                      onClick={() => handleSortSelect('dateCreated')}
+                      selected={sortBy === 'dateCreated'}
+                    >
+                      Date Created
+                    </MenuItem>
+                    <MenuItem
+                      onClick={() => handleSortSelect('name')}
+                      selected={sortBy === 'name'}
+                    >
+                      Name
+                    </MenuItem>
+                    <MenuItem
+                      onClick={() => handleSortSelect('type')}
+                      selected={sortBy === 'type'}
+                    >
+                      Type
+                    </MenuItem>
+                    <MenuItem
+                      onClick={() => handleSortSelect('status')}
+                      selected={sortBy === 'status'}
+                    >
+                      Status
+                    </MenuItem>
+                  </MenuList>
+                </ClickAwayListener>
+              </Paper>
+            </Grow>
+          )}
+        </Popper>
+
+        {/* Vertical Divider */}
+        <Box
+          sx={{
+            width: '1px',
+            height: 20,
+            bgcolor: 'grey.300',
+            mx: 1,
+          }}
+        />
+
+        {/* Collapsible Search */}
+        <Box
+          sx={{
+            width: isSearchExpanded ? 200 : 30,
+            height: 45,
+            // overflow: 'hidden',
+            transition: 'width 0.3s ease',
+            display: 'flex',
+            alignItems: 'center',
+          }}
+        >
+          {!isSearchExpanded
+            ? (
+                <Tooltip title="Search projects">
+                  <Badge
+                    badgeContent="1"
+                    invisible={!searchQuery.length}
+                    overlap="circular"
+                    anchorOrigin={{
+                      vertical: 'bottom',
+                      horizontal: 'right',
+                    }}
+                    onClick={() => {
+                      setIsSearchExpanded(true);
+                      setTimeout(() => searchFieldRef.current?.focus(), 0);
+                    }}
+                    sx={{
+                      'cursor': 'pointer',
+                      '& .MuiBadge-badge': {
+                        bgcolor: 'primary.main',
+                        color: 'white',
+                        fontSize: '0.625rem',
+                        fontWeight: 600,
+                        width: 14,
+                        height: 14,
+                        minWidth: 16,
+                        cursor: 'pointer',
+                      },
+                    }}
+                  >
+                    <IconButton
+                      size="small"
+                      onClick={() => {
+                        setIsSearchExpanded(true);
+                        setTimeout(() => searchFieldRef.current?.focus(), 0);
+                      }}
+                      sx={iconButtonSx}
+                    >
+                      <SearchIcon sx={{ color: 'grey.700', fontSize: 18 }} />
+                    </IconButton>
+                  </Badge>
+                </Tooltip>
+              )
+            : (
+                <TextField
+                  inputRef={searchFieldRef}
+                  label="Search projects"
+                  value={searchQuery}
+                  onChange={e => onSearchChange(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  size="small"
+                  variant="outlined"
+                  sx={{
+                    'width': '100%',
+                    'height': 35,
+                    '& .MuiInputBase-root': {
+                      height: 40,
+                    },
+                  }}
+                  InputLabelProps={{
+                    shrink: searchQuery.length > 0,
+                    sx: {
+                      left: searchQuery.length > 0 ? 0 : 22,
+                    },
+                  }}
+                  onFocus={handleSearchFocus}
+                  onBlur={handleSearchBlur}
+                  InputProps={{
+                    startAdornment: (
+                      <Box sx={{ display: 'flex', alignItems: 'center', pr: 0.5 }}>
+                        <SearchIcon sx={{ color: 'grey.500', fontSize: 18 }} />
+                      </Box>
+                    ),
+                  }}
+                />
+              )}
+        </Box>
       </Box>
     </Box>
   );

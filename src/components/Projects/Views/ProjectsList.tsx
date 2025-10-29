@@ -1,10 +1,10 @@
 'use client';
 
-import { Box, Chip, Typography, Grid } from '@mui/material';
+import { Box, Chip, Grid, Typography } from '@mui/material';
 import { format } from 'date-fns';
 import Link from 'next/link';
-import { ProjectListView } from '@/components/Projects/ProjectListView';
-import { ProjectColumnsView } from '@/components/Projects/ProjectColumnsView';
+import { ProjectColumnsView } from '@/components/Projects/Views/ProjectColumnsView';
+import { ProjectListView } from '@/components/Projects/Views/ProjectListView';
 
 type Project = {
   id: number;
@@ -64,7 +64,7 @@ const pluralizeType = (type: string): string => {
 export function ProjectsList({ projects, locale, viewMode, cardSize, sortBy, searchQuery }: ProjectsListProps) {
   // Filter projects by search query
   const filteredProjects = projects.filter(project =>
-    project.name.toLowerCase().includes(searchQuery.toLowerCase())
+    project.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   // Sort projects based on sortBy
@@ -152,13 +152,13 @@ export function ProjectsList({ projects, locale, viewMode, cardSize, sortBy, sea
   return (
     <Grid container spacing={3}>
       {sortedProjects.map(project => (
-        <Grid 
-          item 
-          xs={gridSizes.xs} 
-          sm={gridSizes.sm} 
-          md={gridSizes.md} 
-          lg={gridSizes.lg} 
-          xl={gridSizes.xl} 
+        <Grid
+          item
+          xs={gridSizes.xs}
+          sm={gridSizes.sm}
+          md={gridSizes.md}
+          lg={gridSizes.lg}
+          xl={gridSizes.xl}
           key={project.id}
           {...({} as any)}
         >

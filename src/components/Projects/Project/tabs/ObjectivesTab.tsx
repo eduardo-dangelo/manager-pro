@@ -4,7 +4,7 @@ import { Add as AddIcon, RadioButtonUnchecked as RadioButtonUncheckedIcon } from
 import { Box, Button, LinearProgress, TextField, Typography } from '@mui/material';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
-import { ObjectiveItem } from './ObjectiveItem';
+import { ObjectiveItem } from '@/components/Projects/Project/tabs/ObjectiveItem';
 
 type Task = {
   id: number;
@@ -510,4 +510,3 @@ export function ObjectivesTab({ project, locale, onUpdateProject }: ObjectivesTa
     </Box>
   );
 }
-

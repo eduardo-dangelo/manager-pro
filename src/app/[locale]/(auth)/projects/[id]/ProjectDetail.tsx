@@ -4,7 +4,7 @@ import { Box } from '@mui/material';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { Breadcrumb } from '@/components/Breadcrumb';
-import { ProjectHeader } from '@/components/Projects/ProjectHeader';
+import { ProjectHeader } from '@/components/Projects/Project/ProjectHeader';
 import { ProjectTabs } from '@/components/Projects/Project/ProjectTabs';
 
 type Todo = {
