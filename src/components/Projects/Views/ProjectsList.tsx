@@ -1,6 +1,6 @@
 'use client';
 
-import { Box, Chip, Grid, Typography } from '@mui/material';
+import { Box, Chip, Fade, Grid, Typography } from '@mui/material';
 import { format } from 'date-fns';
 import Link from 'next/link';
 import { ProjectColumnsView } from '@/components/Projects/Views/ProjectColumnsView';
@@ -101,7 +101,7 @@ export function ProjectsList({ projects, locale, viewMode, cardSize, sortBy, sea
   const getCardHeight = () => {
     switch (cardSize) {
       case 'small':
-        return '125px'; // Smaller height for small view
+        return '100px'; // Smaller height for small view
       case 'large':
         return '280px'; // What was medium before
       case 'medium':
@@ -141,7 +141,9 @@ export function ProjectsList({ projects, locale, viewMode, cardSize, sortBy, sea
 
   // Render different views
   if (viewMode === 'list') {
-    return <ProjectListView projects={sortedProjects} locale={locale} />;
+    return (
+      <ProjectListView projects={sortedProjects} locale={locale} />
+    );
   }
 
   if (viewMode === 'columns') {
@@ -150,7 +152,7 @@ export function ProjectsList({ projects, locale, viewMode, cardSize, sortBy, sea
 
   // Default folder view
   return (
-    <Grid container spacing={3}>
+    <Grid container spacing={cardSize === 'small' ? 0 : 2}>
       {sortedProjects.map(project => (
         <Grid
           item
@@ -170,48 +172,22 @@ export function ProjectsList({ projects, locale, viewMode, cardSize, sortBy, sea
               cursor: 'pointer',
               display: 'block',
               perspective: '1000px',
-              paddingTop: 0,
-              minWidth: cardSize === 'small' ? '120px' : cardSize === 'large' ? '300px' : '250px',
-              maxWidth: cardSize === 'small' ? '160px' : 'none',
+              padding: 0,
+              width: cardSize === 'small' ? '180px' : cardSize === 'large' ? '300px' : '250px',
               transition: 'all 0.3s ease',
+
             }}
           >
             {/* Folder visual container */}
-            <Box sx={{ position: 'relative', height: cardHeight, width: cardSize === 'small' ? '120px' : '100%', mx: cardSize === 'small' ? 'auto' : undefined, transition: 'all 0.3s ease' }}>
-              {/* Folder Tab */}
-              <Box
-                className="folder-tab"
-                sx={{
-                  position: 'absolute',
-                  top: cardSize === 'small' ? -16 : -24,
-                  left: 0,
-                  width: cardSize === 'small' ? '60px' : '140px',
-                  height: cardSize === 'small' ? '16px' : '24px',
-                  bgcolor: 'white',
-                  borderTopLeftRadius: '8px',
-                  borderTopRightRadius: '8px',
-                  border: 1,
-                  borderColor: 'grey.200',
-                  borderBottom: 'none',
-                  transformOrigin: 'bottom',
-                  transition: 'all 0.3s ease',
-                  zIndex: 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  overflow: 'hidden',
-                }}
-              >
-                {/* Color chip inside tab */}
-                <Box
-                  sx={{
-                    width: cardSize === 'small' ? '40px' : '60px',
-                    height: cardSize === 'small' ? '4px' : '6px',
-                    bgcolor: colorMap[project.color] || colorMap.gray,
-                    borderRadius: 1,
-                  }}
-                />
-              </Box>
+            <Box sx={{
+              position: 'relative',
+              height: cardHeight,
+              width: cardSize === 'small' ? '140px' : '100%',
+              mx: cardSize === 'small' ? 'auto' : undefined,
+              transition: 'all 0.3s ease',
+
+            }}
+            >
 
               {/* Folder Body */}
               <Box
@@ -226,7 +202,7 @@ export function ProjectsList({ projects, locale, viewMode, cardSize, sortBy, sea
                   border: 1,
                   borderColor: 'grey.200',
                   borderRadius: '12px',
-                  borderTopLeftRadius: '0px',
+                  // borderTopLeftRadius: '0px',
                   p: 3,
                   pb: 2.5,
                   display: 'flex',
@@ -236,7 +212,7 @@ export function ProjectsList({ projects, locale, viewMode, cardSize, sortBy, sea
                 }}
               >
                 {/* Project name inside for non-small only */}
-                {cardSize !== 'small' && (
+                <Fade in={cardSize !== 'small'}>
                   <Typography
                     variant="h6"
                     component="h3"
@@ -250,52 +226,56 @@ export function ProjectsList({ projects, locale, viewMode, cardSize, sortBy, sea
                   >
                     {project.name}
                   </Typography>
-                )}
+                </Fade>
 
                 {/* Description */}
-                <Typography
-                  variant="body2"
-                  sx={{
-                    fontSize: fontSizes.description,
-                    color: 'grey.600',
-                    mb: 2,
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    minHeight: '2.5em',
-                    flexGrow: 1,
-                  }}
-                >
-                  {project.description}
-                </Typography>
-
+                <Fade in={cardSize !== 'small'}>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      fontSize: fontSizes.description,
+                      color: 'grey.600',
+                      mb: 2,
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      minHeight: '2.5em',
+                      flexGrow: 1,
+                    }}
+                  >
+                    {project.description}
+                  </Typography>
+                </Fade>
                 {/* Status */}
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 'auto' }}>
-                  {cardSize !== 'small' && (
+                <Fade in={cardSize !== 'small'}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 'auto' }}>
+
                     <Chip
                       label={project.status.replace('-', ' ')}
                       color={statusColorMap[project.status] || 'default'}
                       size="small"
                       sx={{ textTransform: 'capitalize', fontWeight: 500 }}
                     />
-                  )}
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: 'grey.500',
-                      fontSize: fontSizes.caption,
-                    }}
-                  >
-                    {format(new Date(project.updatedAt), 'MMM d, yyyy')}
-                  </Typography>
-                </Box>
+
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: 'grey.500',
+                        fontSize: fontSizes.caption,
+                      }}
+                    >
+                      {format(new Date(project.updatedAt), 'MMM d, yyyy')}
+                    </Typography>
+                  </Box>
+                </Fade>
               </Box>
             </Box>
 
             {/* Name below folder for small */}
-            {cardSize === 'small' && (
+            {/* {cardSize === 'small' && ( */}
+            <Fade in={cardSize === 'small'} unmountOnExit>
               <Typography
                 variant="body2"
                 sx={{
@@ -307,7 +287,8 @@ export function ProjectsList({ projects, locale, viewMode, cardSize, sortBy, sea
               >
                 {project.name}
               </Typography>
-            )}
+            </Fade>
+            {/* )} */}
           </Box>
         </Grid>
       ))}

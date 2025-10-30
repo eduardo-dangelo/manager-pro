@@ -8,7 +8,7 @@ import {
   HomeWork as HomeWorkIcon,
   MusicNote as MusicNoteIcon,
 } from '@mui/icons-material';
-import { Box, Typography, useMediaQuery } from '@mui/material';
+import { Box, Fade, Typography, useMediaQuery } from '@mui/material';
 import { useState } from 'react';
 import { ProjectDetail } from '@/app/[locale]/(auth)/projects/[id]/ProjectDetail';
 
@@ -66,57 +66,59 @@ export function ProjectColumnsView({ projects, locale }: ProjectColumnsViewProps
   };
 
   return (
-    <Box
-      sx={{
-        bgcolor: 'white',
-        display: 'flex',
-        alignItems: 'stretch',
-        height: '100vh',
-        overflow: 'hidden',
-        border: 1,
-        borderColor: 'grey.200',
-      }}
-    >
-      <Box sx={{ width: 320, borderRight: 1, borderColor: 'grey.200', overflowY: 'auto' }}>
-        {projects.map((project) => {
-          const ProjectIcon = projectTypeIcons[project.type as keyof typeof projectTypeIcons] || FolderIcon;
-          const isActive = selectedProject?.id === project.id;
+    <Fade in={true} unmountOnExit>
+      <Box
+        sx={{
+          bgcolor: 'white',
+          display: 'flex',
+          alignItems: 'stretch',
+          height: '100vh',
+          overflow: 'hidden',
+          border: 1,
+          borderColor: 'grey.200',
+        }}
+      >
+        <Box sx={{ width: 320, borderRight: 1, borderColor: 'grey.200', overflowY: 'auto' }}>
+          {projects.map((project) => {
+            const ProjectIcon = projectTypeIcons[project.type as keyof typeof projectTypeIcons] || FolderIcon;
+            const isActive = selectedProject?.id === project.id;
 
-          return (
-            <Box
-              key={project.id}
-              onClick={() => loadProject(project.id)}
-              sx={{
-                'display': 'flex',
-                'alignItems': 'center',
-                'gap': 1,
-                'px': 2,
-                'py': 1.25,
-                'cursor': 'pointer',
-                'bgcolor': isActive ? 'grey.100' : 'transparent',
-                '&:hover': { bgcolor: 'grey.50' },
-                'borderBottom': '1px solid',
-                'borderBottomColor': 'grey.200',
-              }}
-            >
-              <ProjectIcon sx={{ fontSize: 18, color: 'grey.700' }} />
-              <Typography variant="body2" sx={{ fontWeight: 500, color: 'grey.900' }}>
-                {project.name}
-              </Typography>
-            </Box>
-          );
-        })}
+            return (
+              <Box
+                key={project.id}
+                onClick={() => loadProject(project.id)}
+                sx={{
+                  'display': 'flex',
+                  'alignItems': 'center',
+                  'gap': 1,
+                  'px': 2,
+                  'py': 1.25,
+                  'cursor': 'pointer',
+                  'bgcolor': isActive ? 'grey.100' : 'transparent',
+                  '&:hover': { bgcolor: 'grey.50' },
+                  'borderBottom': '1px solid',
+                  'borderBottomColor': 'grey.200',
+                }}
+              >
+                <ProjectIcon sx={{ fontSize: 18, color: 'grey.700' }} />
+                <Typography variant="body2" sx={{ fontWeight: 500, color: 'grey.900' }}>
+                  {project.name}
+                </Typography>
+              </Box>
+            );
+          })}
+        </Box>
+        <Box sx={{ flex: 1, minWidth: 0, overflow: 'auto', p: 2 }}>
+          {!selectedProject && (
+            <Typography variant="h6" sx={{ color: 'grey.700' }}>
+              {isLoading ? 'Loading…' : 'Select a project to see details'}
+            </Typography>
+          )}
+          {selectedProject && (
+            <ProjectDetail project={selectedProject} locale={locale} />
+          )}
+        </Box>
       </Box>
-      <Box sx={{ flex: 1, minWidth: 0, overflow: 'auto', p: 2 }}>
-        {!selectedProject && (
-          <Typography variant="h6" sx={{ color: 'grey.700' }}>
-            {isLoading ? 'Loading…' : 'Select a project to see details'}
-          </Typography>
-        )}
-        {selectedProject && (
-          <ProjectDetail project={selectedProject} locale={locale} />
-        )}
-      </Box>
-    </Box>
+    </Fade>
   );
 }
