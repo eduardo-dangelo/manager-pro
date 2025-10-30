@@ -11,7 +11,6 @@ import {
 } from '@mui/icons-material';
 import { Box, Button, Typography, useMediaQuery } from '@mui/material';
 import { useTranslations } from 'next-intl';
-import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { CreateProjectModal } from '@/components/Projects/CreateProjectModal';
 import { ProjectsTopBar } from '@/components/Projects/ProjectsTopBar';
@@ -80,99 +79,10 @@ export function ProjectsPageClient({ projects, locale, projectType, userPreferen
     setViewMode(mode);
   };
 
-  // Determine button label based on project type
-  const getButtonLabel = () => {
-    if (projectType) {
-      return t(`new_${projectType}`);
-    }
-    return t('new_project');
-  };
-
-  // Determine page title based on project type
-  const getPageTitle = () => {
-    if (projectType) {
-      return t(`type_${projectType}`);
-    }
-    return t('page_title');
-  };
-
-  // Get icon component based on project type
-  const getTitleIcon = () => {
-    if (projectType) {
-      return projectTypeIcons[projectType as keyof typeof projectTypeIcons];
-    }
-    return FolderIcon;
-  };
-
-  const TitleIcon = getTitleIcon();
-
   return (
     <>
       <Box>
         {/* Page Header */}
-        <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
-              {projectType
-                ? (
-                    <>
-                      {/* Projects breadcrumb */}
-                      <Link
-                        href={`/${locale}/projects`}
-                        style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 1.5 }}
-                      >
-                        <FolderIcon sx={{ fontSize: 24, color: 'grey.500', mr: 1, mb: 0 }} />
-                        <Typography
-                          variant="h3"
-                          component="h1"
-                          sx={{
-                            'fontSize': '1.2rem',
-                            'fontWeight': 600,
-                            'color': 'grey.500',
-                            '&:hover': {
-                              color: 'grey.700',
-                            },
-                          }}
-                        >
-                          Projects
-                        </Typography>
-                      </Link>
-                      {/* Separator */}
-                      <Typography sx={{ color: 'grey.400', fontSize: '1.2rem' }}>/</Typography>
-                      {/* Project type */}
-                      <TitleIcon sx={{ fontSize: 32, color: 'grey.700' }} />
-                      <Typography
-                        variant="h3"
-                        component="h1"
-                        sx={{
-                          fontSize: '2rem',
-                          fontWeight: 600,
-                          color: 'grey.900',
-                        }}
-                      >
-                        {getPageTitle()}
-                      </Typography>
-                    </>
-                  )
-                : (
-                    <>
-                      <TitleIcon sx={{ fontSize: 32, color: 'grey.700' }} />
-                      <Typography
-                        variant="h3"
-                        component="h1"
-                        sx={{
-                          fontSize: '2rem',
-                          fontWeight: 600,
-                          color: 'grey.900',
-                        }}
-                      >
-                        {getPageTitle()}
-                      </Typography>
-                    </>
-                  )}
-            </Box>
-          </Box>
-        </Box>
 
         {/* Projects TopBar */}
         {projects.length > 0 && (
@@ -187,6 +97,7 @@ export function ProjectsPageClient({ projects, locale, projectType, userPreferen
             onSortByChange={setSortBy}
             onCreateProject={() => setModalOpen(true)}
             locale={locale}
+            projectType={projectType}
           />
         )}
 

@@ -2,14 +2,21 @@
 
 import {
   Add as AddIcon,
+  AttachMoney as AttachMoneyIcon,
   ViewColumn as ColumnsIcon,
+  DirectionsCar as DirectionsCarIcon,
+  Flight as FlightIcon,
+  Folder,
   ViewModule as FolderIcon,
+  HomeWork as HomeWorkIcon,
   ViewModule as LargeIcon,
   ViewList as ListIcon,
   ViewModule as MediumIcon,
+  MusicNote as MusicNoteIcon,
   Search as SearchIcon,
   ViewModule as SmallIcon,
   SwapVert as SortIcon,
+
 } from '@mui/icons-material';
 import {
   Badge,
@@ -17,6 +24,7 @@ import {
   ClickAwayListener,
   Grow,
   IconButton,
+  Link,
   MenuItem,
   MenuList,
   Paper,
@@ -25,9 +33,19 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   Tooltip,
+  Typography,
   useMediaQuery,
 } from '@mui/material';
+import { useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
+
+const projectTypeIcons = {
+  vehicle: DirectionsCarIcon,
+  property: HomeWorkIcon,
+  cashflow: AttachMoneyIcon,
+  trip: FlightIcon,
+  band: MusicNoteIcon,
+};
 
 type ViewMode = 'folder' | 'list' | 'columns';
 type CardSize = 'small' | 'medium' | 'large';
@@ -44,6 +62,7 @@ type ProjectsTopBarProps = {
   onSortByChange: (sort: SortBy) => void;
   onCreateProject: () => void;
   locale: string;
+  projectType?: string;
 };
 
 export function ProjectsTopBar({
@@ -57,11 +76,30 @@ export function ProjectsTopBar({
   onSortByChange,
   onCreateProject,
   locale,
+  projectType,
 }: ProjectsTopBarProps) {
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [sortAnchorEl, setSortAnchorEl] = useState<null | HTMLElement>(null);
   const searchFieldRef = useRef<HTMLInputElement>(null);
   const sortOpen = Boolean(sortAnchorEl);
+  const t = useTranslations('Projects');
+  // Determine page title based on project type
+  const getPageTitle = () => {
+    if (projectType) {
+      return t(`type_${projectType}`);
+    }
+    return t('page_title');
+  };
+
+  // Get icon component based on project type
+  const getTitleIcon = () => {
+    if (projectType) {
+      return projectTypeIcons[projectType as keyof typeof projectTypeIcons];
+    }
+    return FolderIcon;
+  };
+
+  const TitleIcon = getTitleIcon();
 
   // Optimistic UI updates with error rollback
   const handleViewModeChange = async (_event: React.MouseEvent<HTMLElement>, newMode: ViewMode | null) => {
@@ -197,12 +235,80 @@ export function ProjectsTopBar({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
+        flexWrap: 'wrap',
         mb: 3,
       }}
     >
       {/* Left side controls - New Project and Search */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
         {/* New Project Button */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              {projectType
+                ? (
+                    <>
+                      {/* Projects breadcrumb */}
+                      <Link
+                        href={`/${locale}/projects`}
+                        sx={{
+                          textDecoration: 'none',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 1,
+                        }}
+                      >
+                        <Folder sx={{ fontSize: 24, color: 'grey.500' }} />
+                        <Typography
+                          variant="h5"
+                          component="h1"
+                          sx={{
+                            'fontSize': '1.2rem',
+                            // 'fontWeight': 600,
+                            'color': 'grey.500',
+                            '&:hover': {
+                              color: 'grey.700',
+                            },
+                          }}
+                        >
+                          Projects
+                        </Typography>
+                      </Link>
+                      {/* Separator */}
+                      <Typography sx={{ color: 'grey.400', fontSize: '1.2rem' }}>/</Typography>
+
+                      <TitleIcon sx={{ fontSize: 24, color: 'grey.700' }} />
+                      <Typography
+                        variant="h5"
+                        component="h1"
+                        sx={{
+                          fontSize: '1.2rem',
+                          // fontWeight: 600,
+                          color: 'grey.900',
+                        }}
+                      >
+                        {getPageTitle()}
+                      </Typography>
+                    </>
+                  )
+                : (
+                    <>
+                      <Folder sx={{ fontSize: 24, color: 'grey.700' }} />
+                      <Typography
+                        variant="h5"
+                        component="h1"
+                        sx={{
+                          fontSize: '1.2rem',
+                          color: 'grey.900',
+                        }}
+                      >
+                        Projects
+                      </Typography>
+                    </>
+                  )}
+            </Box>
+          </Box>
+        </Box>
       </Box>
 
       {/* Right side controls */}
@@ -265,7 +371,7 @@ export function ProjectsTopBar({
             </ToggleButton>
           </Tooltip>
           {/* Hide columns view on iPhone-width screens */}
-          {!useMediaQuery('(max-width:430px)') && (
+          {!useMediaQuery('(max-width:930px)') && (
             <Tooltip title="Columns view">
               <ToggleButton value="columns" aria-label="columns view">
                 <ColumnsIcon sx={{ fontSize: 18 }} />
