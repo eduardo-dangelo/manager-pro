@@ -18,7 +18,6 @@ import {
   TableHead,
   TableRow,
   Typography,
-  Avatar,
 } from '@mui/material';
 import { format } from 'date-fns';
 import Link from 'next/link';
@@ -39,17 +38,7 @@ type ProjectListViewProps = {
   locale: string;
 };
 
-const colorMap: Record<string, string> = {
-  gray: '#6b7280',
-  red: '#ef4444',
-  orange: '#f97316',
-  yellow: '#eab308',
-  green: '#22c55e',
-  blue: '#3b82f6',
-  indigo: '#6366f1',
-  purple: '#a855f7',
-  pink: '#ec4899',
-};
+// Removed unused color map after avatar removal
 
 const statusColorMap: Record<string, 'default' | 'success' | 'info' | 'warning'> = {
   'active': 'success',
@@ -82,18 +71,23 @@ export function ProjectListView({ projects, locale }: ProjectListViewProps) {
   return (
     <TableContainer
       sx={{
-        bgcolor: 'white',
-        borderRadius: 2,
-        border: 1,
-        borderColor: 'grey.200',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-        transition: 'box-shadow 0.2s ease',
+        'bgcolor': 'white',
+        'borderRadius': 2,
+        // border: 1,
+        // borderColor: 'grey.200',
+        // boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+        'transition': 'box-shadow 0.2s ease',
         '&:hover': {
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          // boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
         },
       }}
     >
-      <Table>
+      <Table
+        size="small"
+        sx={{
+          '& .MuiTableCell-root': { py: 0.75 },
+        }}
+      >
         <TableHead>
           <TableRow sx={{ bgcolor: 'grey.50' }}>
             <TableCell sx={{ fontWeight: 600, color: 'grey.700' }}>Name</TableCell>
@@ -105,9 +99,9 @@ export function ProjectListView({ projects, locale }: ProjectListViewProps) {
           </TableRow>
         </TableHead>
         <TableBody>
-          {projects.map((project) => {
+          {projects.map((project, index) => {
             const ProjectIcon = projectTypeIcons[project.type as keyof typeof projectTypeIcons] || FolderIcon;
-            
+
             return (
               <TableRow
                 key={project.id}
@@ -116,6 +110,7 @@ export function ProjectListView({ projects, locale }: ProjectListViewProps) {
                 sx={{
                   'textDecoration': 'none',
                   'cursor': 'pointer',
+                  'bgcolor': index % 2 === 1 ? 'grey.100' : 'inherit',
                   '&:hover': {
                     bgcolor: 'grey.50',
                   },
@@ -126,16 +121,7 @@ export function ProjectListView({ projects, locale }: ProjectListViewProps) {
               >
                 <TableCell>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                    <Avatar
-                      sx={{
-                        width: 32,
-                        height: 32,
-                        bgcolor: colorMap[project.color] || colorMap.gray,
-                        fontSize: '0.875rem',
-                      }}
-                    >
-                      <ProjectIcon sx={{ fontSize: 18, color: 'white' }} />
-                    </Avatar>
+
                     <Box>
                       <Typography
                         variant="body2"
@@ -163,9 +149,12 @@ export function ProjectListView({ projects, locale }: ProjectListViewProps) {
                   </Box>
                 </TableCell>
                 <TableCell>
-                  <Typography variant="body2" sx={{ color: 'grey.700', textTransform: 'capitalize' }}>
-                    {project.type}
-                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <ProjectIcon sx={{ fontSize: 18, color: 'grey.700' }} />
+                    <Typography variant="body2" sx={{ color: 'grey.700', textTransform: 'capitalize' }}>
+                      {project.type}
+                    </Typography>
+                  </Box>
                 </TableCell>
                 <TableCell>
                   <Chip

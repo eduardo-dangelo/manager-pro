@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  Add as AddIcon,
   ViewColumn as ColumnsIcon,
   ViewModule as FolderIcon,
   ViewModule as LargeIcon,
@@ -40,6 +41,7 @@ type ProjectsTopBarProps = {
   onViewModeChange: (mode: ViewMode) => void;
   onCardSizeChange: (size: CardSize) => void;
   onSortByChange: (sort: SortBy) => void;
+  onCreateProject: () => void;
   locale: string;
 };
 
@@ -52,6 +54,7 @@ export function ProjectsTopBar({
   onViewModeChange,
   onCardSizeChange,
   onSortByChange,
+  onCreateProject,
   locale,
 }: ProjectsTopBarProps) {
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
@@ -196,8 +199,10 @@ export function ProjectsTopBar({
         mb: 3,
       }}
     >
-      {/* Left side - empty for now */}
-      <Box />
+      {/* Left side controls - New Project and Search */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        {/* New Project Button */}
+      </Box>
 
       {/* Right side controls */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -366,6 +371,15 @@ export function ProjectsTopBar({
             mx: 1,
           }}
         />
+        <Tooltip title="New Project">
+          <IconButton
+            size="small"
+            onClick={onCreateProject}
+            sx={iconButtonSx}
+          >
+            <AddIcon sx={{ color: 'grey.700', fontSize: 18 }} />
+          </IconButton>
+        </Tooltip>
 
         {/* Collapsible Search */}
         <Box
@@ -453,6 +467,7 @@ export function ProjectsTopBar({
                   }}
                 />
               )}
+
         </Box>
       </Box>
     </Box>

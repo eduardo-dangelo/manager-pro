@@ -153,26 +153,6 @@ export function ProjectsPageClient({ projects, locale, projectType, userPreferen
                   )}
             </Box>
           </Box>
-          {projects.length > 0 && (
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => setModalOpen(true)}
-              sx={{
-                'bgcolor': '#1e293b',
-                'color': 'white',
-                'textTransform': 'none',
-                'px': 3,
-                'py': 1,
-                'borderRadius': 2,
-                '&:hover': {
-                  bgcolor: '#0f172a',
-                },
-              }}
-            >
-              {getButtonLabel()}
-            </Button>
-          )}
         </Box>
 
         {/* Projects TopBar */}
@@ -186,6 +166,7 @@ export function ProjectsPageClient({ projects, locale, projectType, userPreferen
             onViewModeChange={setViewMode}
             onCardSizeChange={setCardSize}
             onSortByChange={setSortBy}
+            onCreateProject={() => setModalOpen(true)}
             locale={locale}
           />
         )}

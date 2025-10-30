@@ -241,7 +241,7 @@ export function ProjectsList({ projects, locale, viewMode, cardSize, sortBy, sea
                 flexDirection: 'column',
                 transition: 'all 0.3s ease',
                 transformOrigin: 'top',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                // boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
               }}
             >
               {/* Project name */}
