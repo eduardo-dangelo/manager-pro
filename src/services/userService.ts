@@ -124,12 +124,12 @@ export class UserService {
       if (existingUser) {
         // Update existing user
         const updatedUser = await this.updateUser(userData.id, userData);
-        console.error('user updated', updatedUser?.firstName);
+        console.log('user updated', updatedUser?.firstName);
         return { user: updatedUser, wasCreated: false };
       } else {
         // Create new user
         const newUser = await this.createUser(userData);
-        console.error('user created', newUser?.firstName);
+        console.log('user created', newUser?.firstName);
         return { user: newUser, wasCreated: true };
       }
     } catch (error) {

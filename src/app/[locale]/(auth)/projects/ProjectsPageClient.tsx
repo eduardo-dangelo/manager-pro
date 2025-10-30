@@ -9,10 +9,10 @@ import {
   HomeWork as HomeWorkIcon,
   MusicNote as MusicNoteIcon,
 } from '@mui/icons-material';
-import { Box, Button, Typography } from '@mui/material';
+import { Box, Button, Typography, useMediaQuery } from '@mui/material';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CreateProjectModal } from '@/components/Projects/CreateProjectModal';
 import { ProjectsTopBar } from '@/components/Projects/ProjectsTopBar';
 import { ProjectsList } from '@/components/Projects/Views/ProjectsList';
@@ -60,6 +60,25 @@ export function ProjectsPageClient({ projects, locale, projectType, userPreferen
   const [viewMode, setViewMode] = useState<ViewMode>(userPreferences?.projectsViewMode || 'folder');
   const [cardSize, setCardSize] = useState<CardSize>(userPreferences?.projectsCardSize || 'medium');
   const [sortBy, setSortBy] = useState<SortBy>(userPreferences?.projectsSortBy || 'dateModified');
+
+  // Mobile detection (iPhone width ~430px)
+  const isMobile = useMediaQuery('(max-width:930px)');
+
+  // Auto-switch away from columns on mobile
+  useEffect(() => {
+    if (isMobile && viewMode === 'columns') {
+      setViewMode('list');
+    }
+  }, [isMobile, viewMode]);
+
+  // Guard: prevent switching to columns on mobile
+  const handleViewModeChange = (mode: ViewMode) => {
+    if (isMobile && mode === 'columns') {
+      setViewMode('list');
+      return;
+    }
+    setViewMode(mode);
+  };
 
   // Determine button label based on project type
   const getButtonLabel = () => {
@@ -163,7 +182,7 @@ export function ProjectsPageClient({ projects, locale, projectType, userPreferen
             cardSize={cardSize}
             sortBy={sortBy}
             onSearchChange={setSearchQuery}
-            onViewModeChange={setViewMode}
+            onViewModeChange={handleViewModeChange}
             onCardSizeChange={setCardSize}
             onSortByChange={setSortBy}
             onCreateProject={() => setModalOpen(true)}

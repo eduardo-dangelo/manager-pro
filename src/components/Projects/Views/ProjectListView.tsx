@@ -10,7 +10,6 @@ import {
 } from '@mui/icons-material';
 import {
   Box,
-  Chip,
   Table,
   TableBody,
   TableCell,
@@ -38,14 +37,7 @@ type ProjectListViewProps = {
   locale: string;
 };
 
-// Removed unused color map after avatar removal
-
-const statusColorMap: Record<string, 'default' | 'success' | 'info' | 'warning'> = {
-  'active': 'success',
-  'completed': 'info',
-  'archived': 'default',
-  'on-hold': 'warning',
-};
+// Removed status column
 
 const projectTypeIcons = {
   vehicle: DirectionsCarIcon,
@@ -91,10 +83,10 @@ export function ProjectListView({ projects, locale }: ProjectListViewProps) {
         <TableHead>
           <TableRow sx={{ bgcolor: 'grey.50' }}>
             <TableCell sx={{ fontWeight: 600, color: 'grey.700' }}>Name</TableCell>
-            <TableCell sx={{ fontWeight: 600, color: 'grey.700' }}>Type</TableCell>
-            <TableCell sx={{ fontWeight: 600, color: 'grey.700' }}>Status</TableCell>
-            <TableCell sx={{ fontWeight: 600, color: 'grey.700' }}>Progress</TableCell>
-            <TableCell sx={{ fontWeight: 600, color: 'grey.700' }}>Tasks</TableCell>
+            <TableCell sx={{ fontWeight: 600, color: 'grey.700', display: { xs: 'none', sm: 'table-cell' } }}>Type</TableCell>
+            {/* Status column removed */}
+            <TableCell sx={{ fontWeight: 600, color: 'grey.700', display: { xs: 'none', sm: 'table-cell' } }}>Progress</TableCell>
+            <TableCell sx={{ fontWeight: 600, color: 'grey.700', display: { xs: 'none', sm: 'none', md: 'table-cell' } }}>Tasks</TableCell>
             <TableCell sx={{ fontWeight: 600, color: 'grey.700' }}>Modified</TableCell>
           </TableRow>
         </TableHead>
@@ -148,7 +140,7 @@ export function ProjectListView({ projects, locale }: ProjectListViewProps) {
                     </Box>
                   </Box>
                 </TableCell>
-                <TableCell>
+                <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <ProjectIcon sx={{ fontSize: 18, color: 'grey.700' }} />
                     <Typography variant="body2" sx={{ color: 'grey.700', textTransform: 'capitalize' }}>
@@ -156,20 +148,13 @@ export function ProjectListView({ projects, locale }: ProjectListViewProps) {
                     </Typography>
                   </Box>
                 </TableCell>
-                <TableCell>
-                  <Chip
-                    label={project.status.replace('-', ' ')}
-                    color={statusColorMap[project.status] || 'default'}
-                    size="small"
-                    sx={{ textTransform: 'capitalize', fontWeight: 500 }}
-                  />
-                </TableCell>
-                <TableCell>
+                {/* Status column removed */}
+                <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
                   <Typography variant="body2" sx={{ color: 'grey.600' }}>
                     --%
                   </Typography>
                 </TableCell>
-                <TableCell>
+                <TableCell sx={{ display: { xs: 'none', sm: 'none', md: 'table-cell' } }}>
                   <Typography variant="body2" sx={{ color: 'grey.600' }}>
                     --
                   </Typography>

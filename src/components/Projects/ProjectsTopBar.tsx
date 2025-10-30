@@ -25,6 +25,7 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   Tooltip,
+  useMediaQuery,
 } from '@mui/material';
 import { useRef, useState } from 'react';
 
@@ -263,11 +264,14 @@ export function ProjectsTopBar({
               <ListIcon sx={{ fontSize: 18 }} />
             </ToggleButton>
           </Tooltip>
-          <Tooltip title="Columns view">
-            <ToggleButton value="columns" aria-label="columns view">
-              <ColumnsIcon sx={{ fontSize: 18 }} />
-            </ToggleButton>
-          </Tooltip>
+          {/* Hide columns view on iPhone-width screens */}
+          {!useMediaQuery('(max-width:430px)') && (
+            <Tooltip title="Columns view">
+              <ToggleButton value="columns" aria-label="columns view">
+                <ColumnsIcon sx={{ fontSize: 18 }} />
+              </ToggleButton>
+            </Tooltip>
+          )}
         </ToggleButtonGroup>
 
         {/* Sort Controls */}
