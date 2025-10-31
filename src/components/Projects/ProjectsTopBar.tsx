@@ -2,17 +2,11 @@
 
 import {
   Add as AddIcon,
-  AttachMoney as AttachMoneyIcon,
   ViewColumn as ColumnsIcon,
-  DirectionsCar as DirectionsCarIcon,
-  Flight as FlightIcon,
-  Folder,
   ViewModule as FolderIcon,
-  HomeWork as HomeWorkIcon,
   ViewModule as LargeIcon,
   ViewList as ListIcon,
   ViewModule as MediumIcon,
-  MusicNote as MusicNoteIcon,
   Search as SearchIcon,
   ViewModule as SmallIcon,
   SwapVert as SortIcon,
@@ -24,7 +18,6 @@ import {
   ClickAwayListener,
   Grow,
   IconButton,
-  Link,
   MenuItem,
   MenuList,
   Paper,
@@ -33,19 +26,13 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   Tooltip,
-  Typography,
   useMediaQuery,
 } from '@mui/material';
 import { useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
+import { Breadcrumb } from '@/components/Breadcrumb';
 
-const projectTypeIcons = {
-  vehicle: DirectionsCarIcon,
-  property: HomeWorkIcon,
-  cashflow: AttachMoneyIcon,
-  trip: FlightIcon,
-  band: MusicNoteIcon,
-};
+// no-op
 
 type ViewMode = 'folder' | 'list' | 'columns';
 type CardSize = 'small' | 'medium' | 'large';
@@ -83,23 +70,16 @@ export function ProjectsTopBar({
   const searchFieldRef = useRef<HTMLInputElement>(null);
   const sortOpen = Boolean(sortAnchorEl);
   const t = useTranslations('Projects');
+  const dashboardT = useTranslations('DashboardLayout');
   // Determine page title based on project type
   const getPageTitle = () => {
     if (projectType) {
-      return t(`type_${projectType}`);
+      return (t as any)(`type_${projectType}`);
     }
     return t('page_title');
   };
 
-  // Get icon component based on project type
-  const getTitleIcon = () => {
-    if (projectType) {
-      return projectTypeIcons[projectType as keyof typeof projectTypeIcons];
-    }
-    return FolderIcon;
-  };
-
-  const TitleIcon = getTitleIcon();
+  // no-op
 
   // Optimistic UI updates with error rollback
   const handleViewModeChange = async (_event: React.MouseEvent<HTMLElement>, newMode: ViewMode | null) => {
@@ -239,77 +219,16 @@ export function ProjectsTopBar({
         mb: 3,
       }}
     >
-      {/* Left side controls - New Project and Search */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-        {/* New Project Button */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              {projectType
-                ? (
-                    <>
-                      {/* Projects breadcrumb */}
-                      <Link
-                        href={`/${locale}/projects`}
-                        sx={{
-                          textDecoration: 'none',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 1,
-                        }}
-                      >
-                        <Folder sx={{ fontSize: 24, color: 'grey.500' }} />
-                        <Typography
-                          variant="h5"
-                          component="h1"
-                          sx={{
-                            'fontSize': '1.2rem',
-                            // 'fontWeight': 600,
-                            'color': 'grey.500',
-                            '&:hover': {
-                              color: 'grey.700',
-                            },
-                          }}
-                        >
-                          Projects
-                        </Typography>
-                      </Link>
-                      {/* Separator */}
-                      <Typography sx={{ color: 'grey.400', fontSize: '1.2rem' }}>/</Typography>
-
-                      <TitleIcon sx={{ fontSize: 24, color: 'grey.700' }} />
-                      <Typography
-                        variant="h5"
-                        component="h1"
-                        sx={{
-                          fontSize: '1.2rem',
-                          // fontWeight: 600,
-                          color: 'grey.900',
-                        }}
-                      >
-                        {getPageTitle()}
-                      </Typography>
-                    </>
-                  )
-                : (
-                    <>
-                      <Folder sx={{ fontSize: 24, color: 'grey.700' }} />
-                      <Typography
-                        variant="h5"
-                        component="h1"
-                        sx={{
-                          fontSize: '1.2rem',
-                          color: 'grey.900',
-                        }}
-                      >
-                        Projects
-                      </Typography>
-                    </>
-                  )}
-            </Box>
-          </Box>
-        </Box>
-      </Box>
+      {/* Left side - Breadcrumb */}
+      {/* <Box sx={{ display: 'flex', alignItems: 'center' }}> */}
+      <Breadcrumb
+        items={[
+          { label: dashboardT('menu_dashboard'), href: `/${locale}/dashboard` },
+          { label: t('page_title'), href: `/${locale}/projects` },
+          ...(projectType ? [{ label: getPageTitle() }] : []),
+        ]}
+      />
+      {/* </Box> */}
 
       {/* Right side controls */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

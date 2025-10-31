@@ -18,7 +18,10 @@ export function Breadcrumb({ items }: BreadcrumbProps) {
     <Breadcrumbs
       separator={<NavigateNextIcon fontSize="small" />}
       aria-label="breadcrumb"
-      sx={{ mb: 3 }}
+      sx={{
+        mb: 0,
+
+      }}
     >
       {items.map((item, index) => {
         const isLast = index === items.length - 1;

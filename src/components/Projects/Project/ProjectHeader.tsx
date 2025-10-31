@@ -16,12 +16,14 @@ type ProjectHeaderProps = {
   project: Project;
   locale: string;
   onUpdate: (updates: Partial<Project>) => Promise<void>;
+  actions?: React.ReactNode;
 };
 
 export function ProjectHeader({
   project,
   locale,
   onUpdate,
+  actions,
 }: ProjectHeaderProps) {
   const t = useTranslations('Projects');
   const titleRef = useRef<HTMLInputElement>(null);
@@ -140,6 +142,7 @@ export function ProjectHeader({
             <MenuItem value="archived">{t('status_archived')}</MenuItem>
             <MenuItem value="on-hold">{t('status_on_hold')}</MenuItem>
           </Select>
+          {actions}
           {saving && (
             <Typography
               variant="caption"

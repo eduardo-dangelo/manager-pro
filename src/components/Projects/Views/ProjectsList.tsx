@@ -1,8 +1,10 @@
 'use client';
 
-import { Box, Chip, Fade, Grid, Typography } from '@mui/material';
+import { Box, Chip, Collapse, Fade, Grid, Typography } from '@mui/material';
 import { format } from 'date-fns';
 import Link from 'next/link';
+import { TransitionGroup } from 'react-transition-group';
+import { ProjectActions } from '@/components/Projects/ProjectActions';
 import { ProjectColumnsView } from '@/components/Projects/Views/ProjectColumnsView';
 import { ProjectListView } from '@/components/Projects/Views/ProjectListView';
 
@@ -28,19 +30,10 @@ type ProjectsListProps = {
   cardSize: CardSize;
   sortBy: SortBy;
   searchQuery: string;
+  onProjectDeleted?: (projectId: number) => void;
 };
 
-const colorMap: Record<string, string> = {
-  gray: '#6b7280',
-  red: '#ef4444',
-  orange: '#f97316',
-  yellow: '#eab308',
-  green: '#22c55e',
-  blue: '#3b82f6',
-  indigo: '#6366f1',
-  purple: '#a855f7',
-  pink: '#ec4899',
-};
+// removed unused colorMap
 
 const statusColorMap: Record<string, 'default' | 'success' | 'info' | 'warning'> = {
   'active': 'success',
@@ -61,7 +54,7 @@ const pluralizeType = (type: string): string => {
   return pluralMap[type] || `${type}s`;
 };
 
-export function ProjectsList({ projects, locale, viewMode, cardSize, sortBy, searchQuery }: ProjectsListProps) {
+export function ProjectsList({ projects, locale, viewMode, cardSize, sortBy, searchQuery, onProjectDeleted }: ProjectsListProps) {
   // Filter projects by search query
   const filteredProjects = projects.filter(project =>
     project.name.toLowerCase().includes(searchQuery.toLowerCase()),
@@ -142,156 +135,158 @@ export function ProjectsList({ projects, locale, viewMode, cardSize, sortBy, sea
   // Render different views
   if (viewMode === 'list') {
     return (
-      <ProjectListView projects={sortedProjects} locale={locale} />
+      <ProjectListView projects={sortedProjects} locale={locale} onProjectDeleted={onProjectDeleted} />
     );
   }
 
   if (viewMode === 'columns') {
-    return <ProjectColumnsView projects={sortedProjects} locale={locale} />;
+    return <ProjectColumnsView projects={sortedProjects} locale={locale} onProjectDeleted={onProjectDeleted} />;
   }
 
   // Default folder view
   return (
     <Grid container spacing={cardSize === 'small' ? 0 : 2}>
-      {sortedProjects.map(project => (
-        <Grid
-          item
-          xs={gridSizes.xs}
-          sm={gridSizes.sm}
-          md={gridSizes.md}
-          lg={gridSizes.lg}
-          xl={gridSizes.xl}
-          key={project.id}
-          {...({} as any)}
-        >
-          <Box
-            component={Link}
-            href={`/${locale}/projects/${pluralizeType(project.type)}/${project.id}`}
-            sx={{
-              textDecoration: 'none',
-              cursor: 'pointer',
-              display: 'block',
-              perspective: '1000px',
-              padding: 0,
-              width: cardSize === 'small' ? '180px' : cardSize === 'large' ? '300px' : '250px',
-              transition: 'all 0.3s ease',
+      <TransitionGroup component={null}>
+        {sortedProjects.map(project => (
+          <Collapse orientation="horizontal" key={project.id}>
 
-            }}
-          >
-            {/* Folder visual container */}
-            <Box sx={{
-              position: 'relative',
-              height: cardHeight,
-              width: cardSize === 'small' ? '140px' : '100%',
-              mx: cardSize === 'small' ? 'auto' : undefined,
-              transition: 'all 0.3s ease',
+            <Box
+              component={Link}
+              href={`/${locale}/projects/${pluralizeType(project.type)}/${project.id}`}
+              sx={{
+                textDecoration: 'none',
+                cursor: 'pointer',
+                display: 'block',
+                perspective: '1000px',
+                padding: 0,
+                width: cardSize === 'small' ? '180px' : cardSize === 'large' ? '300px' : '250px',
+                transition: 'all 0.3s ease',
 
-            }}
+              }}
             >
+              {/* Folder visual container */}
+              <Box sx={{
+                position: 'relative',
+                height: cardHeight,
+                width: cardSize === 'small' ? '140px' : '100%',
+                mx: cardSize === 'small' ? 'auto' : undefined,
+                transition: 'all 0.3s ease',
 
-              {/* Folder Body */}
-              <Box
-                className="folder-body"
-                sx={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  bgcolor: 'white',
-                  border: 1,
-                  borderColor: 'grey.200',
-                  borderRadius: '12px',
-                  // borderTopLeftRadius: '0px',
-                  p: 3,
-                  pb: 2.5,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  transition: 'all 0.3s ease',
-                  transformOrigin: 'top',
-                }}
+              }}
               >
-                {/* Project name inside for non-small only */}
-                <Fade in={cardSize !== 'small'}>
-                  <Typography
-                    variant="h6"
-                    component="h3"
-                    sx={{
-                      fontSize: fontSizes.title,
-                      fontWeight: 600,
-                      color: 'grey.900',
-                      mb: 1,
-                      mt: 0.5,
-                    }}
-                  >
-                    {project.name}
-                  </Typography>
-                </Fade>
 
-                {/* Description */}
-                <Fade in={cardSize !== 'small'}>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontSize: fontSizes.description,
-                      color: 'grey.600',
-                      mb: 2,
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      minHeight: '2.5em',
-                      flexGrow: 1,
-                    }}
-                  >
-                    {project.description}
-                  </Typography>
-                </Fade>
-                {/* Status */}
-                <Fade in={cardSize !== 'small'}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 'auto' }}>
-
-                    <Chip
-                      label={project.status.replace('-', ' ')}
-                      color={statusColorMap[project.status] || 'default'}
-                      size="small"
-                      sx={{ textTransform: 'capitalize', fontWeight: 500 }}
+                {/* Folder Body */}
+                <Box
+                  className="folder-body"
+                  sx={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    bgcolor: 'white',
+                    border: 1,
+                    borderColor: 'grey.200',
+                    borderRadius: '12px',
+                    // borderTopLeftRadius: '0px',
+                    p: 3,
+                    pb: 2.5,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    transition: 'all 0.3s ease',
+                    transformOrigin: 'top',
+                  }}
+                >
+                  <Box sx={{ position: 'absolute', top: 6, right: 6 }} onClick={e => e.preventDefault()}>
+                    <ProjectActions
+                      projectId={project.id}
+                      locale={locale}
+                      onDeleted={onProjectDeleted ? () => onProjectDeleted(project.id) : undefined}
                     />
-
+                  </Box>
+                  {/* Project name inside for non-small only */}
+                  <Fade in={cardSize !== 'small'}>
                     <Typography
-                      variant="caption"
+                      variant="h6"
+                      component="h3"
                       sx={{
-                        color: 'grey.500',
-                        fontSize: fontSizes.caption,
+                        fontSize: fontSizes.title,
+                        fontWeight: 600,
+                        color: 'grey.900',
+                        mb: 1,
+                        mt: 0.5,
                       }}
                     >
-                      {format(new Date(project.updatedAt), 'MMM d, yyyy')}
+                      {project.name}
                     </Typography>
-                  </Box>
-                </Fade>
+                  </Fade>
+
+                  {/* Description */}
+                  <Fade in={cardSize !== 'small'}>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontSize: fontSizes.description,
+                        color: 'grey.600',
+                        mb: 2,
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        minHeight: '2.5em',
+                        flexGrow: 1,
+                      }}
+                    >
+                      {project.description}
+                    </Typography>
+                  </Fade>
+                  {/* Status */}
+                  <Fade in={cardSize !== 'small'}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 'auto' }}>
+
+                      <Chip
+                        label={project.status.replace('-', ' ')}
+                        color={statusColorMap[project.status] || 'default'}
+                        size="small"
+                        sx={{ textTransform: 'capitalize', fontWeight: 500 }}
+                      />
+
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: 'grey.500',
+                          fontSize: fontSizes.caption,
+                        }}
+                      >
+                        {format(new Date(project.updatedAt), 'MMM d, yyyy')}
+                      </Typography>
+                    </Box>
+                  </Fade>
+                </Box>
               </Box>
+
+              {/* Name below folder for small */}
+              {/* {cardSize === 'small' && ( */}
+              <Fade in={cardSize === 'small'} unmountOnExit>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    textAlign: 'center',
+                    mt: 1,
+                    fontWeight: 600,
+                    color: 'grey.900',
+                  }}
+                >
+                  {project.name}
+                </Typography>
+              </Fade>
+              {/* )} */}
             </Box>
 
-            {/* Name below folder for small */}
-            {/* {cardSize === 'small' && ( */}
-            <Fade in={cardSize === 'small'} unmountOnExit>
-              <Typography
-                variant="body2"
-                sx={{
-                  textAlign: 'center',
-                  mt: 1,
-                  fontWeight: 600,
-                  color: 'grey.900',
-                }}
-              >
-                {project.name}
-              </Typography>
-            </Fade>
-            {/* )} */}
-          </Box>
-        </Grid>
-      ))}
+          </Collapse>
+        ))}
+      </TransitionGroup>
     </Grid>
   );
 }

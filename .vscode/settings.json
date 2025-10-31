@@ -29,7 +29,7 @@
   "i18n-ally.keystyle": "nested",
 
   // Disable the default formatter, use ESLint instead
-  "prettier.enable": false,
+  "prettier.enable": true,
   "editor.formatOnSave": true,
   "editor.defaultFormatter": "esbenp.prettier-vscode",
 

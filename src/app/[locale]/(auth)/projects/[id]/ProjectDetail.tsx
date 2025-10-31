@@ -51,9 +51,13 @@ type Project = {
 export function ProjectDetail({
   project: initialProject,
   locale,
+  hideBreadcrumb,
+  headerActions,
 }: {
   project: Project;
   locale: string;
+  hideBreadcrumb?: boolean;
+  headerActions?: React.ReactNode;
 }) {
   const t = useTranslations('Projects');
   const dashboardT = useTranslations('DashboardLayout');
@@ -88,12 +92,13 @@ export function ProjectDetail({
   return (
     <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
       <Box sx={{ maxWidth: 900, width: '100%', px: { xs: 2, sm: 3, md: 4 } }}>
-        <Breadcrumb items={breadcrumbItems} />
+        {!hideBreadcrumb && <Breadcrumb items={breadcrumbItems} />}
 
         <ProjectHeader
           project={project}
           locale={locale}
           onUpdate={updateProject}
+          actions={headerActions}
         />
 
         <ProjectTabs

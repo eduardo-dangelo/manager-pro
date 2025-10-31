@@ -1,14 +1,6 @@
 'use client';
 
-import {
-  Add as AddIcon,
-  AttachMoney as AttachMoneyIcon,
-  DirectionsCar as DirectionsCarIcon,
-  Flight as FlightIcon,
-  Folder as FolderIcon,
-  HomeWork as HomeWorkIcon,
-  MusicNote as MusicNoteIcon,
-} from '@mui/icons-material';
+import { Add as AddIcon, Folder as FolderIcon } from '@mui/icons-material';
 import { Box, Button, Typography, useMediaQuery } from '@mui/material';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
@@ -16,21 +8,13 @@ import { CreateProjectModal } from '@/components/Projects/CreateProjectModal';
 import { ProjectsTopBar } from '@/components/Projects/ProjectsTopBar';
 import { ProjectsList } from '@/components/Projects/Views/ProjectsList';
 
-// Map project types to their icons
-const projectTypeIcons = {
-  vehicle: DirectionsCarIcon,
-  property: HomeWorkIcon,
-  cashflow: AttachMoneyIcon,
-  trip: FlightIcon,
-  band: MusicNoteIcon,
-};
-
 type Project = {
   id: number;
   name: string;
   description: string;
   color: string;
   status: string;
+  type: string;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -53,12 +37,29 @@ type ProjectsPageClientProps = {
 export function ProjectsPageClient({ projects, locale, projectType, userPreferences }: ProjectsPageClientProps) {
   const t = useTranslations('Projects');
   const [modalOpen, setModalOpen] = useState(false);
+  const [projectsList, setProjectsList] = useState<Project[]>(projects);
 
   // State for view controls
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>(userPreferences?.projectsViewMode || 'folder');
   const [cardSize, setCardSize] = useState<CardSize>(userPreferences?.projectsCardSize || 'medium');
   const [sortBy, setSortBy] = useState<SortBy>(userPreferences?.projectsSortBy || 'dateModified');
+
+  // Update local state when props change (e.g., after navigation)
+  useEffect(() => {
+    setProjectsList(projects);
+  }, [projects]);
+
+  const handleProjectDeleted = (projectId: number) => {
+    setProjectsList(prev => prev.filter(p => p.id !== projectId));
+  };
+
+  const getButtonLabel = () => {
+    if (projectType) {
+      return (t as any)(`new_${projectType}`);
+    }
+    return t('new_project');
+  };
 
   // Mobile detection (iPhone width ~430px)
   const isMobile = useMediaQuery('(max-width:930px)');
@@ -85,7 +86,7 @@ export function ProjectsPageClient({ projects, locale, projectType, userPreferen
         {/* Page Header */}
 
         {/* Projects TopBar */}
-        {projects.length > 0 && (
+        {projectsList.length > 0 && (
           <ProjectsTopBar
             searchQuery={searchQuery}
             viewMode={viewMode}
@@ -102,7 +103,7 @@ export function ProjectsPageClient({ projects, locale, projectType, userPreferen
         )}
 
         {/* Empty State or Project List */}
-        {projects.length === 0
+        {projectsList.length === 0
           ? (
               <Box
                 sx={{
@@ -170,12 +171,13 @@ export function ProjectsPageClient({ projects, locale, projectType, userPreferen
             )
           : (
               <ProjectsList
-                projects={projects}
+                projects={projectsList}
                 locale={locale}
                 viewMode={viewMode}
                 cardSize={cardSize}
                 sortBy={sortBy}
                 searchQuery={searchQuery}
+                onProjectDeleted={handleProjectDeleted}
               />
             )}
       </Box>
