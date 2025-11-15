@@ -128,7 +128,6 @@ export function ProjectsList({ projects, locale, viewMode, cardSize, sortBy, sea
     }
   };
 
-  const gridSizes = getGridSizes();
   const cardHeight = getCardHeight();
   const fontSizes = getFontSizes();
 

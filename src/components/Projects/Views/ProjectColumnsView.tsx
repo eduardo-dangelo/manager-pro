@@ -55,6 +55,7 @@ export function ProjectColumnsView({ projects, locale, onProjectDeleted }: Proje
   const loadProject = async (projectId: number) => {
     try {
       setIsLoading(true);
+      setSelectedProject(null);
       const res = await fetch(`/${locale}/api/projects/${projectId}`);
       if (!res.ok) {
         throw new Error('Failed to load project');
@@ -81,15 +82,16 @@ export function ProjectColumnsView({ projects, locale, onProjectDeleted }: Proje
           // borderColor: 'grey.200',
         }}
       >
-        <Box sx={{ 
-          width: 320, 
-          borderRadius: 2, 
+        <Box sx={{
+          width: 320,
+          borderRadius: 2,
           border: 1,
-          borderColor: 'grey.200', 
-          overflowY: 'auto', 
+          borderColor: 'grey.200',
+          overflowY: 'auto',
           bgcolor: 'white',
           p: 1,
-         }}>
+        }}
+        >
           <TransitionGroup component={null}>
             {projects.map((project) => {
               const ProjectIcon = projectTypeIcons[project.type as keyof typeof projectTypeIcons] || FolderIcon;
@@ -131,21 +133,24 @@ export function ProjectColumnsView({ projects, locale, onProjectDeleted }: Proje
         <Box sx={{ flex: 1, minWidth: 0, overflow: 'auto', px: 2 }}>
           {!selectedProject && (
             <Box sx={{
-              border: 1,
-              borderColor: 'grey.200',
-              borderRadius: 2,
-              bgcolor: 'white',
+              // border: 1,
+              // borderColor: 'grey.200',
+              // borderRadius: 2,
+              // bgcolor: 'white',
               p: 3,
               color: 'grey.600',
-            }}>
-              {isLoading ? (
-                <>
-                  <Skeleton variant="text" width={200} height={28} />
-                  <Skeleton variant="rectangular" height={120} sx={{ mt: 1, borderRadius: 1 }} />
-                </>
-              ) : (
-                <Typography variant="body1">Select a project to see details</Typography>
-              )}
+            }}
+            >
+              {isLoading
+                ? (
+                    <>
+                      <Skeleton variant="text" width={200} height={38} />
+                      <Skeleton variant="rectangular" height={100} sx={{ mt: 3, borderRadius: 1 }} />
+                    </>
+                  )
+                : (
+                    <Typography variant="body1">Select a project to see details</Typography>
+                  )}
             </Box>
           )}
           {selectedProject && (
