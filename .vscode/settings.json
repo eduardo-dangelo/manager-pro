@@ -35,8 +35,8 @@
 
   // Auto fix with ESLint on save
   "editor.codeActionsOnSave": {
-    "source.fixAll": true,
-    "source.fixAll.eslint": true
+    "source.fixAll": "explicit",
+    "source.fixAll.eslint": "explicit"
   },
   "files.eol": "\n",
   "eslint.experimental.useFlatConfig": true,

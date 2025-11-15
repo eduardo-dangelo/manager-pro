@@ -2,10 +2,15 @@
 
 import type { ReactNode } from 'react';
 import { SignOutButton } from '@clerk/nextjs';
-import { Logout as LogoutIcon, Menu as MenuIcon } from '@mui/icons-material';
+import {
+  ChevronRight,
+  Logout as LogoutIcon,
+  Menu as MenuIcon,
+} from '@mui/icons-material';
 import {
   AppBar,
   Box,
+  Collapse,
   Drawer,
   IconButton,
   List,
@@ -19,7 +24,7 @@ import {
 } from '@mui/material';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Logo } from './Logo';
 
 type MenuItem = {
@@ -45,12 +50,25 @@ export function Sidebar({
   signOutLabel,
 }: SidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(() => new Set());
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
   const pathname = usePathname();
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
+  };
+
+  const toggleExpanded = (href: string) => {
+    setExpandedItems((prev) => {
+      const next = new Set(prev);
+      if (next.has(href)) {
+        next.delete(href);
+      } else {
+        next.add(href);
+      }
+      return next;
+    });
   };
 
   const isActive = (href: string) => {
@@ -82,6 +100,61 @@ export function Sidebar({
     return false;
   };
 
+  // Group menu items by parent-child relationship
+  const groupMenuItems = useCallback(() => {
+    const groupedItems: Array<{ parent: MenuItem; children: MenuItem[] }> = [];
+    let currentParent: MenuItem | null = null;
+    let currentChildren: MenuItem[] = [];
+
+    menuItems.forEach((item) => {
+      if (item.isSubItem) {
+        if (currentParent) {
+          currentChildren.push(item);
+        }
+      } else {
+        if (currentParent) {
+          groupedItems.push({ parent: currentParent, children: currentChildren });
+        }
+        const itemIndex = menuItems.indexOf(item);
+        const nextItemsAreSubItems = menuItems
+          .slice(itemIndex + 1)
+          .some(nextItem => nextItem.isSubItem);
+
+        if (nextItemsAreSubItems) {
+          currentParent = item;
+          currentChildren = [];
+        } else {
+          groupedItems.push({ parent: item, children: [] });
+          currentParent = null;
+          currentChildren = [];
+        }
+      }
+    });
+
+    if (currentParent) {
+      groupedItems.push({ parent: currentParent, children: currentChildren });
+    }
+
+    return groupedItems;
+  }, [menuItems]);
+
+  // Auto-expand parent items if any child is active
+  useEffect(() => {
+    const groupedItems = groupMenuItems();
+    groupedItems.forEach((group) => {
+      const hasActiveChild = group.children.some(child => isActive(child.href));
+      if (hasActiveChild) {
+        setExpandedItems((prev) => {
+          if (!prev.has(group.parent.href)) {
+            return new Set(prev).add(group.parent.href);
+          }
+          return prev;
+        });
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname, groupMenuItems]);
+
   const drawerContent = (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Logo - Hidden on mobile */}
@@ -93,46 +166,124 @@ export function Sidebar({
 
       {/* Navigation */}
       <List sx={{ flexGrow: 1, px: 2, py: isMobile ? 3 : 2, mt: isMobile ? 5 : 0 }}>
-        {menuItems.map((item) => {
-          const Icon = item.icon;
-          const active = isActive(item.href);
+        {groupMenuItems().map((group) => {
+          const { parent, children } = group;
+          const Icon = parent.icon;
+          const active = isActive(parent.href);
+          const isExpanded = expandedItems.has(parent.href);
+          const hasChildren = children.length > 0;
+          const hasActiveChild = children.some(child => isActive(child.href));
+
           return (
-            <ListItem key={item.href} disablePadding sx={{ mb: 0.5 }}>
-              <ListItemButton
-                component={Link}
-                href={item.href}
-                sx={{
-                  'borderRadius': 2,
-                  'color': active ? 'white' : 'rgba(255, 255, 255, 0.7)',
-                  'bgcolor': active ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
-                  'pl': item.isSubItem ? 4 : 2,
-                  '&:hover': {
-                    'bgcolor': 'rgba(255, 255, 255, 0.12)',
-                    'color': 'white',
-                    '& .MuiListItemIcon-root': {
-                      color: '#60a5fa',
+            <Box key={parent.href}>
+              <ListItem disablePadding sx={{ mb: 0.5 }}>
+                <ListItemButton
+                  component={Link}
+                  href={parent.href}
+                  onClick={(e) => {
+                    // e.stopPropagation();
+                    toggleExpanded(parent.href);
+                  }}
+                  sx={{
+                    'borderRadius': 2,
+                    'color': active || hasActiveChild ? 'white' : 'rgba(255, 255, 255, 0.7)',
+                    'bgcolor': active || hasActiveChild ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                    'pl': 2,
+                    'pr': hasChildren ? 0.5 : 2,
+                    '&:hover': {
+                      'bgcolor': 'rgba(255, 255, 255, 0.12)',
+                      'color': 'white',
+                      '& .MuiListItemIcon-root': {
+                        color: '#60a5fa',
+                      },
                     },
-                  },
-                }}
-              >
-                <ListItemIcon sx={{ minWidth: 40 }}>
-                  <Icon
-                    sx={{
-                      fontSize: 20,
-                      color: '#60a5fa',
-                      transition: 'color 0.2s',
+                  }}
+                >
+                  <ListItemIcon sx={{ minWidth: 40 }}>
+                    <Icon
+                      sx={{
+                        fontSize: 20,
+                        color: '#60a5fa',
+                        transition: 'color 0.2s',
+                      }}
+                    />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={parent.label}
+                    primaryTypographyProps={{
+                      fontSize: '0.875rem',
+                      fontWeight: 500,
                     }}
                   />
-                </ListItemIcon>
-                <ListItemText
-                  primary={item.label}
-                  primaryTypographyProps={{
-                    fontSize: '0.875rem',
-                    fontWeight: 500,
-                  }}
-                />
-              </ListItemButton>
-            </ListItem>
+                  {hasChildren && (
+                    <IconButton
+                      size="small"
+                      sx={{
+                        'color': 'rgba(255, 255, 255, 0.7)',
+                        'p': 0.5,
+                        'mr': 0.5,
+                        'transition': 'transform 0.2s, color 0.2s',
+                        'transform': isExpanded || hasActiveChild ? 'rotate(90deg)' : 'rotate(0deg)',
+                        '&:hover': {
+                          color: 'white',
+                          bgcolor: 'rgba(255, 255, 255, 0.08)',
+                        },
+                      }}
+                    >
+                      <ChevronRight sx={{ fontSize: 20 }} />
+                    </IconButton>
+                  )}
+                </ListItemButton>
+              </ListItem>
+              {hasChildren && (
+                <Collapse in={isExpanded || hasActiveChild} timeout="auto" unmountOnExit>
+                  <List component="div" disablePadding>
+                    {children.map((child) => {
+                      const ChildIcon = child.icon;
+                      const childActive = isActive(child.href);
+                      return (
+                        <ListItem key={child.href} disablePadding sx={{ mb: 0.5 }}>
+                          <ListItemButton
+                            component={Link}
+                            href={child.href}
+                            sx={{
+                              'borderRadius': 2,
+                              'color': childActive ? 'white' : 'rgba(255, 255, 255, 0.7)',
+                              'bgcolor': childActive ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                              'pl': 4,
+                              '&:hover': {
+                                'bgcolor': 'rgba(255, 255, 255, 0.12)',
+                                'color': 'white',
+                                '& .MuiListItemIcon-root': {
+                                  color: '#60a5fa',
+                                },
+                              },
+                            }}
+                          >
+                            <ListItemIcon sx={{ minWidth: 40 }}>
+                              <ChildIcon
+                                sx={{
+                                  fontSize: 20,
+                                  color: '#60a5fa',
+                                  transition: 'color 0.2s',
+                                }}
+                              />
+                            </ListItemIcon>
+                            <ListItemText
+                              primary={child.label}
+                              primaryTypographyProps={{
+                                fontSize: '0.875rem',
+                                fontWeight: 500,
+                              }}
+                            />
+                          </ListItemButton>
+                        </ListItem>
+                      );
+                    })}
+                  </List>
+                </Collapse>
+              )}
+            </Box>
           );
         })}
       </List>
