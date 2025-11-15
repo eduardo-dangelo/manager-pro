@@ -217,6 +217,15 @@ export function ProjectsTopBar({
         justifyContent: 'space-between',
         flexWrap: 'wrap',
         mb: 3,
+        position: 'sticky',
+        top: -35,
+        // border: 1,
+        zIndex: 100,
+        borderRadius: 2,
+        bgcolor: 'grey.50',
+        pt: 2,
+        pb: 0,
+        // boxShadow: '0 10px 42px rgba(0, 0, 0, 0.1)',
       }}
     >
       {/* Left side - Breadcrumb */}

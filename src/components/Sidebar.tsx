@@ -386,7 +386,7 @@ export function Sidebar({
             },
           }}
         >
-          <Box onClick={handleDrawerToggle}>{drawerContent}</Box>
+          <Box>{drawerContent}</Box>
         </Drawer>
 
         {/* Desktop Drawer */}

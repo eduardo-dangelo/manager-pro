@@ -71,9 +71,7 @@ export function ProjectListView({ projects, locale, onProjectDeleted }: ProjectL
         sx={{
           'bgcolor': 'white',
           'borderRadius': 2,
-          // border: 1,
-          // borderColor: 'grey.200',
-          // boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          'overflow': 'visible',
           'transition': 'box-shadow 0.2s ease',
           '&:hover': {
           // boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
@@ -84,11 +82,21 @@ export function ProjectListView({ projects, locale, onProjectDeleted }: ProjectL
           size="small"
           sx={{
             'width': '100%',
-            'tableLayout': 'fixed',
+            // 'tableLayout': 'fixed',
             '& .MuiTableCell-root': { py: 0.75 },
           }}
         >
-          <TableHead>
+          <TableHead
+            sx={{
+              'position': 'sticky',
+              'top': 20, // Account for ProjectsTopBar height (approximately 60-80px)
+              'zIndex': 90,
+              'bgcolor': 'grey.50',
+              '& th': {
+                bgcolor: 'grey.50', // Ensure cells also have background
+              },
+            }}
+          >
             <TableRow sx={{ bgcolor: 'grey.50' }}>
               <TableCell sx={{ fontWeight: 600, color: 'grey.700', width: '25%' }}>Name</TableCell>
               <TableCell sx={{ fontWeight: 600, color: 'grey.700', display: { xs: 'none', sm: 'table-cell' }, width: '15%' }}>Type</TableCell>
