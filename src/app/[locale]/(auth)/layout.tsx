@@ -12,6 +12,7 @@ import {
   Settings as SettingsIcon,
 } from '@mui/icons-material';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { ConditionalSidebar } from '@/components/ConditionalSidebar';
 import { Sidebar } from '@/components/Sidebar';
 import { routing } from '@/libs/I18nRouting';
 import { ProjectService } from '@/services/projectService';
@@ -128,14 +129,20 @@ export default async function AuthLayout(props: {
       signUpFallbackRedirectUrl={dashboardUrl}
       afterSignOutUrl={afterSignOutUrl}
     >
-      <Sidebar
-        drawerWidth={DRAWER_WIDTH}
-        menuItems={menuItems}
-        appName={AppConfig.name}
-        signOutLabel={t('sign_out')}
+      <ConditionalSidebar
+        sidebarContent={(
+          <Sidebar
+            drawerWidth={DRAWER_WIDTH}
+            menuItems={menuItems}
+            appName={AppConfig.name}
+            signOutLabel={t('sign_out')}
+          >
+            {props.children}
+          </Sidebar>
+        )}
       >
         {props.children}
-      </Sidebar>
+      </ConditionalSidebar>
     </ClerkProvider>
   );
 }
