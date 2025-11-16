@@ -183,9 +183,9 @@ export function ProjectsList({ projects, locale, viewMode, cardSize, sortBy, sea
                     left: 0,
                     right: 0,
                     bottom: 0,
-                    bgcolor: 'white',
+                    bgcolor: 'background.paper',
                     border: 1,
-                    borderColor: 'grey.200',
+                    borderColor: 'divider',
                     borderRadius: '12px',
                     // borderTopLeftRadius: '0px',
                     p: 3,
@@ -211,7 +211,7 @@ export function ProjectsList({ projects, locale, viewMode, cardSize, sortBy, sea
                       sx={{
                         fontSize: fontSizes.title,
                         fontWeight: 600,
-                        color: 'grey.900',
+                        color: 'text.primary',
                         mb: 1,
                         mt: 0.5,
                       }}
@@ -226,7 +226,7 @@ export function ProjectsList({ projects, locale, viewMode, cardSize, sortBy, sea
                       variant="body2"
                       sx={{
                         fontSize: fontSizes.description,
-                        color: 'grey.600',
+                        color: 'text.secondary',
                         mb: 2,
                         display: '-webkit-box',
                         WebkitLineClamp: 2,
@@ -254,7 +254,7 @@ export function ProjectsList({ projects, locale, viewMode, cardSize, sortBy, sea
                       <Typography
                         variant="caption"
                         sx={{
-                          color: 'grey.500',
+                          color: 'text.secondary',
                           fontSize: fontSizes.caption,
                         }}
                       >
@@ -272,9 +272,9 @@ export function ProjectsList({ projects, locale, viewMode, cardSize, sortBy, sea
                   variant="body2"
                   sx={{
                     textAlign: 'center',
-                    mt: 1,
+                    my: 1,
                     fontWeight: 600,
-                    color: 'grey.900',
+                    color: 'text.primary',
                   }}
                 >
                   {project.name}

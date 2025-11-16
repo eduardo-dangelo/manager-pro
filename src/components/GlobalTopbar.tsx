@@ -56,7 +56,7 @@ export function GlobalTopbar() {
             onClick={toggleTheme}
             size="small"
             sx={{
-              'color': 'text.primary',
+              'color': 'text.secondary',
               '&:hover': {
                 bgcolor: 'action.hover',
               },
@@ -99,7 +99,7 @@ export function GlobalTopbar() {
             href={getI18nPath('/settings', locale)}
             size="small"
             sx={{
-              'color': 'text.primary',
+              'color': 'text.secondary',
               '&:hover': {
                 bgcolor: 'action.hover',
               },
@@ -115,7 +115,7 @@ export function GlobalTopbar() {
             <IconButton
               size="small"
               sx={{
-                'color': 'text.primary',
+                'color': 'text.secondary',
                 '&:hover': {
                   bgcolor: 'action.hover',
                 },

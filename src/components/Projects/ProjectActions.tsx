@@ -52,7 +52,7 @@ export function ProjectActions({ projectId, locale, onDeleted, onCompleted }: Pr
   return (
     <>
       <Tooltip title="Project actions">
-        <IconButton size="small" onClick={handleOpen} onMouseDown={(e) => e.stopPropagation()}>
+        <IconButton sx={{ color: 'text.secondary' }} size="small" onClick={handleOpen} onMouseDown={e => e.stopPropagation()}>
           <MoreIcon fontSize="small" />
         </IconButton>
       </Tooltip>
@@ -63,5 +63,3 @@ export function ProjectActions({ projectId, locale, onDeleted, onCompleted }: Pr
     </>
   );
 }
-
-
