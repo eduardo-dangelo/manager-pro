@@ -68,7 +68,7 @@ export function ProjectHeader({
             '& .MuiInput-root': {
               'fontSize': '2.5rem',
               'fontWeight': 700,
-              'color': 'grey.900',
+              'color': 'text.primary',
               '&:before': { borderBottom: 'none' },
               '&:after': { borderBottom: 'none' },
               '&:hover:not(.Mui-disabled):before': { borderBottom: 'none' },

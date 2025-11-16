@@ -73,22 +73,17 @@ export function ProjectColumnsView({ projects, locale, onProjectDeleted }: Proje
     <Fade in={true} unmountOnExit>
       <Box
         sx={{
-          // bgcolor: 'white',
           display: 'flex',
           alignItems: 'flex-start',
-          // height: '100vh',
-          // overflow: 'hidden',
-          // border: 1,
-          // borderColor: 'grey.200',
         }}
       >
         <Box sx={{
           width: 320,
           borderRadius: 2,
           border: 1,
-          borderColor: 'grey.200',
+          borderColor: 'divider',
           overflowY: 'auto',
-          bgcolor: 'white',
+          bgcolor: 'background.paper',
           p: 1,
         }}
         >
@@ -114,14 +109,21 @@ export function ProjectColumnsView({ projects, locale, onProjectDeleted }: Proje
                       'px': 2,
                       'py': 1.25,
                       'cursor': 'pointer',
-                      'bgcolor': isActive ? 'grey.100' : 'transparent',
-                      '&:hover': { bgcolor: 'grey.100', borderRadius: 2 },
+                      'bgcolor': isActive ? 'action.hover' : 'transparent',
+                      'borderRadius': 2,
+                      '&:hover': {
+                        'bgcolor': 'action.hover',
+                        'boxShadow': 'inset 0 2px 6px rgba(0, 0, 0, 0.1)',
+                        '& .MuiSvgIcon-root': {
+                          color: 'primary.main',
+                        },
+                      },
                       // 'borderBottom': '1px solid',
                       // 'borderBottomColor': 'grey.200',
                     }}
                   >
-                    <ProjectIcon sx={{ fontSize: 18, color: 'grey.700' }} />
-                    <Typography variant="body2" sx={{ fontWeight: 500, color: 'grey.900' }}>
+                    <ProjectIcon sx={{ fontSize: 18, color: isActive ? 'primary.main' : 'text.secondary' }} />
+                    <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary' }}>
                       {project.name.length > 30 ? `${project.name.slice(0, 40)}…` : project.name}
                     </Typography>
                   </Box>

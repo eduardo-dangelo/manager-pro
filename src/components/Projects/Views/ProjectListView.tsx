@@ -134,12 +134,13 @@ export function ProjectListView({ projects, locale, onProjectDeleted }: ProjectL
                         'bgcolor': index % 2 === 1 ? theme.palette.action.hover : 'inherit',
                         'transition': 'box-shadow 0.2s ease',
                         '&:hover': {
-                          bgcolor: theme.palette.action.selected,
-                          boxShadow: `inset 0 2px 6px ${
+                          'bgcolor': theme.palette.action.selected,
+                          'boxShadow': `inset 0 2px 6px ${
                             theme.palette.mode === 'light' ? 'rgba(0,0,0,0.1)' : 'rgba(0,0,0,0.2)'
                           }`,
-                          fontSize: '18px',
-
+                          '& .MuiSvgIcon-root': {
+                            color: theme.palette.primary.main,
+                          },
                         },
                         '&:last-child td': {
                           borderBottom: 0,

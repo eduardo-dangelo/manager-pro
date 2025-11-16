@@ -62,7 +62,7 @@ export function GlobalTopbar() {
               },
             }}
           >
-            {mode === 'light' ? <DarkMode /> : <LightMode />}
+            {mode === 'light' ? <DarkMode fontSize="small" /> : <LightMode fontSize="small" />}
           </IconButton>
         </Tooltip>
 
@@ -83,8 +83,8 @@ export function GlobalTopbar() {
               src={user?.imageUrl}
               alt={user?.firstName || 'User'}
               sx={{
-                width: 32,
-                height: 32,
+                width: 26,
+                height: 26,
               }}
             >
               {user?.firstName?.[0] || user?.emailAddresses[0]?.emailAddress?.[0] || 'U'}
@@ -105,7 +105,7 @@ export function GlobalTopbar() {
               },
             }}
           >
-            <Settings />
+            <Settings fontSize="small" />
           </IconButton>
         </Tooltip>
 
@@ -121,7 +121,7 @@ export function GlobalTopbar() {
                 },
               }}
             >
-              <Logout />
+              <Logout fontSize="small" />
             </IconButton>
           </SignOutButton>
         </Tooltip>
