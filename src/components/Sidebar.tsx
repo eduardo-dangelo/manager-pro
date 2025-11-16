@@ -25,6 +25,7 @@ import {
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
+import { GlobalTopbar } from './GlobalTopbar';
 import { Logo } from './Logo';
 
 type MenuItem = {
@@ -180,8 +181,7 @@ export function Sidebar({
                 <ListItemButton
                   component={Link}
                   href={parent.href}
-                  onClick={(e) => {
-                    // e.stopPropagation();
+                  onClick={() => {
                     toggleExpanded(parent.href);
                   }}
                   sx={{
@@ -414,17 +414,22 @@ export function Sidebar({
           flexGrow: 1,
           height: '100vh',
           overflow: 'auto',
-          bgcolor: '#f8f9fa',
+          bgcolor: 'background.default',
           pt: { xs: 9, lg: 4 },
           px: { xs: 2, sm: 3, md: 4 },
           pb: { xs: 2, sm: 3, md: 4 },
         }}
       >
+        {/* Global Topbar */}
+        <GlobalTopbar />
+
+        {/* Content with topbar spacing */}
         <Box
           sx={{
             width: '100%',
             maxWidth: 1400,
             mx: 'auto',
+            mt: { xs: 0, lg: 8 }, // Account for topbar height (64px) + existing padding
           }}
         >
           {children}

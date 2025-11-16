@@ -68,6 +68,18 @@
   "UserProfile": {
     "meta_title": "User Profile"
   },
+  "GlobalTopbar": {
+    "tooltip_dark_mode": "Go dark mode",
+    "tooltip_light_mode": "Go light mode",
+    "tooltip_user_profile": "User Profile",
+    "tooltip_settings": "Settings",
+    "tooltip_logout": "Logout"
+  },
+  "Settings": {
+    "meta_title": "Settings",
+    "page_title": "Settings",
+    "page_description": "Manage your account settings and preferences"
+  },
   "DashboardLayout": {
     "dashboard_link": "Dashboard",
     "user_profile_link": "Manage your account",

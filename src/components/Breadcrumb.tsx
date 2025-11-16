@@ -1,7 +1,7 @@
 'use client';
 
 import { Home as HomeIcon, NavigateNext as NavigateNextIcon } from '@mui/icons-material';
-import { Breadcrumbs, Link as MuiLink, Typography } from '@mui/material';
+import { Breadcrumbs, Link as MuiLink, Typography, useTheme } from '@mui/material';
 import Link from 'next/link';
 
 type BreadcrumbItem = {
@@ -14,6 +14,7 @@ type BreadcrumbProps = {
 };
 
 export function Breadcrumb({ items }: BreadcrumbProps) {
+  const theme = useTheme();
   return (
     <Breadcrumbs
       separator={<NavigateNextIcon fontSize="small" />}
@@ -33,7 +34,7 @@ export function Breadcrumb({ items }: BreadcrumbProps) {
               key={item.label}
               sx={{
                 fontSize: '0.875rem',
-                color: 'grey.700',
+                color: theme.palette.text.secondary,
                 fontWeight: 500,
                 display: 'flex',
                 alignItems: 'center',
@@ -52,12 +53,12 @@ export function Breadcrumb({ items }: BreadcrumbProps) {
             underline="hover"
             sx={{
               'fontSize': '0.875rem',
-              'color': 'grey.600',
+              'color': theme.palette.text.secondary,
               'textDecoration': 'none',
               'display': 'flex',
               'alignItems': 'center',
               '&:hover': {
-                color: 'primary.main',
+                color: theme.palette.primary.main,
               },
             }}
           >

@@ -27,6 +27,7 @@ import {
   ToggleButtonGroup,
   Tooltip,
   useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import { useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
@@ -65,6 +66,7 @@ export function ProjectsTopBar({
   locale,
   projectType,
 }: ProjectsTopBarProps) {
+  const theme = useTheme();
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [sortAnchorEl, setSortAnchorEl] = useState<null | HTMLElement>(null);
   const searchFieldRef = useRef<HTMLInputElement>(null);
@@ -170,13 +172,15 @@ export function ProjectsTopBar({
 
   // Button group styling
   const buttonGroupSx = {
+    'color': theme.palette.text.secondary,
     '&:hover': {
-      bgcolor: 'grey.200',
+      bgcolor: theme.palette.action.hover,
     },
     '& .MuiToggleButtonGroup-root': {
       border: 'none',
     },
     '& .MuiToggleButton-root': {
+      'color': theme.palette.text.secondary,
       'height': 30,
       'width': 30,
       'border': 'none',
@@ -184,13 +188,14 @@ export function ProjectsTopBar({
       'borderRadius': '6px',
       'transition': 'all 0.2s ease',
       '&:hover': {
-        bgcolor: 'grey.200',
+        bgcolor: theme.palette.action.hover,
       },
       '&.Mui-selected': {
-        'bgcolor': 'grey.300',
+        'color': theme.palette.text.primary,
+        'bgcolor': theme.palette.action.selected,
         'borderRadius': '6px',
         '&:hover': {
-          bgcolor: 'grey.300',
+          bgcolor: theme.palette.action.hover,
         },
       },
     },
@@ -205,7 +210,7 @@ export function ProjectsTopBar({
     'borderRadius': '6px',
     'transition': 'all 0.2s ease',
     '&:hover': {
-      bgcolor: 'grey.200',
+      bgcolor: theme.palette.action.hover,
     },
   };
 
@@ -222,8 +227,8 @@ export function ProjectsTopBar({
         // border: 1,
         zIndex: 100,
         borderRadius: 2,
-        bgcolor: 'grey.50',
-        pt: 2,
+        bgcolor: theme.palette.background.default,
+        // pt: 2,
         pb: 0,
         // boxShadow: '0 10px 42px rgba(0, 0, 0, 0.1)',
       }}
@@ -336,9 +341,9 @@ export function ProjectsTopBar({
             <IconButton
               size="small"
               onClick={handleSortClick}
-              sx={{ ...iconButtonSx, bgcolor: sortOpen ? 'grey.200' : 'transparent' }}
+              sx={{ ...iconButtonSx, bgcolor: sortOpen ? theme.palette.action.hover : 'transparent' }}
             >
-              <SortIcon sx={{ color: 'grey.700', fontSize: 18 }} />
+              <SortIcon sx={{ color: theme.palette.text.secondary, fontSize: 18 }} />
             </IconButton>
           </Badge>
         </Tooltip>
@@ -405,7 +410,7 @@ export function ProjectsTopBar({
           sx={{
             width: '1px',
             height: 20,
-            bgcolor: 'grey.300',
+            bgcolor: theme.palette.action.selected,
             mx: 1,
           }}
         />

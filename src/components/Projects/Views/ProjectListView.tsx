@@ -19,6 +19,7 @@ import {
   TableHead,
   TableRow,
   Typography,
+  useTheme,
 } from '@mui/material';
 import { format } from 'date-fns';
 import Link from 'next/link';
@@ -65,11 +66,12 @@ const pluralizeType = (type: string): string => {
 };
 
 export function ProjectListView({ projects, locale, onProjectDeleted }: ProjectListViewProps) {
+  const theme = useTheme();
   return (
     <Fade in={true} unmountOnExit>
       <TableContainer
         sx={{
-          'bgcolor': 'white',
+          'bgcolor': theme.palette.background.default,
           'borderRadius': 2,
           'overflow': 'visible',
           'transition': 'box-shadow 0.2s ease',
@@ -91,20 +93,19 @@ export function ProjectListView({ projects, locale, onProjectDeleted }: ProjectL
               'position': 'sticky',
               'top': 20, // Account for ProjectsTopBar height (approximately 60-80px)
               'zIndex': 90,
-              'bgcolor': 'grey.50',
               '& th': {
-                bgcolor: 'grey.50', // Ensure cells also have background
+                bgcolor: theme.palette.action.hover, // Ensure cells also have background
               },
             }}
           >
-            <TableRow sx={{ bgcolor: 'grey.50' }}>
-              <TableCell sx={{ fontWeight: 600, color: 'grey.700', width: '25%' }}>Name</TableCell>
-              <TableCell sx={{ fontWeight: 600, color: 'grey.700', display: { xs: 'none', sm: 'table-cell' }, width: '15%' }}>Type</TableCell>
+            <TableRow>
+              <TableCell sx={{ fontWeight: 600, color: theme.palette.text.secondary, width: '25%' }}>Name</TableCell>
+              <TableCell sx={{ fontWeight: 600, color: theme.palette.text.secondary, display: { xs: 'none', sm: 'table-cell' }, width: '15%' }}>Type</TableCell>
               {/* Status column removed */}
-              <TableCell sx={{ fontWeight: 600, color: 'grey.700', display: { xs: 'none', sm: 'table-cell' }, width: '15%' }}>Progress</TableCell>
-              <TableCell sx={{ fontWeight: 600, color: 'grey.700', display: { xs: 'none', sm: 'none', md: 'table-cell' }, width: '15%' }}>Tasks</TableCell>
-              <TableCell sx={{ fontWeight: 600, color: 'grey.700', width: '20%' }}>Modified</TableCell>
-              <TableCell sx={{ fontWeight: 600, color: 'grey.700', width: 80, textAlign: 'right' }}>Actions</TableCell>
+              <TableCell sx={{ fontWeight: 600, color: theme.palette.text.secondary, display: { xs: 'none', sm: 'table-cell' }, width: '15%' }}>Progress</TableCell>
+              <TableCell sx={{ fontWeight: 600, color: theme.palette.text.secondary, display: { xs: 'none', sm: 'none', md: 'table-cell' }, width: '15%' }}>Tasks</TableCell>
+              <TableCell sx={{ fontWeight: 600, color: theme.palette.text.secondary, width: '20%' }}>Modified</TableCell>
+              <TableCell sx={{ fontWeight: 600, color: theme.palette.text.secondary, width: 80, textAlign: 'right' }}>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -130,9 +131,9 @@ export function ProjectListView({ projects, locale, onProjectDeleted }: ProjectL
                   >
                     <TableRow
                       sx={{
-                        'bgcolor': index % 2 === 1 ? 'grey.100' : 'inherit',
+                        'bgcolor': index % 2 === 1 ? theme.palette.action.hover : 'inherit',
                         '&:hover': {
-                          bgcolor: 'grey.50',
+                          bgcolor: theme.palette.action.selected,
                         },
                         '&:last-child td': {
                           borderBottom: 0,
@@ -148,7 +149,7 @@ export function ProjectListView({ projects, locale, onProjectDeleted }: ProjectL
                               variant="body2"
                               sx={{
                                 fontWeight: 500,
-                                color: 'grey.900',
+                                color: theme.palette.text.primary,
                                 mb: 0.25,
                               }}
                             >
@@ -159,8 +160,8 @@ export function ProjectListView({ projects, locale, onProjectDeleted }: ProjectL
                       </TableCell>
                       <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' }, width: '15%' }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <ProjectIcon sx={{ fontSize: 18, color: 'grey.700' }} />
-                          <Typography variant="body2" sx={{ color: 'grey.700', textTransform: 'capitalize' }}>
+                          <ProjectIcon sx={{ fontSize: 18, color: theme.palette.text.secondary }} />
+                          <Typography variant="body2" sx={{ color: theme.palette.text.secondary, textTransform: 'capitalize' }}>
                             {project.type}
                           </Typography>
                         </Box>
@@ -177,7 +178,7 @@ export function ProjectListView({ projects, locale, onProjectDeleted }: ProjectL
                         </Typography>
                       </TableCell>
                       <TableCell sx={{ width: '20%' }}>
-                        <Typography variant="body2" sx={{ color: 'grey.600' }}>
+                        <Typography variant="body2" sx={{ color: theme.palette.text.primary }}>
                           {format(new Date(project.updatedAt), 'MMM d, yyyy')}
                         </Typography>
                       </TableCell>

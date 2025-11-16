@@ -67,6 +67,18 @@
   "UserProfile": {
     "meta_title": "Profil de l'utilisateur"
   },
+  "GlobalTopbar": {
+    "tooltip_dark_mode": "Passer en mode sombre",
+    "tooltip_light_mode": "Passer en mode clair",
+    "tooltip_user_profile": "Profil utilisateur",
+    "tooltip_settings": "Paramètres",
+    "tooltip_logout": "Déconnexion"
+  },
+  "Settings": {
+    "meta_title": "Paramètres",
+    "page_title": "Paramètres",
+    "page_description": "Gérez les paramètres et préférences de votre compte"
+  },
   "DashboardLayout": {
     "dashboard_link": "Tableau de bord",
     "user_profile_link": "Gérer votre compte",

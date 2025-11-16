@@ -4,6 +4,7 @@ import { setRequestLocale } from 'next-intl/server';
 import { Nunito } from 'next/font/google';
 import { notFound } from 'next/navigation';
 import { PostHogProvider } from '@/components/analytics/PostHogProvider';
+import { ThemeProvider } from '@/components/ThemeProvider';
 import { routing } from '@/libs/I18nRouting';
 import '@/styles/global.css';
 
@@ -61,7 +62,9 @@ export default async function RootLayout(props: {
       <body className={nunito.variable}>
         <NextIntlClientProvider>
           <PostHogProvider>
-            {props.children}
+            <ThemeProvider>
+              {props.children}
+            </ThemeProvider>
           </PostHogProvider>
         </NextIntlClientProvider>
       </body>
