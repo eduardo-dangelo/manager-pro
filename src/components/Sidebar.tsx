@@ -415,7 +415,6 @@ export function Sidebar({
           height: '100vh',
           overflow: 'auto',
           bgcolor: 'background.default',
-          pt: { xs: 9, lg: 4 },
           px: { xs: 2, sm: 3, md: 4 },
           pb: { xs: 2, sm: 3, md: 4 },
         }}
@@ -429,7 +428,6 @@ export function Sidebar({
             width: '100%',
             maxWidth: 1400,
             mx: 'auto',
-            mt: { xs: 0, lg: 8 }, // Account for topbar height (64px) + existing padding
           }}
         >
           {children}

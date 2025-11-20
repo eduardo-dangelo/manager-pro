@@ -91,8 +91,9 @@ export function ProjectListView({ projects, locale, onProjectDeleted }: ProjectL
           <TableHead
             sx={{
               'position': 'sticky',
-              'top': 20, // Account for ProjectsTopBar height (approximately 60-80px)
+              'top': 102, // Position directly below GlobalTopbar (58px) + ProjectsTopBar (~50px) with no vertical gap
               'zIndex': 90,
+              'bgcolor': 'background.default',
               '& th': {
                 bgcolor: theme.palette.action.hover, // Ensure cells also have background
               },

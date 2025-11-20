@@ -223,14 +223,11 @@ export function ProjectsTopBar({
         flexWrap: 'wrap',
         mb: 3,
         position: 'sticky',
-        top: -35,
-        // border: 1,
+        top: 58, // Position directly below GlobalTopbar (p: 2 = 16px top + 16px bottom + ~26px content = 58px) with no vertical gap
         zIndex: 100,
         borderRadius: 2,
         bgcolor: theme.palette.background.default,
-        // pt: 2,
         pb: 0,
-        // boxShadow: '0 10px 42px rgba(0, 0, 0, 0.1)',
       }}
     >
       {/* Left side - Breadcrumb */}

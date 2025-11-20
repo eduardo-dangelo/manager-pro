@@ -37,14 +37,14 @@ export function GlobalTopbar() {
   return (
     <Box
       sx={{
-        position: 'fixed',
+        position: 'sticky',
         top: 0,
         left: { xs: 0, lg: DRAWER_WIDTH },
         right: 0,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'flex-end',
-        p: 2,
+        py: 2,
         bgcolor: theme.palette.background.default,
         zIndex: theme.zIndex.appBar - 1,
       }}
