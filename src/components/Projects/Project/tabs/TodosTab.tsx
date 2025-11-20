@@ -153,7 +153,9 @@ export function TodosTab({ project, locale, onUpdateProject }: TodosTabProps) {
   };
 
   const getObjectiveName = (objectiveId: number | null) => {
-    if (!objectiveId) return '-';
+    if (!objectiveId) {
+      return '-';
+    }
     const objective = project.objectives.find(obj => obj.id === objectiveId);
     return objective ? objective.name : '-';
   };
@@ -315,7 +317,7 @@ export function TodosTab({ project, locale, onUpdateProject }: TodosTabProps) {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredTodos.map(todo => {
+                  {filteredTodos.map((todo) => {
                     const statusColors = getStatusColor(todo.status);
                     const priorityColors = getPriorityColor(todo.priority);
 
@@ -403,12 +405,12 @@ export function TodosTab({ project, locale, onUpdateProject }: TodosTabProps) {
                               '&:after': { borderBottom: 'none' },
                               '&:hover:not(.Mui-disabled):before': { borderBottom: 'none' },
                               '& .MuiSelect-select': {
-                                'py': 0.5,
-                                'px': 1,
-                                'borderRadius': 1,
-                                'backgroundColor': statusColors.bg,
-                                'color': statusColors.color,
-                                'fontWeight': 500,
+                                py: 0.5,
+                                px: 1,
+                                borderRadius: 1,
+                                backgroundColor: statusColors.bg,
+                                color: statusColors.color,
+                                fontWeight: 500,
                               },
                             }}
                           >
@@ -430,13 +432,13 @@ export function TodosTab({ project, locale, onUpdateProject }: TodosTabProps) {
                               '&:after': { borderBottom: 'none' },
                               '&:hover:not(.Mui-disabled):before': { borderBottom: 'none' },
                               '& .MuiSelect-select': {
-                                'py': 0.5,
-                                'px': 1,
-                                'borderRadius': 1,
-                                'backgroundColor': priorityColors.bg,
-                                'color': priorityColors.color,
-                                'fontWeight': 500,
-                                'textTransform': 'capitalize',
+                                py: 0.5,
+                                px: 1,
+                                borderRadius: 1,
+                                backgroundColor: priorityColors.bg,
+                                color: priorityColors.color,
+                                fontWeight: 500,
+                                textTransform: 'capitalize',
                               },
                             }}
                           >

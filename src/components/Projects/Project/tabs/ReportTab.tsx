@@ -50,13 +50,13 @@ type ReportTabProps = {
 };
 
 const COLORS = {
-  todo: '#94a3b8',
+  'todo': '#94a3b8',
   'in-progress': '#3b82f6',
-  done: '#22c55e',
-  low: '#22c55e',
-  medium: '#f59e0b',
-  high: '#ef4444',
-  urgent: '#dc2626',
+  'done': '#22c55e',
+  'low': '#22c55e',
+  'medium': '#f59e0b',
+  'high': '#ef4444',
+  'urgent': '#dc2626',
 };
 
 export function ReportTab({ project }: ReportTabProps) {
@@ -216,9 +216,9 @@ export function ReportTab({ project }: ReportTabProps) {
             >
               {project.tasks.length > 0
                 ? Math.round(
-                  (project.tasks.filter(t => t.status === 'done').length / project.tasks.length)
+                    (project.tasks.filter(t => t.status === 'done').length / project.tasks.length)
                     * 100,
-                )
+                  )
                 : 0}
               %
             </Typography>
@@ -357,4 +357,3 @@ export function ReportTab({ project }: ReportTabProps) {
     </Box>
   );
 }
-

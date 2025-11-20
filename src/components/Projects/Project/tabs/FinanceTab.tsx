@@ -34,7 +34,7 @@ export function FinanceTab({ project }: FinanceTabProps) {
           {t('finance_title')}
         </Typography>
       </Box>
-      
+
       <Box sx={{ textAlign: 'center', color: 'grey.500', py: 8 }}>
         <MoneyIcon sx={{ fontSize: 64, color: 'grey.300', mb: 2 }} />
         <Typography variant="body1">
@@ -44,4 +44,3 @@ export function FinanceTab({ project }: FinanceTabProps) {
     </Box>
   );
 }
-

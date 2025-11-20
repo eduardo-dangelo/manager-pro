@@ -47,4 +47,3 @@ export default async function SettingsPage(props: ISettingsPageProps) {
     </Box>
   );
 }
-

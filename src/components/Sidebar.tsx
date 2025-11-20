@@ -190,6 +190,7 @@ export function Sidebar({
                     'bgcolor': active || hasActiveChild ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
                     'pl': 2,
                     'pr': hasChildren ? 0.5 : 2,
+                    'py': 0.5,
                     '&:hover': {
                       'bgcolor': 'rgba(255, 255, 255, 0.12)',
                       'color': 'white',

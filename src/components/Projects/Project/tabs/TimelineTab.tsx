@@ -81,8 +81,12 @@ export function TimelineTab({ project }: TimelineTabProps) {
   ].sort((a, b) => {
     const dateA = a.startDate || a.endDate;
     const dateB = b.startDate || b.endDate;
-    if (!dateA) return 1;
-    if (!dateB) return -1;
+    if (!dateA) {
+      return 1;
+    }
+    if (!dateB) {
+      return -1;
+    }
     return new Date(dateA).getTime() - new Date(dateB).getTime();
   });
 
@@ -114,20 +118,28 @@ export function TimelineTab({ project }: TimelineTabProps) {
   };
 
   const calculateProgress = (startDate: Date | null, endDate: Date | null) => {
-    if (!startDate || !endDate) return 0;
+    if (!startDate || !endDate) {
+      return 0;
+    }
 
     const start = new Date(startDate).getTime();
     const end = new Date(endDate).getTime();
     const now = new Date().getTime();
 
-    if (now < start) return 0;
-    if (now > end) return 100;
+    if (now < start) {
+      return 0;
+    }
+    if (now > end) {
+      return 100;
+    }
 
     return Math.round(((now - start) / (end - start)) * 100);
   };
 
   const isOverdue = (endDate: Date | null, status: string) => {
-    if (!endDate || status === 'completed') return false;
+    if (!endDate || status === 'completed') {
+      return false;
+    }
     return new Date(endDate) < new Date();
   };
 
@@ -368,4 +380,3 @@ export function TimelineTab({ project }: TimelineTabProps) {
     </Box>
   );
 }
-

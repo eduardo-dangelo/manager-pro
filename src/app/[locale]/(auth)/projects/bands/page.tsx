@@ -47,4 +47,3 @@ export default async function BandProjectsPage(props: {
 
   return <ProjectsPageClient projects={projects} locale={locale} projectType="band" />;
 }
-

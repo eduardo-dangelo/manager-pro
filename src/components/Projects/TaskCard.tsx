@@ -54,7 +54,7 @@ export function TaskCard({ task, onStatusChange, onDelete, onDragStart }: TaskCa
         'opacity': isDragging ? 0.5 : 1,
         'transition': 'all 0.2s ease',
         '&:hover': {
-          boxShadow: 2,
+          'boxShadow': 2,
           '& .delete-icon': {
             opacity: 1,
           },
@@ -145,4 +145,3 @@ export function TaskCard({ task, onStatusChange, onDelete, onDragStart }: TaskCa
     </Paper>
   );
 }
-

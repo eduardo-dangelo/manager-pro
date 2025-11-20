@@ -47,4 +47,3 @@ export default async function CashflowProjectsPage(props: {
 
   return <ProjectsPageClient projects={projects} locale={locale} projectType="cashflow" />;
 }
-

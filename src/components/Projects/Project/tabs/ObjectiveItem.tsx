@@ -31,7 +31,7 @@ import {
 } from '@mui/material';
 import moment from 'moment';
 import { useTranslations } from 'next-intl';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 
 type Task = {
   id: number;
@@ -754,4 +754,3 @@ export function ObjectiveItem({
     </Accordion>
   );
 }
-

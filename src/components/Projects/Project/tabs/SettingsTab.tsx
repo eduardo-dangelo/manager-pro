@@ -88,4 +88,3 @@ export function SettingsTab({ projectId, projectName, locale }: SettingsTabProps
     </Box>
   );
 }
-

@@ -47,4 +47,3 @@ export default async function PropertyProjectsPage(props: {
 
   return <ProjectsPageClient projects={projects} locale={locale} projectType="property" />;
 }
-

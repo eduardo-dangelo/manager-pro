@@ -47,4 +47,3 @@ export default async function VehicleProjectsPage(props: {
 
   return <ProjectsPageClient projects={projects} locale={locale} projectType="vehicle" />;
 }
-

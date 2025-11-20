@@ -308,4 +308,3 @@ export function CreateProjectModal({ open, onClose, locale, preSelectedType }: C
     </Dialog>
   );
 }
-

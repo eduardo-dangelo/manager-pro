@@ -158,7 +158,7 @@ export function ProjectsList({ projects, locale, viewMode, cardSize, sortBy, sea
                 display: 'block',
                 perspective: '1000px',
                 padding: 0,
-                width: cardSize === 'small' ? '180px' : cardSize === 'large' ? '300px' : '250px',
+                width: cardSize === 'small' ? '180px' : cardSize === 'large' ? '290px' : '250px',
                 transition: 'all 0.3s ease',
 
               }}
