@@ -25,6 +25,7 @@ import { format } from 'date-fns';
 import Link from 'next/link';
 import { TransitionGroup } from 'react-transition-group';
 import { ProjectActions } from '@/components/Projects/ProjectActions';
+import { useHoverSound } from '@/hooks/useHoverSound';
 
 type Project = {
   id: number;
@@ -67,6 +68,7 @@ const pluralizeType = (type: string): string => {
 
 export function ProjectListView({ projects, locale, onProjectDeleted }: ProjectListViewProps) {
   const theme = useTheme();
+  const { playHoverSound } = useHoverSound();
   return (
     <Fade in={true} unmountOnExit>
       <TableContainer
@@ -131,6 +133,7 @@ export function ProjectListView({ projects, locale, onProjectDeleted }: ProjectL
                     }}
                   >
                     <TableRow
+                      onMouseEnter={playHoverSound}
                       sx={{
                         'bgcolor': index % 2 === 1 ? theme.palette.action.hover : 'inherit',
                         'transition': 'box-shadow 0.2s ease',

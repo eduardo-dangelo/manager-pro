@@ -22,6 +22,7 @@ export async function GET() {
       projectsViewMode: user.projectsViewMode,
       projectsCardSize: user.projectsCardSize,
       projectsSortBy: user.projectsSortBy,
+      hoverSoundEnabled: user.hoverSoundEnabled || 'true',
     });
   } catch (error) {
     console.error('Error fetching user preferences:', error);
@@ -38,13 +39,14 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { theme, projectsViewMode, projectsCardSize, projectsSortBy } = body;
+    const { theme, projectsViewMode, projectsCardSize, projectsSortBy, hoverSoundEnabled } = body;
 
     // Validate the input
     const validThemes = ['light', 'dark', 'system'];
     const validViewModes = ['folder', 'list', 'columns'];
     const validCardSizes = ['small', 'medium', 'large'];
     const validSortBy = ['dateCreated', 'dateModified', 'name', 'type', 'status'];
+    const validHoverSoundEnabled = ['true', 'false'];
 
     if (theme && !validThemes.includes(theme)) {
       return NextResponse.json({ error: 'Invalid theme' }, { status: 400 });
@@ -62,6 +64,10 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid sort option' }, { status: 400 });
     }
 
+    if (hoverSoundEnabled && !validHoverSoundEnabled.includes(hoverSoundEnabled)) {
+      return NextResponse.json({ error: 'Invalid hover sound enabled value' }, { status: 400 });
+    }
+
     // Update user preferences
     const updateData: any = {};
     if (theme) {
@@ -76,6 +82,9 @@ export async function PATCH(request: NextRequest) {
     if (projectsSortBy) {
       updateData.projectsSortBy = projectsSortBy;
     }
+    if (hoverSoundEnabled) {
+      updateData.hoverSoundEnabled = hoverSoundEnabled;
+    }
 
     const updatedUser = await UserService.updateUser(userId, updateData);
 
@@ -86,6 +95,7 @@ export async function PATCH(request: NextRequest) {
         projectsViewMode: updatedUser.projectsViewMode,
         projectsCardSize: updatedUser.projectsCardSize,
         projectsSortBy: updatedUser.projectsSortBy,
+        hoverSoundEnabled: updatedUser.hoverSoundEnabled,
       },
     });
   } catch (error) {

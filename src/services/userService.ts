@@ -12,6 +12,7 @@ export type UserData = {
   projectsViewMode?: string;
   projectsCardSize?: string;
   projectsSortBy?: string;
+  hoverSoundEnabled?: string;
 };
 
 export class UserService {
@@ -30,6 +31,7 @@ export class UserService {
         projectsViewMode: userData.projectsViewMode || 'folder',
         projectsCardSize: userData.projectsCardSize || 'medium',
         projectsSortBy: userData.projectsSortBy || 'dateModified',
+        hoverSoundEnabled: userData.hoverSoundEnabled || 'true',
         createdAt: new Date(),
         updatedAt: new Date(),
       }).returning();

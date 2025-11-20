@@ -25,6 +25,7 @@ import {
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
+import { useHoverSound } from '@/hooks/useHoverSound';
 import { GlobalTopbar } from './GlobalTopbar';
 import { Logo } from './Logo';
 
@@ -55,6 +56,7 @@ export function Sidebar({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
   const pathname = usePathname();
+  const { playHoverSound } = useHoverSound();
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -181,6 +183,7 @@ export function Sidebar({
                 <ListItemButton
                   component={Link}
                   href={parent.href}
+                  onMouseEnter={playHoverSound}
                   onClick={() => {
                     toggleExpanded(parent.href);
                   }}
@@ -219,6 +222,7 @@ export function Sidebar({
                   {hasChildren && (
                     <IconButton
                       size="small"
+                      onMouseEnter={playHoverSound}
                       sx={{
                         'color': 'rgba(255, 255, 255, 0.7)',
                         'p': 0.5,
@@ -247,6 +251,7 @@ export function Sidebar({
                           <ListItemButton
                             component={Link}
                             href={child.href}
+                            onMouseEnter={playHoverSound}
                             sx={{
                               'borderRadius': 2,
                               'color': childActive ? 'white' : 'rgba(255, 255, 255, 0.7)',
@@ -295,6 +300,7 @@ export function Sidebar({
           <ListItem disablePadding>
             <SignOutButton>
               <ListItemButton
+                onMouseEnter={playHoverSound}
                 sx={{
                   'borderRadius': 2,
                   'color': 'rgba(255, 255, 255, 0.7)',

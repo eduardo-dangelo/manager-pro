@@ -40,6 +40,7 @@ export const usersSchema = pgTable('users', {
   projectsViewMode: text('projects_view_mode').notNull().default('folder'),
   projectsCardSize: text('projects_card_size').notNull().default('medium'),
   projectsSortBy: text('projects_sort_by').notNull().default('dateModified'),
+  hoverSoundEnabled: text('hover_sound_enabled').notNull().default('true'),
 });
 
 export const workSpacesSchema = pgTable('work_spaces', {
