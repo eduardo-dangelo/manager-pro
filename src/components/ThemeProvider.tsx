@@ -4,6 +4,24 @@ import { createTheme, CssBaseline, ThemeProvider as MUIThemeProvider } from '@mu
 import { usePathname } from 'next/navigation';
 import { createContext, use, useEffect, useMemo, useState } from 'react';
 
+// Extend MUI theme to include custom sidebar colors
+declare module '@mui/material/styles' {
+  type Palette = {
+    sidebar: {
+      background: string;
+      textPrimary: string;
+      textSecondary: string;
+    };
+  };
+  type PaletteOptions = {
+    sidebar?: {
+      background?: string;
+      textPrimary?: string;
+      textSecondary?: string;
+    };
+  };
+}
+
 type ThemeMode = 'light' | 'dark';
 
 type ThemeContextType = {
@@ -117,18 +135,44 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
                   primary: '#1a1a1a',
                   secondary: '#666666',
                 },
+                action: {
+                  hover: 'rgba(0, 0, 0, 0.04)',
+                  selected: 'rgba(0, 0, 0, 0.08)',
+                },
+                primary: {
+                  main: '#60a5fa',
+                  light: '#93c5fd',
+                  dark: '#3b82f6',
+                  contrastText: '#ffffff',
+                },
               }
             : {
-                // Dark mode palette
+                // Dark mode palette - Cursor theme
                 background: {
-                  default: '#121212',
-                  paper: '#1e1e1e',
+                  default: '#252526', // Grayer color for main content
+                  paper: '#1e1e1e', // Darker color for panels/cards
                 },
                 text: {
-                  primary: '#ffffff',
-                  secondary: '#b0b0b0',
+                  primary: '#cccccc',
+                  secondary: 'rgba(204, 204, 204, 0.7)',
+                },
+                action: {
+                  hover: 'rgba(255, 255, 255, 0.08)',
+                  selected: 'rgba(255, 255, 255, 0.12)',
+                },
+                primary: {
+                  main: '#60a5fa',
+                  light: '#93c5fd',
+                  dark: '#3b82f6',
+                  contrastText: '#ffffff',
                 },
               }),
+          // Custom sidebar colors
+          sidebar: {
+            background: mode === 'dark' ? '#1e1e1e' : '#1a1d24', // Very dark, slightly less desaturated blue-gray
+            textPrimary: mode === 'dark' ? '#cccccc' : '#ffffff', // Light text for dark sidebar in light mode
+            textSecondary: mode === 'dark' ? 'rgba(204, 204, 204, 0.7)' : 'rgba(255, 255, 255, 0.7)', // Light secondary text for dark sidebar in light mode
+          },
         },
       }),
     [mode],

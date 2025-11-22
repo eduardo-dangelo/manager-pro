@@ -189,16 +189,16 @@ export function Sidebar({
                   }}
                   sx={{
                     'borderRadius': 2,
-                    'color': active || hasActiveChild ? 'white' : 'rgba(255, 255, 255, 0.7)',
-                    'bgcolor': active || hasActiveChild ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                    'color': active || hasActiveChild ? theme.palette.sidebar.textPrimary : theme.palette.sidebar.textSecondary,
+                    'bgcolor': active || hasActiveChild ? (theme.palette.mode === 'dark' ? theme.palette.action.selected : 'rgba(255, 255, 255, 0.12)') : 'transparent',
                     'pl': 2,
                     'pr': hasChildren ? 0.5 : 2,
                     'py': 0.5,
                     '&:hover': {
-                      'bgcolor': 'rgba(255, 255, 255, 0.12)',
-                      'color': 'white',
+                      'bgcolor': theme.palette.mode === 'dark' ? theme.palette.action.selected : 'rgba(255, 255, 255, 0.12)',
+                      'color': theme.palette.sidebar.textPrimary,
                       '& .MuiListItemIcon-root': {
-                        color: '#60a5fa',
+                        color: theme.palette.primary.main,
                       },
                     },
                   }}
@@ -207,7 +207,7 @@ export function Sidebar({
                     <Icon
                       sx={{
                         fontSize: 20,
-                        color: '#60a5fa',
+                        color: theme.palette.primary.main,
                         transition: 'color 0.2s',
                       }}
                     />
@@ -224,14 +224,14 @@ export function Sidebar({
                       size="small"
                       onMouseEnter={playHoverSound}
                       sx={{
-                        'color': 'rgba(255, 255, 255, 0.7)',
+                        'color': theme.palette.sidebar.textSecondary,
                         'p': 0.5,
                         'mr': 0.5,
                         'transition': 'transform 0.2s, color 0.2s',
                         'transform': isExpanded || hasActiveChild ? 'rotate(90deg)' : 'rotate(0deg)',
                         '&:hover': {
-                          color: 'white',
-                          bgcolor: 'rgba(255, 255, 255, 0.08)',
+                          color: theme.palette.sidebar.textPrimary,
+                          bgcolor: theme.palette.mode === 'dark' ? theme.palette.action.hover : 'rgba(255, 255, 255, 0.08)',
                         },
                       }}
                     >
@@ -254,14 +254,14 @@ export function Sidebar({
                             onMouseEnter={playHoverSound}
                             sx={{
                               'borderRadius': 2,
-                              'color': childActive ? 'white' : 'rgba(255, 255, 255, 0.7)',
-                              'bgcolor': childActive ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                              'color': childActive ? theme.palette.sidebar.textPrimary : theme.palette.sidebar.textSecondary,
+                              'bgcolor': childActive ? (theme.palette.mode === 'dark' ? theme.palette.action.selected : 'rgba(255, 255, 255, 0.12)') : 'transparent',
                               'pl': 4,
                               '&:hover': {
-                                'bgcolor': 'rgba(255, 255, 255, 0.12)',
-                                'color': 'white',
+                                'bgcolor': theme.palette.mode === 'dark' ? theme.palette.action.selected : 'rgba(255, 255, 255, 0.12)',
+                                'color': theme.palette.sidebar.textPrimary,
                                 '& .MuiListItemIcon-root': {
-                                  color: '#60a5fa',
+                                  color: theme.palette.primary.main,
                                 },
                               },
                             }}
@@ -270,7 +270,7 @@ export function Sidebar({
                               <ChildIcon
                                 sx={{
                                   fontSize: 20,
-                                  color: '#60a5fa',
+                                  color: theme.palette.primary.main,
                                   transition: 'color 0.2s',
                                 }}
                               />
@@ -303,12 +303,12 @@ export function Sidebar({
                 onMouseEnter={playHoverSound}
                 sx={{
                   'borderRadius': 2,
-                  'color': 'rgba(255, 255, 255, 0.7)',
+                  'color': theme.palette.sidebar.textSecondary,
                   '&:hover': {
-                    'bgcolor': 'rgba(255, 255, 255, 0.08)',
-                    'color': 'white',
+                    'bgcolor': theme.palette.mode === 'dark' ? theme.palette.action.hover : 'rgba(255, 255, 255, 0.08)',
+                    'color': theme.palette.sidebar.textPrimary,
                     '& .MuiListItemIcon-root': {
-                      color: '#60a5fa',
+                      color: theme.palette.primary.main,
                     },
                   },
                 }}
@@ -317,7 +317,7 @@ export function Sidebar({
                   <LogoutIcon
                     sx={{
                       fontSize: 20,
-                      color: '#60a5fa',
+                      color: theme.palette.primary.main,
                       transition: 'color 0.2s',
                     }}
                   />
@@ -338,7 +338,7 @@ export function Sidebar({
   );
 
   return (
-    <Box sx={{ display: 'flex', height: '100vh', bgcolor: '#f8f9fa', overflow: 'hidden' }}>
+    <Box sx={{ display: 'flex', height: '100vh', bgcolor: theme.palette.background.default, overflow: 'hidden' }}>
       {/* Mobile App Bar */}
       {isMobile && (
         <AppBar
@@ -358,7 +358,9 @@ export function Sidebar({
               onClick={handleDrawerToggle}
               sx={{
                 mr: 0.5,
-                color: mobileOpen ? 'white' : 'grey.900',
+                color: mobileOpen
+                  ? theme.palette.text.primary // When drawer is open, use primary text color (light on dark background)
+                  : (theme.palette.mode === 'dark' ? theme.palette.text.primary : '#1a1a1a'), // When closed, match the main background
               }}
             >
               <MenuIcon />
@@ -388,8 +390,8 @@ export function Sidebar({
             '& .MuiDrawer-paper': {
               width: drawerWidth,
               boxSizing: 'border-box',
-              bgcolor: '#1e293b',
-              borderRight: 'none',
+              bgcolor: theme.palette.sidebar.background,
+              borderRight: `1px solid ${theme.palette.divider}`,
             },
           }}
         >
@@ -404,8 +406,8 @@ export function Sidebar({
             '& .MuiDrawer-paper': {
               width: drawerWidth,
               boxSizing: 'border-box',
-              bgcolor: '#1e293b',
-              borderRight: 'none',
+              bgcolor: theme.palette.sidebar.background,
+              borderRight: `1px solid ${theme.palette.divider}`,
             },
           }}
           open
