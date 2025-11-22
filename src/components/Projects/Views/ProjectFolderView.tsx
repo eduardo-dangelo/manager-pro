@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import Link from 'next/link';
 import { TransitionGroup } from 'react-transition-group';
 import { ProjectActions } from '@/components/Projects/ProjectActions';
+import { useHoverSound } from '@/hooks/useHoverSound';
 
 type Project = {
   id: number;
@@ -99,6 +100,7 @@ export function ProjectFolderView({ projects, locale, cardSize, onProjectDeleted
 
   const cardHeight = getCardHeight();
   const fontSizes = getFontSizes();
+  const { playHoverSound } = useHoverSound();
 
   return (
     <Grid container spacing={cardSize === 'small' ? 0 : 2}>
@@ -109,6 +111,7 @@ export function ProjectFolderView({ projects, locale, cardSize, onProjectDeleted
             <Box
               component={Link}
               href={`/${locale}/projects/${pluralizeType(project.type)}/${project.id}`}
+              onMouseEnter={playHoverSound}
               sx={{
                 textDecoration: 'none',
                 cursor: 'pointer',
@@ -246,4 +249,3 @@ export function ProjectFolderView({ projects, locale, cardSize, onProjectDeleted
     </Grid>
   );
 }
-

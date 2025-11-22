@@ -17,6 +17,7 @@ import {
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useHoverSound } from '@/hooks/useHoverSound';
 import { getI18nPath } from '@/utils/Helpers';
 import { useThemeMode } from './ThemeProvider';
 
@@ -33,6 +34,7 @@ export function GlobalTopbar() {
 
   // Get theme mode from ThemeProvider
   const { mode, toggleTheme } = useThemeMode();
+  const { playHoverSound } = useHoverSound();
 
   return (
     <Box
@@ -54,6 +56,7 @@ export function GlobalTopbar() {
         <Tooltip title={mode === 'light' ? t('tooltip_dark_mode') : t('tooltip_light_mode')}>
           <IconButton
             onClick={toggleTheme}
+            onMouseEnter={playHoverSound}
             size="small"
             sx={{
               'color': 'text.secondary',
@@ -71,6 +74,7 @@ export function GlobalTopbar() {
           <IconButton
             component={Link}
             href={getI18nPath('/user-profile', locale)}
+            onMouseEnter={playHoverSound}
             size="small"
             sx={{
               'p': 0,
@@ -97,6 +101,7 @@ export function GlobalTopbar() {
           <IconButton
             component={Link}
             href={getI18nPath('/settings', locale)}
+            onMouseEnter={playHoverSound}
             size="small"
             sx={{
               'color': 'text.secondary',
@@ -113,6 +118,7 @@ export function GlobalTopbar() {
         <Tooltip title={t('tooltip_logout')}>
           <SignOutButton>
             <IconButton
+              onMouseEnter={playHoverSound}
               size="small"
               sx={{
                 'color': 'text.secondary',
