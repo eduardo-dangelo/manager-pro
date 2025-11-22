@@ -18,7 +18,7 @@ import { routing } from '@/libs/I18nRouting';
 import { ProjectService } from '@/services/projectService';
 import { AppConfig, ClerkLocalizations } from '@/utils/AppConfig';
 
-const DRAWER_WIDTH = 230;
+const DRAWER_WIDTH = 280;
 
 // Map project types to their icons
 const projectTypeIcons = {

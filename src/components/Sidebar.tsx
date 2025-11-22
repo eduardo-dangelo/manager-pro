@@ -53,6 +53,7 @@ export function Sidebar({
 }: SidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(() => new Set());
+  const [clickedHref, setClickedHref] = useState<string | null>(null);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
   const pathname = usePathname();
@@ -78,6 +79,13 @@ export function Sidebar({
     // Remove locale prefix from both pathname and href for comparison
     const pathnameWithoutLocale = pathname.replace(/^\/[a-z]{2}\//, '/');
     const hrefWithoutLocale = href.replace(/^\/[a-z]{2}\//, '/');
+
+    // If an item was clicked, only that item should be active (optimistic UI update)
+    // This ensures the previous active item loses its active state immediately
+    if (clickedHref) {
+      const clickedHrefWithoutLocale = clickedHref.replace(/^\/[a-z]{2}\//, '/');
+      return hrefWithoutLocale === clickedHrefWithoutLocale;
+    }
 
     // Exact match
     if (pathnameWithoutLocale === hrefWithoutLocale) {
@@ -158,6 +166,11 @@ export function Sidebar({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname, groupMenuItems]);
 
+  // Clear clicked state when pathname changes (navigation completes)
+  useEffect(() => {
+    setClickedHref(null);
+  }, [pathname]);
+
   const drawerContent = (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Logo - Hidden on mobile */}
@@ -185,18 +198,22 @@ export function Sidebar({
                   href={parent.href}
                   onMouseEnter={playHoverSound}
                   onClick={() => {
+                    setClickedHref(parent.href);
                     toggleExpanded(parent.href);
                   }}
                   sx={{
                     'borderRadius': 2,
-                    'color': active || hasActiveChild ? theme.palette.sidebar.textPrimary : theme.palette.sidebar.textSecondary,
-                    'bgcolor': active || hasActiveChild ? (theme.palette.mode === 'dark' ? theme.palette.action.selected : 'rgba(255, 255, 255, 0.12)') : 'transparent',
+                    'color': active ? theme.palette.sidebar.textPrimary : theme.palette.sidebar.textSecondary,
+                    'bgcolor': active ? (theme.palette.mode === 'dark' ? theme.palette.action.selected : 'rgba(255, 255, 255, 0.12)') : 'transparent',
                     'pl': 2,
                     'pr': hasChildren ? 0.5 : 2,
                     'py': 0.5,
+                    'boxShadow': active ? theme.shadows[8] : 'none',
+                    'transition': 'boxShadow 0.3s ease-in-out, background-color 0.3s ease-in-out',
                     '&:hover': {
                       'bgcolor': theme.palette.mode === 'dark' ? theme.palette.action.selected : 'rgba(255, 255, 255, 0.12)',
                       'color': theme.palette.sidebar.textPrimary,
+                      'boxShadow': active ? theme.shadows[8] : 'inset 0 2px 4px rgba(0, 0, 0, 0.1)',
                       '& .MuiListItemIcon-root': {
                         color: theme.palette.primary.main,
                       },
@@ -252,14 +269,21 @@ export function Sidebar({
                             component={Link}
                             href={child.href}
                             onMouseEnter={playHoverSound}
+                            onClick={() => {
+                              setClickedHref(child.href);
+                            }}
                             sx={{
                               'borderRadius': 2,
                               'color': childActive ? theme.palette.sidebar.textPrimary : theme.palette.sidebar.textSecondary,
                               'bgcolor': childActive ? (theme.palette.mode === 'dark' ? theme.palette.action.selected : 'rgba(255, 255, 255, 0.12)') : 'transparent',
                               'pl': 4,
+                              'py': 0.5,
+                              'boxShadow': childActive ? theme.shadows[8] : 'none',
+                              'transition': 'boxShadow 0.3s ease-in-out, background-color 0.3s ease-in-out',
                               '&:hover': {
                                 'bgcolor': theme.palette.mode === 'dark' ? theme.palette.action.selected : 'rgba(255, 255, 255, 0.12)',
                                 'color': theme.palette.sidebar.textPrimary,
+                                'boxShadow': childActive ? theme.shadows[8] : 'inset 0 2px 4px rgba(0, 0, 0, 0.1)',
                                 '& .MuiListItemIcon-root': {
                                   color: theme.palette.primary.main,
                                 },

@@ -102,7 +102,7 @@ export function useHoverSound() {
       // Gain node for noise with sharp attack and quick decay
       const noiseGain = audioContext.createGain();
       noiseGain.gain.setValueAtTime(0, currentTime);
-      noiseGain.gain.linearRampToValueAtTime(0.19, currentTime + 0.001); // Very quick attack (~1ms)
+      noiseGain.gain.linearRampToValueAtTime(0.09, currentTime + 0.001); // Very quick attack (~1ms)
       noiseGain.gain.exponentialRampToValueAtTime(0.001, currentTime + 0.025); // Quick decay
 
       // Create high-frequency oscillator for the "ping" component
@@ -113,7 +113,7 @@ export function useHoverSound() {
       // Gain node for oscillator with sharp attack
       const oscGain = audioContext.createGain();
       oscGain.gain.setValueAtTime(0, currentTime);
-      oscGain.gain.linearRampToValueAtTime(0.18, currentTime + 0.001); // Sharp attack
+      oscGain.gain.linearRampToValueAtTime(0.08, currentTime + 0.001); // Sharp attack
       oscGain.gain.exponentialRampToValueAtTime(0.001, currentTime + 0.02); // Quick decay
 
       // Connect noise: source -> filter -> gain -> destination
