@@ -1,8 +1,8 @@
 'use client';
 
-import { FormControlLabel, Switch, Box, Typography, Paper } from '@mui/material';
+import { Box, FormControlLabel, Paper, Switch, Typography } from '@mui/material';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useHoverSound } from '@/hooks/useHoverSound';
 
 export function SettingsContent() {
@@ -67,18 +67,18 @@ export function SettingsContent() {
             fontSize: '0.875rem',
           }}
         >
-          {t('hover_sound_description', { 
-            defaultValue: 'Play a subtle sound when hovering over buttons and links' 
+          {t('hover_sound_description', {
+            defaultValue: 'Play a subtle sound when hovering over buttons and links',
           })}
         </Typography>
         <FormControlLabel
-          control={
+          control={(
             <Switch
               checked={hoverSoundEnabled}
               onChange={handleToggle}
               disabled={isLoading || isUpdating}
             />
-          }
+          )}
           label={t('hover_sound_label', { defaultValue: 'Hover Sound' })}
           sx={{
             '& .MuiFormControlLabel-label': {
@@ -91,4 +91,3 @@ export function SettingsContent() {
     </Box>
   );
 }
-

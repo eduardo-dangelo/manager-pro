@@ -96,9 +96,10 @@ export function ProjectListView({ projects, locale, onProjectDeleted }: ProjectL
               'top': 102, // Position directly below GlobalTopbar (58px) + ProjectsTopBar (~50px) with no vertical gap
               'zIndex': 90,
               'bgcolor': 'background.default',
-              '& th': {
-                bgcolor: theme.palette.action.hover, // Ensure cells also have background
+              '& tr': {
+                bgcolor: theme.palette.action.hover,
               },
+
             }}
           >
             <TableRow>
@@ -139,9 +140,7 @@ export function ProjectListView({ projects, locale, onProjectDeleted }: ProjectL
                         'transition': 'box-shadow 0.2s ease',
                         '&:hover': {
                           'bgcolor': theme.palette.action.selected,
-                          'boxShadow': `inset 0 2px 6px ${
-                            theme.palette.mode === 'light' ? 'rgba(0,0,0,0.1)' : 'rgba(0,0,0,0.2)'
-                          }`,
+                          'boxShadow': 'inset 0 2px 4px rgba(0, 0, 0, 0.1)',
                           '& .MuiSvgIcon-root': {
                             color: theme.palette.primary.main,
                           },
