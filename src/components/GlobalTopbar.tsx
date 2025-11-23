@@ -17,9 +17,11 @@ import {
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState } from 'react';
 import { useHoverSound } from '@/hooks/useHoverSound';
 import { getI18nPath } from '@/utils/Helpers';
 import { useThemeMode } from './ThemeProvider';
+import { UserProfileModal } from './UserProfileModal';
 
 const DRAWER_WIDTH = 230;
 
@@ -35,6 +37,7 @@ export function GlobalTopbar() {
   // Get theme mode from ThemeProvider
   const { mode, toggleTheme } = useThemeMode();
   const { playHoverSound } = useHoverSound();
+  const [userProfileModalOpen, setUserProfileModalOpen] = useState(false);
 
   return (
     <Box
@@ -72,8 +75,7 @@ export function GlobalTopbar() {
         {/* User Avatar */}
         <Tooltip title={t('tooltip_user_profile')}>
           <IconButton
-            component={Link}
-            href={getI18nPath('/user-profile', locale)}
+            onClick={() => setUserProfileModalOpen(true)}
             onMouseEnter={playHoverSound}
             size="small"
             sx={{
@@ -132,6 +134,12 @@ export function GlobalTopbar() {
           </SignOutButton>
         </Tooltip>
       </Box>
+
+      {/* User Profile Modal */}
+      <UserProfileModal
+        open={userProfileModalOpen}
+        onClose={() => setUserProfileModalOpen(false)}
+      />
     </Box>
   );
 }

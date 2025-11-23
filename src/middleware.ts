@@ -13,12 +13,10 @@ const isProtectedRoute = createRouteMatcher([
   '/projects(.*)',
   '/year-planner(.*)',
   '/settings(.*)',
-  '/user-profile(.*)',
   '/:locale/dashboard(.*)',
   '/:locale/projects(.*)',
   '/:locale/year-planner(.*)',
   '/:locale/settings(.*)',
-  '/:locale/user-profile(.*)',
 ]);
 
 const isProtectedApiRoute = createRouteMatcher([
