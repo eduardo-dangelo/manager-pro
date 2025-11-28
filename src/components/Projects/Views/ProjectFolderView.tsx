@@ -120,7 +120,9 @@ export function ProjectFolderView({ projects, locale, cardSize, onProjectDeleted
                 padding: 0,
                 width: cardSize === 'small' ? '180px' : cardSize === 'large' ? '290px' : '250px',
                 transition: 'all 0.3s ease',
-
+                '&:hover .folder-body': {
+                  boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.1)',
+                },
               }}
             >
               {/* Folder visual container */}
