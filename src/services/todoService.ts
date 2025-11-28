@@ -1,11 +1,11 @@
 import { and, eq } from 'drizzle-orm';
 import { db } from '@/libs/DB';
-import { projectsSchema, todosSchema } from '@/models/Schema';
+import { assetsSchema, todosSchema } from '@/models/Schema';
 
 export type TodoData = {
   name: string;
   description: string;
-  projectId: number;
+  assetId: number;
   objectiveId?: number | null;
   parentTaskId?: number | null;
   status?: string;
@@ -17,21 +17,21 @@ export type TodoData = {
 
 export class TodoService {
   /**
-   * Verify project ownership
+   * Verify asset ownership
    */
-  private static async verifyProjectOwnership(projectId: number, userId: string) {
-    const project = await db
+  private static async verifyAssetOwnership(assetId: number, userId: string) {
+    const asset = await db
       .select()
-      .from(projectsSchema)
+      .from(assetsSchema)
       .where(
         and(
-          eq(projectsSchema.id, projectId),
-          eq(projectsSchema.userId, userId),
+          eq(assetsSchema.id, assetId),
+          eq(assetsSchema.userId, userId),
         ),
       )
       .limit(1);
 
-    return project.length > 0;
+    return asset.length > 0;
   }
 
   /**
@@ -39,16 +39,16 @@ export class TodoService {
    */
   static async createTodo(todoData: TodoData, userId: string) {
     try {
-      // Verify project ownership
-      const hasAccess = await this.verifyProjectOwnership(todoData.projectId, userId);
+      // Verify asset ownership
+      const hasAccess = await this.verifyAssetOwnership(todoData.assetId, userId);
       if (!hasAccess) {
-        throw new Error('Unauthorized: Project not found or access denied');
+        throw new Error('Unauthorized: Asset not found or access denied');
       }
 
       const newTodo = await db.insert(todosSchema).values({
         name: todoData.name,
         description: todoData.description,
-        projectId: todoData.projectId,
+        assetId: todoData.assetId,
         objectiveId: todoData.objectiveId || null,
         parentTaskId: todoData.parentTaskId || null,
         status: todoData.status || 'todo',
@@ -69,20 +69,20 @@ export class TodoService {
   }
 
   /**
-   * Get all todos for a project
+   * Get all todos for an asset
    */
-  static async getTodosByProjectId(projectId: number, userId: string) {
+  static async getTodosByAssetId(assetId: number, userId: string) {
     try {
-      // Verify project ownership
-      const hasAccess = await this.verifyProjectOwnership(projectId, userId);
+      // Verify asset ownership
+      const hasAccess = await this.verifyAssetOwnership(assetId, userId);
       if (!hasAccess) {
-        throw new Error('Unauthorized: Project not found or access denied');
+        throw new Error('Unauthorized: Asset not found or access denied');
       }
 
       const todos = await db
         .select()
         .from(todosSchema)
-        .where(eq(todosSchema.projectId, projectId))
+        .where(eq(todosSchema.assetId, assetId))
         .orderBy(todosSchema.createdAt);
 
       return todos;

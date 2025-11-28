@@ -54,7 +54,7 @@ export const workSpacesSchema = pgTable('work_spaces', {
     .notNull(),
 });
 
-export const projectsSchema = pgTable('projects', {
+export const assetsSchema = pgTable('assets', {
   id: serial('id').primaryKey(),
   name: text('name').notNull(),
   description: text('description').notNull(),
@@ -74,7 +74,7 @@ export const objectivesSchema = pgTable('objectives', {
   id: serial('id').primaryKey(),
   name: text('name').notNull(),
   description: text('description').notNull(),
-  projectId: integer('project_id').references(() => projectsSchema.id),
+  assetId: integer('asset_id').references(() => assetsSchema.id),
   userId: text('user_id').references(() => usersSchema.id).notNull(),
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { mode: 'date' })
@@ -92,7 +92,7 @@ export const todosSchema = pgTable('todos', {
   name: text('name').notNull(),
   description: text('description').notNull(),
   objectiveId: integer('objective_id').references((): any => objectivesSchema.id),
-  projectId: integer('project_id').references((): any => projectsSchema.id),
+  assetId: integer('asset_id').references((): any => assetsSchema.id),
   parentTaskId: integer('parent_task_id').references((): any => todosSchema.id),
   userId: text('user_id').references(() => usersSchema.id).notNull(),
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
@@ -117,7 +117,7 @@ export const sprintsSchema = pgTable('sprints', {
     .defaultNow()
     .$onUpdate(() => new Date())
     .notNull(),
-  projectId: integer('project_id').references(() => projectsSchema.id),
+  assetId: integer('asset_id').references(() => assetsSchema.id),
   workSpaceId: integer('work_space_id').references(() => workSpacesSchema.id),
   startDate: timestamp('start_date', { mode: 'date' }),
   endDate: timestamp('end_date', { mode: 'date' }),
@@ -126,7 +126,7 @@ export const sprintsSchema = pgTable('sprints', {
 
 // Define relationships
 export const userRelations = relations(usersSchema, ({ many }) => ({
-  projects: many(projectsSchema),
+  assets: many(assetsSchema),
   objectives: many(objectivesSchema),
   createdTodos: many(todosSchema, { relationName: 'createdTodos' }),
   assignedTodos: many(todosSchema, { relationName: 'assignedTodos' }),
@@ -136,24 +136,24 @@ export const userRelations = relations(usersSchema, ({ many }) => ({
 
 export const workSpacesRelations = relations(workSpacesSchema, ({ many }) => ({
   users: many(usersSchema),
-  projects: many(projectsSchema),
+  assets: many(assetsSchema),
   sprints: many(sprintsSchema),
 }));
 
-export const projectsRelations = relations(projectsSchema, ({ many, one }) => ({
+export const assetsRelations = relations(assetsSchema, ({ many, one }) => ({
   objectives: many(objectivesSchema),
   todos: many(todosSchema),
   sprints: many(sprintsSchema),
   user: one(usersSchema, {
-    fields: [projectsSchema.userId],
+    fields: [assetsSchema.userId],
     references: [usersSchema.id],
   }),
 }));
 
 export const objectivesRelations = relations(objectivesSchema, ({ one, many }) => ({
-  project: one(projectsSchema, {
-    fields: [objectivesSchema.projectId],
-    references: [projectsSchema.id],
+  asset: one(assetsSchema, {
+    fields: [objectivesSchema.assetId],
+    references: [assetsSchema.id],
   }),
   user: one(usersSchema, {
     fields: [objectivesSchema.userId],
@@ -167,9 +167,9 @@ export const todosRelations = relations(todosSchema, ({ one, many }) => ({
     fields: [todosSchema.objectiveId],
     references: [objectivesSchema.id],
   }),
-  project: one(projectsSchema, {
-    fields: [todosSchema.projectId],
-    references: [projectsSchema.id],
+  asset: one(assetsSchema, {
+    fields: [todosSchema.assetId],
+    references: [assetsSchema.id],
   }),
   user: one(usersSchema, {
     fields: [todosSchema.userId],
@@ -198,9 +198,9 @@ export const sprintsRelations = relations(sprintsSchema, ({ many, one }) => ({
     fields: [sprintsSchema.workSpaceId],
     references: [workSpacesSchema.id],
   }),
-  project: one(projectsSchema, {
-    fields: [sprintsSchema.projectId],
-    references: [projectsSchema.id],
+  asset: one(assetsSchema, {
+    fields: [sprintsSchema.assetId],
+    references: [assetsSchema.id],
   }),
   user: one(usersSchema, {
     fields: [sprintsSchema.userId],

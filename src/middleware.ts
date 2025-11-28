@@ -10,22 +10,22 @@ const handleI18nRouting = createMiddleware(routing);
 
 const isProtectedRoute = createRouteMatcher([
   '/dashboard(.*)',
-  '/projects(.*)',
+  '/assets(.*)',
   '/year-planner(.*)',
   '/settings(.*)',
   '/:locale/dashboard(.*)',
-  '/:locale/projects(.*)',
+  '/:locale/assets(.*)',
   '/:locale/year-planner(.*)',
   '/:locale/settings(.*)',
 ]);
 
 const isProtectedApiRoute = createRouteMatcher([
-  '/api/projects(.*)',
+  '/api/assets(.*)',
   '/api/objectives(.*)',
   '/api/todos(.*)',
   '/api/sprints(.*)',
   '/api/users(.*)',
-  '/:locale/api/projects(.*)',
+  '/:locale/api/assets(.*)',
   '/:locale/api/objectives(.*)',
   '/:locale/api/todos(.*)',
   '/:locale/api/sprints(.*)',
@@ -80,7 +80,7 @@ export default async function middleware(
   ) {
     return clerkMiddleware(async (auth, req) => {
       if (isProtectedRoute(req)) {
-        // Extract locale from pathname (e.g., /en/projects -> /en)
+        // Extract locale from pathname (e.g., /en/assets -> /en)
         const locale = req.nextUrl.pathname.match(/^\/([a-z]{2})\//)?.[1] ? `/${req.nextUrl.pathname.match(/^\/([a-z]{2})\//)?.[1]}` : '';
 
         const signInUrl = new URL(`${locale}/sign-in`, req.url);

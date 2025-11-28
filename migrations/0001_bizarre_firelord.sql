@@ -1,1 +1,0 @@
-ALTER TABLE "projects" ALTER COLUMN "type" SET NOT NULL;

@@ -1,42 +1,41 @@
 import { ClerkProvider } from '@clerk/nextjs';
 import { currentUser } from '@clerk/nextjs/server';
 import {
-  AttachMoney,
   CalendarMonth,
   Dashboard as DashboardIcon,
   DirectionsCar,
   Flight,
   Folder,
   HomeWork,
-  MusicNote,
+  Person,
   Settings as SettingsIcon,
 } from '@mui/icons-material';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { ConditionalSidebar } from '@/components/ConditionalSidebar';
 import { Sidebar } from '@/components/Sidebar';
 import { routing } from '@/libs/I18nRouting';
-import { ProjectService } from '@/services/projectService';
+import { AssetService } from '@/services/assetService';
 import { AppConfig, ClerkLocalizations } from '@/utils/AppConfig';
 
 const DRAWER_WIDTH = 280;
 
-// Map project types to their icons
-const projectTypeIcons = {
+// Map asset types to their icons
+const assetTypeIcons = {
   vehicle: DirectionsCar,
   property: HomeWork,
-  cashflow: AttachMoney,
+  person: Person,
+  project: Folder,
   trip: Flight,
-  band: MusicNote,
 };
 
-// Helper function to pluralize project types for routes
+// Helper function to pluralize asset types for routes
 const pluralizeType = (type: string): string => {
   const pluralMap: Record<string, string> = {
     vehicle: 'vehicles',
     property: 'properties',
-    cashflow: 'cashflow',
+    person: 'persons',
+    project: 'projects',
     trip: 'trips',
-    band: 'bands',
   };
   return pluralMap[type] || `${type}s`;
 };
@@ -66,15 +65,15 @@ export default async function AuthLayout(props: {
     namespace: 'DashboardLayout',
   });
 
-  // Fetch current user and their projects to build dynamic menu
+  // Fetch current user and their assets to build dynamic menu
   const user = await currentUser();
-  let projectTypes: string[] = [];
+  let assetTypes: string[] = [];
 
   if (user) {
-    const projects = await ProjectService.getProjectsByUserId(user.id);
-    // Get unique project types
-    const uniqueTypes = new Set(projects.map(p => p.type));
-    projectTypes = Array.from(uniqueTypes);
+    const assets = await AssetService.getAssetsByUserId(user.id);
+    // Get unique asset types
+    const uniqueTypes = new Set(assets.map(a => a.type));
+    assetTypes = Array.from(uniqueTypes);
   }
 
   // Build base menu items
@@ -92,20 +91,20 @@ export default async function AuthLayout(props: {
     {
       icon: Folder,
       label: t('menu_projects'),
-      href: `/${locale}/projects`,
+      href: `/${locale}/assets`,
     },
   ];
 
-  // Add project type sub-items if they exist
-  projectTypes.forEach((type) => {
-    const icon = projectTypeIcons[type as keyof typeof projectTypeIcons];
-    // Map project type to translation key
-    const labelKey = `menu_${type}` as 'menu_vehicle' | 'menu_property' | 'menu_cashflow' | 'menu_trip' | 'menu_band';
+  // Add asset type sub-items if they exist
+  assetTypes.forEach((type) => {
+    const icon = assetTypeIcons[type as keyof typeof assetTypeIcons];
+    // Map asset type to translation key
+    const labelKey = `menu_${type}` as 'menu_vehicle' | 'menu_property' | 'menu_person' | 'menu_project' | 'menu_trip';
     const pluralRoute = pluralizeType(type);
     menuItems.push({
       icon,
       label: t(labelKey),
-      href: `/${locale}/projects/${pluralRoute}`,
+      href: `/${locale}/assets/${pluralRoute}`,
       isSubItem: true,
     } as any);
   });

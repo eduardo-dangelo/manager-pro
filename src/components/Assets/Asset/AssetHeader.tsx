@@ -1,0 +1,184 @@
+'use client';
+
+import { Box, MenuItem, Select, TextField, Typography } from '@mui/material';
+import { useTranslations } from 'next-intl';
+import { useRef, useState } from 'react';
+
+type Asset = {
+  id: number;
+  name: string;
+  description: string;
+  color: string;
+  status: string;
+};
+
+type AssetHeaderProps = {
+  asset: Asset;
+  locale: string;
+  onUpdate: (updates: Partial<Asset>) => Promise<void>;
+  actions?: React.ReactNode;
+};
+
+export function AssetHeader({
+  asset,
+  locale,
+  onUpdate,
+  actions,
+}: AssetHeaderProps) {
+  const t = useTranslations('Assets');
+  const titleRef = useRef<HTMLInputElement>(null);
+  const descriptionRef = useRef<HTMLTextAreaElement>(null);
+  const [localAsset, setLocalAsset] = useState(asset);
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async (updates: Partial<Asset>) => {
+    setSaving(true);
+    await onUpdate(updates);
+    setSaving(false);
+  };
+
+  const handleTitleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && descriptionRef.current) {
+      e.preventDefault();
+      descriptionRef.current.focus();
+    }
+  };
+
+  return (
+    <>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          gap: 2,
+          mb: 1,
+        }}
+      >
+        <TextField
+          inputRef={titleRef}
+          value={localAsset.name}
+          onChange={e => setLocalAsset({ ...localAsset, name: e.target.value })}
+          onBlur={() => handleSave({ name: localAsset.name })}
+          onKeyDown={handleTitleKeyDown}
+          placeholder={t('asset_name')}
+          variant="standard"
+          sx={{
+            'flex': 1,
+            '& .MuiInput-root': {
+              'fontSize': '2.5rem',
+              'fontWeight': 700,
+              'color': 'text.primary',
+              '&:before': { borderBottom: 'none' },
+              '&:after': { borderBottom: 'none' },
+              '&:hover:not(.Mui-disabled):before': { borderBottom: 'none' },
+            },
+            '& input': {
+              padding: '8px 0',
+            },
+          }}
+        />
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, pt: 1 }}>
+          <Select
+            value={localAsset.status}
+            onChange={(e) => {
+              const newStatus = e.target.value;
+              setLocalAsset({ ...localAsset, status: newStatus });
+              handleSave({ status: newStatus });
+            }}
+            size="small"
+            variant="standard"
+            sx={{
+              'fontSize': '0.813rem',
+              '&:before': { borderBottom: 'none' },
+              '&:after': { borderBottom: 'none' },
+              '&:hover:not(.Mui-disabled):before': { borderBottom: 'none' },
+              '& .MuiSelect-select': {
+                'py': 0.5,
+                'px': 1.5,
+                'borderRadius': 2,
+                'backgroundColor':
+                  localAsset.status === 'active'
+                    ? 'primary.50'
+                    : localAsset.status === 'completed'
+                      ? 'success.50'
+                      : localAsset.status === 'archived'
+                        ? 'grey.100'
+                        : 'warning.50',
+                'color':
+                  localAsset.status === 'active'
+                    ? 'primary.700'
+                    : localAsset.status === 'completed'
+                      ? 'success.700'
+                      : localAsset.status === 'archived'
+                        ? 'grey.700'
+                        : 'warning.700',
+                'fontWeight': 500,
+                '&:hover': {
+                  backgroundColor:
+                    localAsset.status === 'active'
+                      ? 'primary.100'
+                      : localAsset.status === 'completed'
+                        ? 'success.100'
+                        : localAsset.status === 'archived'
+                          ? 'grey.200'
+                          : 'warning.100',
+                },
+              },
+              '& .MuiSelect-icon': {
+                color:
+                  localAsset.status === 'active'
+                    ? 'primary.700'
+                    : localAsset.status === 'completed'
+                      ? 'success.700'
+                      : localAsset.status === 'archived'
+                        ? 'grey.700'
+                        : 'warning.700',
+              },
+            }}
+          >
+            <MenuItem value="active">{t('status_active')}</MenuItem>
+            <MenuItem value="completed">{t('status_completed')}</MenuItem>
+            <MenuItem value="archived">{t('status_archived')}</MenuItem>
+            <MenuItem value="on-hold">{t('status_on_hold')}</MenuItem>
+          </Select>
+          {actions}
+          {saving && (
+            <Typography
+              variant="caption"
+              sx={{ color: 'grey.400', fontSize: '0.75rem' }}
+            >
+              Saving...
+            </Typography>
+          )}
+        </Box>
+      </Box>
+      {/* <TextField
+        inputRef={descriptionRef}
+        value={localAsset.description}
+        onChange={e =>
+          setLocalAsset({ ...localAsset, description: e.target.value })}
+        onBlur={() => handleSave({ description: localAsset.description })}
+        placeholder={t('asset_description')}
+        variant="standard"
+        fullWidth
+        multiline
+        rows={2}
+        sx={{
+          '& .MuiInput-root': {
+            'fontSize': '1rem',
+            'color': 'grey.600',
+            '&:before': { borderBottom: 'none' },
+            '&:after': { borderBottom: 'none' },
+            '&:hover:not(.Mui-disabled):before': { borderBottom: 'none' },
+          },
+          '& textarea': {
+            padding: '4px 0',
+          },
+          'mb': 3,
+        }}
+      /> */}
+    </>
+  );
+}
+

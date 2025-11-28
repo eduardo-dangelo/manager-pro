@@ -1,1 +1,0 @@
-ALTER TABLE "users" ADD COLUMN "hover_sound_enabled" text DEFAULT 'true' NOT NULL;

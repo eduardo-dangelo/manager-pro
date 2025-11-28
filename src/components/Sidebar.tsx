@@ -96,7 +96,7 @@ export function Sidebar({
     // This prevents multiple parent routes from being highlighted
     if (pathnameWithoutLocale.startsWith(`${hrefWithoutLocale}/`)) {
       // Check if there's a more specific route in the menu that also matches
-      // If we're on /projects/vehicles/123, we want to highlight /projects/vehicles, not /projects
+      // If we're on /assets/vehicles/123, we want to highlight /assets/vehicles, not /assets
       const allMenuHrefs = menuItems.map(item => item.href.replace(/^\/[a-z]{2}\//, '/'));
 
       // Find the most specific matching route

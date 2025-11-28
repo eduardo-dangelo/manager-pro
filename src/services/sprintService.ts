@@ -1,11 +1,11 @@
 import { and, eq } from 'drizzle-orm';
 import { db } from '@/libs/DB';
-import { projectsSchema, sprintsSchema } from '@/models/Schema';
+import { assetsSchema, sprintsSchema } from '@/models/Schema';
 
 export type SprintData = {
   name: string;
   description: string;
-  projectId: number;
+  assetId: number;
   workSpaceId?: number | null;
   startDate?: Date | null;
   endDate?: Date | null;
@@ -14,21 +14,21 @@ export type SprintData = {
 
 export class SprintService {
   /**
-   * Verify project ownership
+   * Verify asset ownership
    */
-  private static async verifyProjectOwnership(projectId: number, userId: string) {
-    const project = await db
+  private static async verifyAssetOwnership(assetId: number, userId: string) {
+    const asset = await db
       .select()
-      .from(projectsSchema)
+      .from(assetsSchema)
       .where(
         and(
-          eq(projectsSchema.id, projectId),
-          eq(projectsSchema.userId, userId),
+          eq(assetsSchema.id, assetId),
+          eq(assetsSchema.userId, userId),
         ),
       )
       .limit(1);
 
-    return project.length > 0;
+    return asset.length > 0;
   }
 
   /**
@@ -36,16 +36,16 @@ export class SprintService {
    */
   static async createSprint(sprintData: SprintData, userId: string) {
     try {
-      // Verify project ownership
-      const hasAccess = await this.verifyProjectOwnership(sprintData.projectId, userId);
+      // Verify asset ownership
+      const hasAccess = await this.verifyAssetOwnership(sprintData.assetId, userId);
       if (!hasAccess) {
-        throw new Error('Unauthorized: Project not found or access denied');
+        throw new Error('Unauthorized: Asset not found or access denied');
       }
 
       const newSprint = await db.insert(sprintsSchema).values({
         name: sprintData.name,
         description: sprintData.description,
-        projectId: sprintData.projectId,
+        assetId: sprintData.assetId,
         workSpaceId: sprintData.workSpaceId || null,
         startDate: sprintData.startDate || null,
         endDate: sprintData.endDate || null,
@@ -63,20 +63,20 @@ export class SprintService {
   }
 
   /**
-   * Get all sprints for a project
+   * Get all sprints for an asset
    */
-  static async getSprintsByProjectId(projectId: number, userId: string) {
+  static async getSprintsByAssetId(assetId: number, userId: string) {
     try {
-      // Verify project ownership
-      const hasAccess = await this.verifyProjectOwnership(projectId, userId);
+      // Verify asset ownership
+      const hasAccess = await this.verifyAssetOwnership(assetId, userId);
       if (!hasAccess) {
-        throw new Error('Unauthorized: Project not found or access denied');
+        throw new Error('Unauthorized: Asset not found or access denied');
       }
 
       const sprints = await db
         .select()
         .from(sprintsSchema)
-        .where(eq(sprintsSchema.projectId, projectId))
+        .where(eq(sprintsSchema.assetId, assetId))
         .orderBy(sprintsSchema.createdAt);
 
       return sprints;

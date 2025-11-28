@@ -1,11 +1,11 @@
 import { and, eq } from 'drizzle-orm';
 import { db } from '@/libs/DB';
-import { objectivesSchema, projectsSchema } from '@/models/Schema';
+import { assetsSchema, objectivesSchema } from '@/models/Schema';
 
 export type ObjectiveData = {
   name: string;
   description: string;
-  projectId: number;
+  assetId: number;
   status?: string;
   priority?: string;
   startDate?: Date | null;
@@ -14,21 +14,21 @@ export type ObjectiveData = {
 
 export class ObjectiveService {
   /**
-   * Verify project ownership
+   * Verify asset ownership
    */
-  private static async verifyProjectOwnership(projectId: number, userId: string) {
-    const project = await db
+  private static async verifyAssetOwnership(assetId: number, userId: string) {
+    const asset = await db
       .select()
-      .from(projectsSchema)
+      .from(assetsSchema)
       .where(
         and(
-          eq(projectsSchema.id, projectId),
-          eq(projectsSchema.userId, userId),
+          eq(assetsSchema.id, assetId),
+          eq(assetsSchema.userId, userId),
         ),
       )
       .limit(1);
 
-    return project.length > 0;
+    return asset.length > 0;
   }
 
   /**
@@ -36,16 +36,16 @@ export class ObjectiveService {
    */
   static async createObjective(objectiveData: ObjectiveData, userId: string) {
     try {
-      // Verify project ownership
-      const hasAccess = await this.verifyProjectOwnership(objectiveData.projectId, userId);
+      // Verify asset ownership
+      const hasAccess = await this.verifyAssetOwnership(objectiveData.assetId, userId);
       if (!hasAccess) {
-        throw new Error('Unauthorized: Project not found or access denied');
+        throw new Error('Unauthorized: Asset not found or access denied');
       }
 
       const newObjective = await db.insert(objectivesSchema).values({
         name: objectiveData.name,
         description: objectiveData.description,
-        projectId: objectiveData.projectId,
+        assetId: objectiveData.assetId,
         status: objectiveData.status || 'active',
         userId,
         createdAt: new Date(),
@@ -60,20 +60,20 @@ export class ObjectiveService {
   }
 
   /**
-   * Get all objectives for a project
+   * Get all objectives for an asset
    */
-  static async getObjectivesByProjectId(projectId: number, userId: string) {
+  static async getObjectivesByAssetId(assetId: number, userId: string) {
     try {
-      // Verify project ownership
-      const hasAccess = await this.verifyProjectOwnership(projectId, userId);
+      // Verify asset ownership
+      const hasAccess = await this.verifyAssetOwnership(assetId, userId);
       if (!hasAccess) {
-        throw new Error('Unauthorized: Project not found or access denied');
+        throw new Error('Unauthorized: Asset not found or access denied');
       }
 
       const objectives = await db
         .select()
         .from(objectivesSchema)
-        .where(eq(objectivesSchema.projectId, projectId))
+        .where(eq(objectivesSchema.assetId, assetId))
         .orderBy(objectivesSchema.createdAt);
 
       return objectives;
