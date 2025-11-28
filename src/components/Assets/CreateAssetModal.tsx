@@ -39,30 +39,6 @@ const pluralizeType = (type: string): string => {
   return pluralMap[type] || `${type}s`;
 };
 
-const colors = [
-  { value: 'gray', label: 'Gray' },
-  { value: 'red', label: 'Red' },
-  { value: 'orange', label: 'Orange' },
-  { value: 'yellow', label: 'Yellow' },
-  { value: 'green', label: 'Green' },
-  { value: 'blue', label: 'Blue' },
-  { value: 'indigo', label: 'Indigo' },
-  { value: 'purple', label: 'Purple' },
-  { value: 'pink', label: 'Pink' },
-];
-
-const colorMap: Record<string, string> = {
-  gray: '#6b7280',
-  red: '#ef4444',
-  orange: '#f97316',
-  yellow: '#eab308',
-  green: '#22c55e',
-  blue: '#3b82f6',
-  indigo: '#6366f1',
-  purple: '#a855f7',
-  pink: '#ec4899',
-};
-
 const assetTypes = [
   { value: 'vehicle', label: 'type_vehicle', icon: DirectionsCarIcon },
   { value: 'property', label: 'type_property', icon: HomeIcon },
@@ -86,9 +62,6 @@ export function CreateAssetModal({ open, onClose, locale, preSelectedType }: Cre
 
   const [formData, setFormData] = useState({
     name: '',
-    description: '',
-    color: 'blue',
-    status: 'active',
     type: preSelectedType || '',
   });
 
@@ -117,9 +90,6 @@ export function CreateAssetModal({ open, onClose, locale, preSelectedType }: Cre
       // Reset form
       setFormData({
         name: '',
-        description: '',
-        color: 'blue',
-        status: 'active',
         type: '',
       });
 
@@ -139,9 +109,6 @@ export function CreateAssetModal({ open, onClose, locale, preSelectedType }: Cre
     if (!loading) {
       setFormData({
         name: '',
-        description: '',
-        color: 'blue',
-        status: 'active',
         type: preSelectedType || '',
       });
       setError(null);
@@ -153,7 +120,7 @@ export function CreateAssetModal({ open, onClose, locale, preSelectedType }: Cre
     <Dialog
       open={open}
       onClose={handleClose}
-      maxWidth="sm"
+      maxWidth="xs"
       fullWidth
       PaperProps={{
         sx: {
@@ -180,15 +147,47 @@ export function CreateAssetModal({ open, onClose, locale, preSelectedType }: Cre
 
       <DialogContent>
         <form onSubmit={handleSubmit}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 1 }}>
-            {/* Asset Type - REQUIRED and FIRST - Hidden when preSelectedType is provided */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+            {/* Name Field */}
+            <TextField
+              label={t('project_name')}
+              size="small"
+              value={formData.name}
+              onChange={e => setFormData({ ...formData, name: e.target.value })}
+              required
+              fullWidth
+              InputLabelProps={{
+                sx: {
+                  '& .MuiFormLabel-asterisk': {
+                    color: 'error.main',
+                  },
+                },
+              }}
+            />
+
+            {/* Asset Type - Hidden when preSelectedType is provided */}
             {!preSelectedType && (
               <FormControl fullWidth required>
-                <InputLabel>{t('project_type')}</InputLabel>
+                <InputLabel
+                  size="small"
+                  sx={{
+                    '& .MuiFormLabel-asterisk': {
+                      color: 'error.main',
+                    },
+                  }}
+                >
+                  {t('project_type')}
+                </InputLabel>
                 <Select
                   value={formData.type}
                   label={t('project_type')}
-                  onChange={e => setFormData({ ...formData, type: e.target.value })}
+                  size="small"
+                  onChange={(e) => {
+                    setFormData({
+                      name: formData.name,
+                      type: e.target.value,
+                    });
+                  }}
                 >
                   {assetTypes.map((type) => {
                     const Icon = type.icon;
@@ -196,7 +195,7 @@ export function CreateAssetModal({ open, onClose, locale, preSelectedType }: Cre
                       <MenuItem key={type.value} value={type.value}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                           <Icon sx={{ fontSize: 20, color: 'grey.600' }} />
-                          <Typography>{t(type.label)}</Typography>
+                          <Typography>{t(type.label as any)}</Typography>
                         </Box>
                       </MenuItem>
                     );
@@ -204,66 +203,6 @@ export function CreateAssetModal({ open, onClose, locale, preSelectedType }: Cre
                 </Select>
               </FormControl>
             )}
-
-            {/* Name */}
-            <TextField
-              label={t('project_name')}
-              value={formData.name}
-              onChange={e => setFormData({ ...formData, name: e.target.value })}
-              required
-              fullWidth
-            />
-
-            {/* Description */}
-            <TextField
-              label={t('project_description')}
-              value={formData.description}
-              onChange={e => setFormData({ ...formData, description: e.target.value })}
-              multiline
-              rows={4}
-              fullWidth
-            />
-
-            {/* Color */}
-            <FormControl fullWidth>
-              <InputLabel>{t('project_color')}</InputLabel>
-              <Select
-                value={formData.color}
-                label={t('project_color')}
-                onChange={e => setFormData({ ...formData, color: e.target.value })}
-              >
-                {colors.map(color => (
-                  <MenuItem key={color.value} value={color.value}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Box
-                        sx={{
-                          width: 20,
-                          height: 20,
-                          borderRadius: '50%',
-                          bgcolor: colorMap[color.value],
-                        }}
-                      />
-                      <Typography>{color.label}</Typography>
-                    </Box>
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            {/* Status */}
-            <FormControl fullWidth>
-              <InputLabel>{t('project_status')}</InputLabel>
-              <Select
-                value={formData.status}
-                label={t('project_status')}
-                onChange={e => setFormData({ ...formData, status: e.target.value })}
-              >
-                <MenuItem value="active">{t('status_active')}</MenuItem>
-                <MenuItem value="completed">{t('status_completed')}</MenuItem>
-                <MenuItem value="archived">{t('status_archived')}</MenuItem>
-                <MenuItem value="on-hold">{t('status_on_hold')}</MenuItem>
-              </Select>
-            </FormControl>
 
             {/* Error Message */}
             {error && (
@@ -273,7 +212,7 @@ export function CreateAssetModal({ open, onClose, locale, preSelectedType }: Cre
             )}
 
             {/* Actions */}
-            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', pt: 1 }}>
+            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
               <Button
                 variant="outlined"
                 onClick={handleClose}
@@ -299,7 +238,7 @@ export function CreateAssetModal({ open, onClose, locale, preSelectedType }: Cre
                   },
                 }}
               >
-                {loading ? 'Creating...' : t('create_project')}
+                {loading ? 'Saving...' : t('save')}
               </Button>
             </Box>
           </Box>
@@ -308,4 +247,3 @@ export function CreateAssetModal({ open, onClose, locale, preSelectedType }: Cre
     </Dialog>
   );
 }
-

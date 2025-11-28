@@ -1,14 +1,18 @@
 import { and, eq } from 'drizzle-orm';
 import { db } from '@/libs/DB';
-import { objectivesSchema, assetsSchema, sprintsSchema, todosSchema } from '@/models/Schema';
+import { assetsSchema, objectivesSchema, sprintsSchema, todosSchema } from '@/models/Schema';
 
 export type AssetData = {
-  name: string;
-  description: string;
+  name?: string;
+  description?: string;
   color?: string;
   status?: string;
   type?: string | null;
   tabs?: string[];
+  // Conditional fields for vehicles
+  registrationNumber?: string;
+  // Conditional fields for properties
+  address?: string;
 };
 
 export class AssetService {
@@ -18,17 +22,34 @@ export class AssetService {
   static async createAsset(assetData: AssetData, userId: string) {
     try {
       console.error('Creating asset with data:', { assetData, userId });
-      const newAsset = await db.insert(assetsSchema).values({
-        name: assetData.name,
-        description: assetData.description,
-        color: assetData.color || 'gray',
-        status: assetData.status || 'active',
-        type: assetData.type || null,
+      const insertData: any = {
+        type: assetData.type!,
         tabs: assetData.tabs || ['overview'],
         userId,
         createdAt: new Date(),
         updatedAt: new Date(),
-      }).returning();
+      };
+
+      if (assetData.name !== undefined) {
+        insertData.name = assetData.name;
+      }
+      if (assetData.description !== undefined) {
+        insertData.description = assetData.description;
+      }
+      if (assetData.color !== undefined) {
+        insertData.color = assetData.color;
+      }
+      if (assetData.status !== undefined) {
+        insertData.status = assetData.status;
+      }
+      if (assetData.registrationNumber !== undefined) {
+        insertData.registrationNumber = assetData.registrationNumber;
+      }
+      if (assetData.address !== undefined) {
+        insertData.address = assetData.address;
+      }
+
+      const newAsset = await db.insert(assetsSchema).values(insertData).returning();
 
       return newAsset[0];
     } catch (error) {
@@ -134,12 +155,38 @@ export class AssetService {
     userId: string,
   ) {
     try {
+      const updateData: any = {
+        updatedAt: new Date(),
+      };
+
+      if (assetData.name !== undefined) {
+        updateData.name = assetData.name;
+      }
+      if (assetData.description !== undefined) {
+        updateData.description = assetData.description;
+      }
+      if (assetData.color !== undefined) {
+        updateData.color = assetData.color;
+      }
+      if (assetData.status !== undefined) {
+        updateData.status = assetData.status;
+      }
+      if (assetData.type !== undefined && assetData.type !== null) {
+        updateData.type = assetData.type;
+      }
+      if (assetData.tabs !== undefined) {
+        updateData.tabs = assetData.tabs;
+      }
+      if (assetData.registrationNumber !== undefined) {
+        updateData.registrationNumber = assetData.registrationNumber;
+      }
+      if (assetData.address !== undefined) {
+        updateData.address = assetData.address;
+      }
+
       const updatedAsset = await db
         .update(assetsSchema)
-        .set({
-          ...assetData,
-          updatedAt: new Date(),
-        })
+        .set(updateData)
         .where(
           and(
             eq(assetsSchema.id, assetId),
@@ -184,4 +231,3 @@ export class AssetService {
     }
   }
 }
-

@@ -56,18 +56,24 @@ export const workSpacesSchema = pgTable('work_spaces', {
 
 export const assetsSchema = pgTable('assets', {
   id: serial('id').primaryKey(),
-  name: text('name').notNull(),
-  description: text('description').notNull(),
+  name: text('name'),
+  description: text('description'),
   userId: text('user_id').references(() => usersSchema.id).notNull(),
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { mode: 'date' })
     .defaultNow()
     .$onUpdate(() => new Date())
     .notNull(),
-  color: text('color').notNull().default('gray'),
-  status: text('status').notNull().default('active'),
+  color: text('color'),
+  status: text('status'),
   type: text('type').notNull(),
   tabs: text('tabs').array().notNull().default(['overview']),
+  // Conditional fields for vehicles
+  subtype: text('subtype'), // car, motorcycle, van
+  registrationNumber: text('registration_number'),
+  // Conditional fields for properties
+  address: text('address'),
+  buyOrRent: text('buy_or_rent'), // buy, rent
 });
 
 export const objectivesSchema = pgTable('objectives', {
