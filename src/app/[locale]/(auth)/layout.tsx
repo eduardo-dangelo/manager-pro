@@ -9,6 +9,7 @@ import {
   HomeWork,
   Person,
   Settings as SettingsIcon,
+  Storage,
 } from '@mui/icons-material';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { ConditionalSidebar } from '@/components/ConditionalSidebar';
@@ -89,7 +90,7 @@ export default async function AuthLayout(props: {
       href: `/${locale}/year-planner`,
     },
     {
-      icon: Folder,
+      icon: Storage,
       label: t('menu_projects'),
       href: `/${locale}/assets`,
     },

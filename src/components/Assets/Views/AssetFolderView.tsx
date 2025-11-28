@@ -207,8 +207,8 @@ export function AssetFolderView({ assets, locale, cardSize, onAssetDeleted }: As
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 'auto' }}>
 
                       <Chip
-                        label={asset.status.replace('-', ' ')}
-                        color={statusColorMap[asset.status] || 'default'}
+                        label={asset.status ? asset.status.replace('-', ' ') : 'N/A'}
+                        color={statusColorMap[asset.status || ''] || 'default'}
                         size="small"
                         sx={{ textTransform: 'capitalize', fontWeight: 500 }}
                       />

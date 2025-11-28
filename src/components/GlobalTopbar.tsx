@@ -118,6 +118,7 @@ export function GlobalTopbar() {
 
         {/* Logout */}
         <Tooltip title={t('tooltip_logout')}>
+          {/* eslint-disable-next-line react/component-name-casing */}
           <SignOutButton>
             <IconButton
               onMouseEnter={playHoverSound}

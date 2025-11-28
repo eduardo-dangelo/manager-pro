@@ -322,6 +322,7 @@ export function Sidebar({
       <Box>
         <List sx={{ px: 2, py: 2 }}>
           <ListItem disablePadding>
+            {/* eslint-disable-next-line react/component-name-casing */}
             <SignOutButton>
               <ListItemButton
                 onMouseEnter={playHoverSound}
