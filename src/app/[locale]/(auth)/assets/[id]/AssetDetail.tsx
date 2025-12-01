@@ -91,7 +91,7 @@ export function AssetDetail({
 
   return (
     <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
-      <Box sx={{ maxWidth: 900, width: '100%', px: { xs: 2, sm: 3, md: 4 } }}>
+      <Box sx={{ width: '100%', px: 0 }}>
         {!hideBreadcrumb && <Breadcrumb items={breadcrumbItems} />}
 
         <AssetHeader
