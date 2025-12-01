@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  Category as CategoryIcon,
   DirectionsCar as DirectionsCarIcon,
   Flight as FlightIcon,
   Folder as FolderIcon,
@@ -52,6 +53,7 @@ const assetTypeIcons = {
   person: PersonIcon,
   project: WorkIcon,
   trip: FlightIcon,
+  custom: CategoryIcon,
 };
 
 // Helper function to pluralize asset types for routes
@@ -62,6 +64,7 @@ const pluralizeType = (type: string): string => {
     person: 'persons',
     project: 'projects',
     trip: 'trips',
+    custom: 'customs',
   };
   return pluralMap[type] || `${type}s`;
 };

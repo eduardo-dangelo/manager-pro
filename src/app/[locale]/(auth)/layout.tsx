@@ -2,6 +2,7 @@ import { ClerkProvider } from '@clerk/nextjs';
 import { currentUser } from '@clerk/nextjs/server';
 import {
   CalendarMonth,
+  Category,
   Dashboard as DashboardIcon,
   DirectionsCar,
   Flight,
@@ -27,6 +28,7 @@ const assetTypeIcons = {
   person: Person,
   project: Folder,
   trip: Flight,
+  custom: Category,
 };
 
 // Helper function to pluralize asset types for routes
@@ -37,6 +39,7 @@ const pluralizeType = (type: string): string => {
     person: 'persons',
     project: 'projects',
     trip: 'trips',
+    custom: 'customs',
   };
   return pluralMap[type] || `${type}s`;
 };
@@ -100,7 +103,7 @@ export default async function AuthLayout(props: {
   assetTypes.forEach((type) => {
     const icon = assetTypeIcons[type as keyof typeof assetTypeIcons];
     // Map asset type to translation key
-    const labelKey = `menu_${type}` as 'menu_vehicle' | 'menu_property' | 'menu_person' | 'menu_project' | 'menu_trip';
+    const labelKey = `menu_${type}` as 'menu_vehicle' | 'menu_property' | 'menu_person' | 'menu_project' | 'menu_trip' | 'menu_custom';
     const pluralRoute = pluralizeType(type);
     menuItems.push({
       icon,

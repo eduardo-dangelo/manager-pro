@@ -42,6 +42,7 @@ const pluralizeType = (type: string): string => {
     person: 'persons',
     project: 'projects',
     trip: 'trips',
+    custom: 'customs',
   };
   return pluralMap[type] || `${type}s`;
 };

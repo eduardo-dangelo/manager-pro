@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  Category as CategoryIcon,
   DirectionsCar as DirectionsCarIcon,
   Flight as FlightIcon,
   Folder as FolderIcon,
@@ -53,6 +54,7 @@ const assetTypeIcons = {
   person: PersonIcon,
   project: WorkIcon,
   trip: FlightIcon,
+  custom: CategoryIcon,
 };
 
 // Removed route pluralization helper since we no longer navigate on click

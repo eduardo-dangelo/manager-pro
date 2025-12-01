@@ -91,6 +91,7 @@
     "menu_person": "Personnes",
     "menu_project": "Projets",
     "menu_trip": "Voyages",
+    "menu_custom": "Personnalisés",
     "menu_settings": "Paramètres"
   },
   "Assets": {
@@ -192,6 +193,7 @@
     "type_person": "Personne",
     "type_project": "Projet",
     "type_trip": "Voyage",
+    "type_custom": "Personnalisé",
     "type_none": "Aucun",
     "new_vehicle": "Nouveau Véhicule",
     "new_property": "Nouvelle Propriété",

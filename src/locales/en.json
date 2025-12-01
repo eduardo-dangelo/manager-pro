@@ -92,6 +92,7 @@
     "menu_person": "Persons",
     "menu_project": "Projects",
     "menu_trip": "Trips",
+    "menu_custom": "Customs",
     "menu_settings": "Settings"
   },
   "Assets": {
@@ -193,6 +194,7 @@
     "type_person": "Person",
     "type_project": "Project",
     "type_trip": "Trip",
+    "type_custom": "Custom",
     "type_none": "None",
     "new_vehicle": "New Vehicle",
     "new_property": "New Property",

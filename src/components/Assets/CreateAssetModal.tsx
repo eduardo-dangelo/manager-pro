@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  Category as CategoryIcon,
   Close as CloseIcon,
   DirectionsCar as DirectionsCarIcon,
   Flight as FlightIcon,
@@ -35,6 +36,7 @@ const pluralizeType = (type: string): string => {
     person: 'persons',
     project: 'projects',
     trip: 'trips',
+    custom: 'customs',
   };
   return pluralMap[type] || `${type}s`;
 };
@@ -45,6 +47,7 @@ const assetTypes = [
   { value: 'person', label: 'type_person', icon: PersonIcon },
   { value: 'project', label: 'type_project', icon: WorkIcon },
   { value: 'trip', label: 'type_trip', icon: FlightIcon },
+  { value: 'custom', label: 'type_custom', icon: CategoryIcon },
 ];
 
 type CreateAssetModalProps = {
