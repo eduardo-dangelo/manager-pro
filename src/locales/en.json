@@ -175,7 +175,8 @@
     "tabs_report": "Report",
     "tabs_settings": "Settings",
     "tabs_docs": "Docs",
-    "tabs_musics": "Musics",
+    "tabs_gallery": "Gallery",
+    "tabs_listing": "Listing",
     "tabs_insights": "Insights",
     "tabs_finance": "Finance",
     "finance_title": "Finance",
@@ -205,6 +206,9 @@
     "add_tab": "Add Tab",
     "select_tab": "Select a tab to add",
     "tab_already_added": "This tab has already been added",
+    "remove_tab_confirm_title": "Remove Tab?",
+    "remove_tab_confirm_message": "Are you sure you want to remove the tab",
+    "remove_tab_data_warning": "All data in this tab will be lost.",
     "task_name": "Task Name",
     "add_task": "Add Task"
   }

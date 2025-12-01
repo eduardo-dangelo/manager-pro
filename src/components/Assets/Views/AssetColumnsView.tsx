@@ -251,4 +251,3 @@ export function AssetColumnsView({ assets, locale, onAssetDeleted }: AssetColumn
     </Fade>
   );
 }
-

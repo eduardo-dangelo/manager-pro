@@ -213,4 +213,3 @@ export function AssetListView({ assets, locale, onAssetDeleted }: AssetListViewP
     </Fade>
   );
 }
-

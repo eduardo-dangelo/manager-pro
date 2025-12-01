@@ -19,17 +19,36 @@ import {
 import {
   Add as AddIcon,
   CalendarMonth as CalendarIcon,
+  Close as CloseIcon,
   Dashboard as DashboardIcon,
   Folder as DocsIcon,
   DragIndicator as DragIcon,
   Timeline as FinanceIcon,
+  PhotoLibrary as GalleryIcon,
   Assessment as InsightsIcon,
-  MusicNote as MusicsIcon,
+  ListAlt as ListingIcon,
   DirectionsRun as SprintsIcon,
   ShowChart as TimelineIcon,
   CheckBox as TodosIcon,
 } from '@mui/icons-material';
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Tab, Tabs } from '@mui/material';
+import {
+  Alert,
+  Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Tab,
+  Tabs,
+  useTheme,
+} from '@mui/material';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
@@ -95,9 +114,10 @@ type SortableTabProps = {
   isDragging?: boolean;
   isDraggable: boolean;
   handleTabClick: () => void;
+  onRemoveTab?: () => void;
 };
 
-function SortableTab({ id, label, icon, isDraggable, handleTabClick }: SortableTabProps) {
+function SortableTab({ id, label, icon, isDraggable, handleTabClick, onRemoveTab }: SortableTabProps) {
   const {
     attributes,
     setNodeRef,
@@ -115,7 +135,23 @@ function SortableTab({ id, label, icon, isDraggable, handleTabClick }: SortableT
   };
 
   return (
-    <Box onClick={handleTabClick} ref={setNodeRef} style={style} component="div" sx={{ display: 'inline-block' }}>
+    <Box
+      onClick={handleTabClick}
+      ref={setNodeRef}
+      style={style}
+      component="div"
+      sx={{
+        'display': 'inline-block',
+        'position': 'relative',
+        '& .remove-tab-button': {
+          opacity: 0,
+          transition: 'opacity 0.2s ease',
+        },
+        '&:hover .remove-tab-button': {
+          opacity: 1,
+        },
+      }}
+    >
       <Tab
         icon={icon as any}
         iconPosition="start"
@@ -124,40 +160,48 @@ function SortableTab({ id, label, icon, isDraggable, handleTabClick }: SortableT
             <span style={{ flex: 1 }}>{label}</span>
             {isDraggable && (
               <Box
-                ref={setActivatorNodeRef}
-                {...attributes}
-                {...listeners}
-                component="span"
-                onClick={(e: React.MouseEvent) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                }}
                 sx={{
-                  'display': 'inline-flex',
-                  'alignItems': 'center',
-                  'flexShrink': 0,
-                  'ml': 'auto',
-                  'cursor': 'grab',
-                  'outline': 'none',
-                  'touchAction': 'none',
-                  '&:hover svg': {
-                    opacity: 1,
-                    color: 'grey.700',
-                  },
-                  '&:active': {
-                    cursor: 'grabbing',
-                  },
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  flexShrink: 0,
+                  ml: 'auto',
+                  gap: 0.5,
                 }}
               >
-                <DragIcon
-                  sx={{
-                    fontSize: 18,
-                    color: 'grey.500',
-                    opacity: 0.8,
-                    flexShrink: 0,
-                    pointerEvents: 'none',
+                <Box
+                  ref={setActivatorNodeRef}
+                  {...attributes}
+                  {...listeners}
+                  component="span"
+                  onClick={(e: React.MouseEvent) => {
+                    e.stopPropagation();
+                    e.preventDefault();
                   }}
-                />
+                  sx={{
+                    'display': 'inline-flex',
+                    'alignItems': 'center',
+                    'cursor': 'grab',
+                    'outline': 'none',
+                    'touchAction': 'none',
+                    '&:hover svg': {
+                      opacity: 1,
+                      color: 'grey.700',
+                    },
+                    '&:active': {
+                      cursor: 'grabbing',
+                    },
+                  }}
+                >
+                  <DragIcon
+                    sx={{
+                      fontSize: 18,
+                      color: 'grey.500',
+                      opacity: 0.8,
+                      flexShrink: 0,
+                      pointerEvents: 'none',
+                    }}
+                  />
+                </Box>
               </Box>
             )}
           </Box>
@@ -168,23 +212,69 @@ function SortableTab({ id, label, icon, isDraggable, handleTabClick }: SortableT
           },
         }}
       />
+      {onRemoveTab && (
+        <Box
+          component="span"
+          className="remove-tab-button"
+          onClick={(e: React.MouseEvent) => {
+            e.stopPropagation();
+            e.preventDefault();
+            onRemoveTab();
+          }}
+          sx={{
+            'position': 'absolute',
+            'right': '-5px',
+            'top': '50%',
+            'transform': 'translateY(-50%)',
+            'display': 'inline-flex',
+            'alignItems': 'center',
+            'justifyContent': 'center',
+            'cursor': 'pointer',
+            'padding': '2px',
+            'borderRadius': '4px',
+            'zIndex': 1,
+            '&:hover': {
+              backgroundColor: 'action.hover',
+            },
+          }}
+        >
+          <CloseIcon
+            sx={{
+              'fontSize': 14,
+              'color': 'grey.500',
+              '&:hover': {
+                color: 'error.main',
+              },
+            }}
+          />
+        </Box>
+      )}
     </Box>
   );
 }
 
 export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
   const t = useTranslations('Assets');
+  const theme = useTheme();
   const [currentTab, setCurrentTab] = useState(0);
   const [addTabDialogOpen, setAddTabDialogOpen] = useState(false);
+  const [removeTabDialogOpen, setRemoveTabDialogOpen] = useState(false);
+  const [tabToRemove, setTabToRemove] = useState<string | null>(null);
 
   // Define all available tabs
-  const availableTabs = ['overview', 'todos', 'calendar', 'sprints', 'finance', 'docs', 'musics', 'timeline', 'insights'];
+  const availableTabs = ['overview', 'todos', 'calendar', 'sprints', 'finance', 'docs', 'gallery', 'listing', 'timeline', 'insights'];
 
   // Get asset's current tabs (default to ['overview'] if not set)
   const assetTabs = asset.tabs || ['overview'];
 
   // Find tabs that haven't been added yet
-  const remainingTabs = availableTabs.filter(tab => !assetTabs.includes(tab));
+  // Filter out 'listing' tab unless asset type is 'property'
+  const remainingTabs = availableTabs.filter((tab) => {
+    if (tab === 'listing' && asset.type !== 'property') {
+      return false;
+    }
+    return !assetTabs.includes(tab);
+  });
 
   // Modifier to restrict movement to horizontal axis only
   const restrictToHorizontalAxis: Modifier = ({ transform }) => {
@@ -305,6 +395,67 @@ export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
     }
   };
 
+  const handleRemoveTab = (tabName: string) => {
+    // Prevent removing overview tab
+    if (tabName === 'overview') {
+      return;
+    }
+
+    // Show confirmation dialog
+    setTabToRemove(tabName);
+    setRemoveTabDialogOpen(true);
+  };
+
+  const confirmRemoveTab = async () => {
+    if (!tabToRemove) {
+      return;
+    }
+
+    const newTabs = assetTabs.filter(tab => tab !== tabToRemove);
+    const removedIndex = assetTabs.indexOf(tabToRemove);
+
+    // Close dialog
+    setRemoveTabDialogOpen(false);
+    setTabToRemove(null);
+
+    // Optimistic update: Update UI immediately
+    onUpdateAsset({ ...asset, tabs: newTabs });
+
+    // Adjust current tab index if needed
+    if (removedIndex <= currentTab) {
+      if (currentTab > 0) {
+        setCurrentTab(currentTab - 1);
+      } else {
+        setCurrentTab(0);
+      }
+    }
+
+    // Sync with API in the background
+    try {
+      const response = await fetch(`/${locale}/api/assets/${asset.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tabs: newTabs }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to remove tab');
+      }
+
+      const { asset: updatedAsset } = await response.json();
+
+      // If server response differs from optimistic update, sync it
+      if (JSON.stringify(updatedAsset.tabs) !== JSON.stringify(newTabs)) {
+        onUpdateAsset({ ...asset, tabs: updatedAsset.tabs });
+      }
+    } catch (error) {
+      console.error('Error removing tab:', error);
+      // Revert on error
+      onUpdateAsset({ ...asset, tabs: assetTabs });
+      // Could optionally show an error message to the user here
+    }
+  };
+
   const getTabIcon = (tabName: string, iconProps?: { fontSize: number; mr?: number }) => {
     const props = iconProps || { fontSize: 18, mr: 0.5 };
     switch (tabName) {
@@ -320,8 +471,10 @@ export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
         return <FinanceIcon sx={props} />;
       case 'docs':
         return <DocsIcon sx={props} />;
-      case 'musics':
-        return <MusicsIcon sx={props} />;
+      case 'gallery':
+        return <GalleryIcon sx={props} />;
+      case 'listing':
+        return <ListingIcon sx={props} />;
       case 'timeline':
         return <TimelineIcon sx={props} />;
       case 'insights':
@@ -366,7 +519,8 @@ export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
       case 'finance':
         return <FinanceTab asset={asset} />;
       case 'docs':
-      case 'musics':
+      case 'gallery':
+      case 'listing':
         return (
           <Box sx={{ p: 3, textAlign: 'center', color: 'grey.500' }}>
             {t(`tabs_${tabName}` as any)}
@@ -415,6 +569,7 @@ export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
                   label={t(`tabs_${tabName}` as any)}
                   isDraggable={tabName !== 'overview'}
                   handleTabClick={() => handleTabChange(null, assetTabs.indexOf(tabName))}
+                  onRemoveTab={tabName !== 'overview' ? () => handleRemoveTab(tabName) : undefined}
                 />
               ))}
             </Tabs>
@@ -469,7 +624,52 @@ export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
           <Button onClick={() => setAddTabDialogOpen(false)}>{t('cancel')}</Button>
         </DialogActions>
       </Dialog>
+
+      {/* Remove Tab Confirmation Dialog */}
+      <Dialog
+        open={removeTabDialogOpen}
+        onClose={() => setRemoveTabDialogOpen(false)}
+        maxWidth="xs"
+        fullWidth
+        slotProps={{
+          paper: {
+            sx: {
+              bgcolor: theme.palette.mode === 'dark' ? 'background.default !important' : undefined,
+            },
+          },
+        }}
+      >
+        <DialogTitle>{t('remove_tab_confirm_title')}</DialogTitle>
+        <Divider />
+        <DialogContent>
+          <Box sx={{ py: 0 }}>
+            {t('remove_tab_confirm_message')}
+            {' '}
+            <strong>{tabToRemove ? t(`tabs_${tabToRemove}` as any) : ''}</strong>
+            ?
+            <Alert severity="warning" sx={{ mt: 2 }}>
+              {t('remove_tab_data_warning')}
+            </Alert>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 2, pb: 2 }}>
+          <Button
+            onClick={() => setRemoveTabDialogOpen(false)}
+            variant="outlined"
+            sx={{ textTransform: 'capitalize' }}
+          >
+            {t('cancel')}
+          </Button>
+          <Button
+            onClick={confirmRemoveTab}
+            color="error"
+            variant="contained"
+            sx={{ textTransform: 'capitalize' }}
+          >
+            {t('delete')}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
-

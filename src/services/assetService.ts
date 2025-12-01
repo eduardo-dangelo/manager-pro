@@ -17,6 +17,27 @@ export type AssetData = {
 
 export class AssetService {
   /**
+   * Get default tabs based on asset type
+   */
+  static getDefaultTabsForType(type: string | null | undefined): string[] {
+    switch (type) {
+      case 'vehicle':
+        return ['overview', 'docs', 'gallery', 'calendar', 'finance'];
+      case 'property':
+        return ['overview', 'gallery', 'calendar', 'listing', 'docs', 'finance'];
+      case 'person':
+        return ['overview', 'calendar', 'finance'];
+      case 'project':
+        return ['overview', 'todos', 'sprints', 'timeline', 'insights'];
+      case 'trip':
+        return ['overview', 'calendar'];
+      case 'custom':
+      default:
+        return ['overview'];
+    }
+  }
+
+  /**
    * Create a new asset
    */
   static async createAsset(assetData: AssetData, userId: string) {
@@ -24,7 +45,7 @@ export class AssetService {
       console.error('Creating asset with data:', { assetData, userId });
       const insertData: any = {
         type: assetData.type!,
-        tabs: assetData.tabs || ['overview'],
+        tabs: this.getDefaultTabsForType(assetData.type!) || [],
         userId,
         createdAt: new Date(),
         updatedAt: new Date(),

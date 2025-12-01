@@ -114,13 +114,13 @@ export function AssetFolderView({ assets, locale, cardSize, onAssetDeleted }: As
               href={`/${locale}/assets/${pluralizeType(asset.type)}/${asset.id}`}
               onMouseEnter={playHoverSound}
               sx={{
-                textDecoration: 'none',
-                cursor: 'pointer',
-                display: 'block',
-                perspective: '1000px',
-                padding: 0,
-                width: cardSize === 'small' ? '180px' : cardSize === 'large' ? '290px' : '250px',
-                transition: 'all 0.3s ease',
+                'textDecoration': 'none',
+                'cursor': 'pointer',
+                'display': 'block',
+                'perspective': '1000px',
+                'padding': 0,
+                'width': cardSize === 'small' ? '180px' : cardSize === 'large' ? '290px' : '250px',
+                'transition': 'all 0.3s ease',
                 '&:hover .folder-body': {
                   boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.1)',
                 },
@@ -252,4 +252,3 @@ export function AssetFolderView({ assets, locale, cardSize, onAssetDeleted }: As
     </Grid>
   );
 }
-

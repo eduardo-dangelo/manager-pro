@@ -174,7 +174,8 @@
     "tabs_report": "Rapport",
     "tabs_settings": "Paramètres",
     "tabs_docs": "Documents",
-    "tabs_musics": "Musiques",
+    "tabs_gallery": "Galerie",
+    "tabs_listing": "Annonce",
     "tabs_insights": "Aperçus",
     "tabs_finance": "Finances",
     "finance_title": "Finances",
@@ -204,6 +205,9 @@
     "add_tab": "Ajouter un Onglet",
     "select_tab": "Sélectionner un onglet à ajouter",
     "tab_already_added": "Cet onglet a déjà été ajouté",
+    "remove_tab_confirm_title": "Supprimer l'Onglet?",
+    "remove_tab_confirm_message": "Êtes-vous sûr de vouloir supprimer l'onglet",
+    "remove_tab_data_warning": "Toutes les données de cet onglet seront perdues.",
     "task_name": "Nom de la Tâche",
     "add_task": "Ajouter une Tâche"
   }
