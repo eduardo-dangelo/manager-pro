@@ -3,9 +3,9 @@
 import { Box } from '@mui/material';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
-import { Breadcrumb } from '@/components/Breadcrumb';
 import { AssetHeader } from '@/components/Assets/Asset/AssetHeader';
 import { AssetTabs } from '@/components/Assets/Asset/AssetTabs';
+import { Breadcrumb } from '@/components/Breadcrumb';
 
 type Todo = {
   id: number;
@@ -110,4 +110,3 @@ export function AssetDetail({
     </Box>
   );
 }
-

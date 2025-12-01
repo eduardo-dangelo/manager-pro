@@ -23,7 +23,7 @@ import {
   useTheme,
 } from '@mui/material';
 import { format } from 'date-fns';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { TransitionGroup } from 'react-transition-group';
 import { AssetActions } from '@/components/Assets/AssetActions';
 import { useHoverSound } from '@/hooks/useHoverSound';
@@ -71,6 +71,7 @@ const pluralizeType = (type: string): string => {
 
 export function AssetListView({ assets, locale, onAssetDeleted }: AssetListViewProps) {
   const theme = useTheme();
+  const router = useRouter();
   const { playHoverSound } = useHoverSound();
   return (
     <Fade in={true} unmountOnExit>
@@ -138,6 +139,7 @@ export function AssetListView({ assets, locale, onAssetDeleted }: AssetListViewP
                   >
                     <TableRow
                       onMouseEnter={playHoverSound}
+                      onClick={() => router.push(`/${locale}/assets/${pluralizeType(asset.type)}/${asset.id}`)}
                       sx={{
                         'bgcolor': index % 2 === 1 ? theme.palette.action.hover : 'inherit',
                         'transition': 'box-shadow 0.2s ease',
@@ -156,19 +158,16 @@ export function AssetListView({ assets, locale, onAssetDeleted }: AssetListViewP
                     >
                       <TableCell sx={{ width: '25%' }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-
-                          <Box component={Link} href={`/${locale}/assets/${pluralizeType(asset.type)}/${asset.id}`} sx={{ textDecoration: 'none' }}>
-                            <Typography
-                              variant="body2"
-                              sx={{
-                                fontWeight: 500,
-                                color: theme.palette.text.primary,
-                                mb: 0.25,
-                              }}
-                            >
-                              {asset.name}
-                            </Typography>
-                          </Box>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              fontWeight: 500,
+                              color: theme.palette.text.primary,
+                              mb: 0.25,
+                            }}
+                          >
+                            {asset.name}
+                          </Typography>
                         </Box>
                       </TableCell>
                       <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' }, width: '15%' }}>
