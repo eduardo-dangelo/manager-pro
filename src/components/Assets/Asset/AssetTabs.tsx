@@ -223,7 +223,7 @@ function SortableTab({ id, label, icon, isDraggable, handleTabClick, onRemoveTab
           }}
           sx={{
             'position': 'absolute',
-            'right': '-5px',
+            'right': '-2px',
             'top': '50%',
             'transform': 'translateY(-50%)',
             'display': 'inline-flex',
@@ -242,8 +242,10 @@ function SortableTab({ id, label, icon, isDraggable, handleTabClick, onRemoveTab
             sx={{
               'fontSize': 14,
               'color': 'grey.500',
+              'opacity': 0.8,
               '&:hover': {
                 color: 'error.main',
+                opacity: 1,
               },
             }}
           />
@@ -578,19 +580,37 @@ export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
         {remainingTabs.length > 0 && (
           <Button
             size="small"
-            startIcon={<AddIcon />}
             onClick={() => setAddTabDialogOpen(true)}
             sx={{
               'textTransform': 'none',
-              'color': 'grey.600',
+              'color': theme.palette.mode === 'dark' ? 'text.secondary' : 'grey.600',
               'minWidth': 'auto',
-              'px': 2,
+              'px': 1.5,
+              'overflow': 'hidden',
+              'position': 'relative',
+              'display': 'flex',
+              'alignItems': 'center',
+              'gap': 0.5,
               '&:hover': {
-                backgroundColor: 'grey.100',
+                'backgroundColor': 'action.hover',
+                '& .add-tab-label': {
+                  maxWidth: '100px',
+                  opacity: 1,
+                  marginLeft: 0,
+                },
+              },
+              '& .add-tab-label': {
+                maxWidth: 0,
+                opacity: 0,
+                marginLeft: 0,
+                overflow: 'hidden',
+                whiteSpace: 'nowrap',
+                transition: 'max-width 0.3s ease, opacity 0.3s ease',
               },
             }}
           >
-            {t('add_tab')}
+            <AddIcon sx={{ fontSize: 18, flexShrink: 0 }} />
+            <span className="add-tab-label">{t('add_tab')}</span>
           </Button>
         )}
       </Box>
