@@ -10,6 +10,8 @@ export const AssetValidation = z.object({
   // Conditional fields (optional, not used in form but kept for backward compatibility)
   registrationNumber: z.string().optional(),
   address: z.string().optional(),
+  // JSON field for type-specific metadata (vehicle specs, maintenance, property info, etc.)
+  metadata: z.record(z.string(), z.any()).optional(),
 });
 
 export const UpdateAssetValidation = AssetValidation.omit({ type: true }).partial();

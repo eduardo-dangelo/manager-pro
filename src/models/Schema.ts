@@ -1,5 +1,5 @@
 import { relations } from 'drizzle-orm';
-import { integer, pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core';
+import { integer, jsonb, pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core';
 
 // This file defines the structure of your database tables using the Drizzle ORM.
 
@@ -74,6 +74,8 @@ export const assetsSchema = pgTable('assets', {
   // Conditional fields for properties
   address: text('address'),
   buyOrRent: text('buy_or_rent'), // buy, rent
+  // JSON field for type-specific metadata (vehicle specs, maintenance, property info, etc.)
+  metadata: jsonb('metadata'),
 });
 
 export const objectivesSchema = pgTable('objectives', {

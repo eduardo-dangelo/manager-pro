@@ -54,7 +54,7 @@ import { useState } from 'react';
 
 import { CalendarTab } from '@/components/Assets/Asset/tabs/CalendarTab';
 import { FinanceTab } from '@/components/Assets/Asset/tabs/FinanceTab';
-import { ObjectivesTab } from '@/components/Assets/Asset/tabs/ObjectivesTab';
+import { OverviewTab } from '@/components/Assets/Asset/tabs/OverviewTab';
 import { ReportTab } from '@/components/Assets/Asset/tabs/ReportTab';
 import { SprintsTab } from '@/components/Assets/Asset/tabs/SprintsTab';
 import { TimelineTab } from '@/components/Assets/Asset/tabs/TimelineTab';
@@ -96,6 +96,7 @@ type Asset = {
   status: string;
   type?: string | null;
   tabs?: string[];
+  metadata?: Record<string, any>;
   objectives: Objective[];
   todos: Todo[];
   sprints: Sprint[];
@@ -104,7 +105,7 @@ type Asset = {
 type AssetTabsProps = {
   asset: Asset;
   locale: string;
-  onUpdateAsset: (asset: Asset) => void;
+  onUpdateAsset: (asset: Partial<Asset> | Asset) => void;
 };
 
 type SortableTabProps = {
@@ -294,8 +295,7 @@ export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
     }),
   );
 
-  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
-    console.log('handleTabChange', newValue);
+  const handleTabChange = (_event: React.SyntheticEvent | null, newValue: number) => {
     setCurrentTab(newValue);
   };
 
@@ -490,7 +490,7 @@ export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
     switch (tabName) {
       case 'overview':
         return (
-          <ObjectivesTab
+          <OverviewTab
             asset={asset}
             locale={locale}
             onUpdateAsset={onUpdateAsset}

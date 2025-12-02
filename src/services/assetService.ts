@@ -13,6 +13,8 @@ export type AssetData = {
   registrationNumber?: string;
   // Conditional fields for properties
   address?: string;
+  // JSON field for type-specific metadata
+  metadata?: Record<string, any>;
 };
 
 export class AssetService {
@@ -68,6 +70,9 @@ export class AssetService {
       }
       if (assetData.address !== undefined) {
         insertData.address = assetData.address;
+      }
+      if (assetData.metadata !== undefined) {
+        insertData.metadata = assetData.metadata;
       }
 
       const newAsset = await db.insert(assetsSchema).values(insertData).returning();
@@ -203,6 +208,9 @@ export class AssetService {
       }
       if (assetData.address !== undefined) {
         updateData.address = assetData.address;
+      }
+      if (assetData.metadata !== undefined) {
+        updateData.metadata = assetData.metadata;
       }
 
       const updatedAsset = await db
