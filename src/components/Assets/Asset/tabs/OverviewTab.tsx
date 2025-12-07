@@ -103,5 +103,5 @@ export function OverviewTab({ asset, locale, onUpdateAsset }: OverviewTabProps) 
     }
   };
 
-  return <Box sx={{ py: 2 }}>{renderContent()}</Box>;
+  return <Box>{renderContent()}</Box>;
 }

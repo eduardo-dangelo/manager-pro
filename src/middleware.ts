@@ -25,11 +25,13 @@ const isProtectedApiRoute = createRouteMatcher([
   '/api/todos(.*)',
   '/api/sprints(.*)',
   '/api/users(.*)',
+  '/api/vehicles(.*)',
   '/:locale/api/assets(.*)',
   '/:locale/api/objectives(.*)',
   '/:locale/api/todos(.*)',
   '/:locale/api/sprints(.*)',
   '/:locale/api/users(.*)',
+  '/:locale/api/vehicles(.*)',
 ]);
 
 const isAuthPage = createRouteMatcher([
