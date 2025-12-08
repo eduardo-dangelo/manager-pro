@@ -30,7 +30,7 @@ import { useHoverSound } from '@/hooks/useHoverSound';
 
 type Asset = {
   id: number;
-  name: string;
+  name: string | null;
   description: string;
   color: string;
   status: string;
@@ -166,7 +166,7 @@ export function AssetListView({ assets, locale, onAssetDeleted }: AssetListViewP
                               mb: 0.25,
                             }}
                           >
-                            {asset.name}
+                            {asset.name || 'Untitled'}
                           </Typography>
                         </Box>
                       </TableCell>

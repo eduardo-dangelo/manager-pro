@@ -9,7 +9,7 @@ import { useHoverSound } from '@/hooks/useHoverSound';
 
 type Asset = {
   id: number;
-  name: string;
+  name: string | null;
   description: string;
   color: string;
   status: string;
@@ -179,7 +179,7 @@ export function AssetFolderView({ assets, locale, cardSize, onAssetDeleted }: As
                         mt: 0.5,
                       }}
                     >
-                      {asset.name}
+                      {asset.name || 'Untitled'}
                     </Typography>
                   </Fade>
 
@@ -240,7 +240,7 @@ export function AssetFolderView({ assets, locale, cardSize, onAssetDeleted }: As
                     color: 'text.primary',
                   }}
                 >
-                  {asset.name}
+                  {asset.name || 'Untitled'}
                 </Typography>
               </Fade>
               {/* )} */}

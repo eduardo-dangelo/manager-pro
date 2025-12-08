@@ -64,10 +64,19 @@ export function AssetDetail({
 
   const [asset, setAsset] = useState(initialAsset);
 
+  // Get breadcrumb label - show "New {{asset type}}" if name is empty and type exists
+  const getBreadcrumbLabel = () => {
+    if (!asset.name && asset.type) {
+      const typeLabel = t(`type_${asset.type}` as any);
+      return `New ${typeLabel}`;
+    }
+    return asset.name;
+  };
+
   const breadcrumbItems = [
     { label: dashboardT('menu_dashboard'), href: `/${locale}/dashboard` },
     { label: t('page_title'), href: `/${locale}/assets` },
-    { label: asset.name },
+    { label: getBreadcrumbLabel() },
   ];
 
   const updateAsset = async (updates: Partial<Asset>) => {

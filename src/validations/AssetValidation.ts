@@ -1,7 +1,7 @@
 import z from 'zod';
 
 export const AssetValidation = z.object({
-  name: z.string().min(1, 'Name is required').max(200),
+  name: z.string().max(200).optional(),
   description: z.string().min(0).max(5000).optional(),
   color: z.string().optional(),
   status: z.enum(['active', 'completed', 'archived', 'on-hold']).optional(),

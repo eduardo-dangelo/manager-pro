@@ -6,7 +6,7 @@ import { AssetListView } from '@/components/Assets/Views/AssetListView';
 
 type Asset = {
   id: number;
-  name: string;
+  name: string | null;
   description: string;
   color: string;
   status: string;
@@ -32,18 +32,20 @@ type AssetsListProps = {
 export function AssetsList({ assets, locale, viewMode, cardSize, sortBy, searchQuery, onAssetDeleted }: AssetsListProps) {
   // Filter assets by search query
   const filteredAssets = assets.filter(asset =>
-    asset.name.toLowerCase().includes(searchQuery.toLowerCase()),
+    (asset.name || '').toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   // Sort assets based on sortBy
   const sortedAssets = [...filteredAssets].sort((a, b) => {
     switch (sortBy) {
       case 'name':
-        return a.name.localeCompare(b.name);
+        const nameA = a.name || '';
+        const nameB = b.name || '';
+        return nameA.localeCompare(nameB);
       case 'type':
         return a.type.localeCompare(b.type);
       case 'status':
-        return a.status.localeCompare(b.status);
+        return (a.status || '').localeCompare(b.status || '');
       case 'dateCreated':
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       case 'dateModified':

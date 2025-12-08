@@ -59,6 +59,10 @@ export function OverviewTab({ asset, locale, onUpdateAsset }: OverviewTabProps) 
   const renderContent = () => {
     switch (asset.type) {
       case 'vehicle':
+        const metadata = asset.metadata || {};
+        const specs = metadata.specs || {};
+        const hasSpecs = specs && Object.keys(specs).length > 0 && Object.values(specs).some(v => v !== '' && v !== null && v !== undefined);
+        
         return (
           <Box>
             <VehicleSpecsSection
@@ -66,13 +70,15 @@ export function OverviewTab({ asset, locale, onUpdateAsset }: OverviewTabProps) 
               locale={locale}
               onUpdateAsset={onUpdateAsset}
             />
-            <Box sx={{ mt: 4 }}>
-              <VehicleMaintenanceSection
-                asset={asset}
-                locale={locale}
-                onUpdateAsset={onUpdateAsset}
-              />
-            </Box>
+            {hasSpecs && (
+              <Box sx={{ mt: 4 }}>
+                <VehicleMaintenanceSection
+                  asset={asset}
+                  locale={locale}
+                  onUpdateAsset={onUpdateAsset}
+                />
+              </Box>
+            )}
           </Box>
         );
       case 'property':

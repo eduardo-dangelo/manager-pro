@@ -50,7 +50,7 @@ import {
   useTheme,
 } from '@mui/material';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { CalendarTab } from '@/components/Assets/Asset/tabs/CalendarTab';
 import { FinanceTab } from '@/components/Assets/Asset/tabs/FinanceTab';
@@ -129,11 +129,38 @@ function SortableTab({ id, label, icon, isDraggable, handleTabClick, onRemoveTab
     listeners,
   } = useSortable({ id, disabled: !isDraggable });
 
+  const [showIcons, setShowIcons] = useState(false);
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const style: React.CSSProperties = {
     transform: transform ? `translate3d(${transform.x}px, 0, 0)` : undefined,
     transition,
     opacity: isDragging ? 0.5 : 1,
   };
+
+  const handleMouseEnter = () => {
+    hoverTimeoutRef.current = setTimeout(() => {
+      setShowIcons(true);
+    }, 1200);
+  };
+
+  const handleMouseLeave = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+    setTimeout(() => {
+      setShowIcons(false);
+    }, 1200);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <Box
@@ -141,82 +168,79 @@ function SortableTab({ id, label, icon, isDraggable, handleTabClick, onRemoveTab
       ref={setNodeRef}
       style={style}
       component="div"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       sx={{
-        'display': 'inline-block',
-        'position': 'relative',
-        '& .remove-tab-button': {
-          opacity: 0,
-          transition: 'opacity 0.2s ease',
-        },
-        '&:hover .remove-tab-button': {
-          opacity: 1,
-        },
+        display: 'inline-block',
+        position: 'relative',
       }}
     >
       <Tab
         icon={icon as any}
         iconPosition="start"
-        label={(
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-            <span style={{ flex: 1 }}>{label}</span>
-            {isDraggable && (
-              <Box
-                sx={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  flexShrink: 0,
-                  ml: 'auto',
-                  gap: 0.5,
-                }}
-              >
-                <Box
-                  ref={setActivatorNodeRef}
-                  {...attributes}
-                  {...listeners}
-                  component="span"
-                  onClick={(e: React.MouseEvent) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                  }}
-                  sx={{
-                    'display': 'inline-flex',
-                    'alignItems': 'center',
-                    'cursor': 'grab',
-                    'outline': 'none',
-                    'touchAction': 'none',
-                    '&:hover svg': {
-                      opacity: 1,
-                      color: 'grey.700',
-                    },
-                    '&:active': {
-                      cursor: 'grabbing',
-                    },
-                  }}
-                >
-                  <DragIcon
-                    sx={{
-                      fontSize: 18,
-                      color: 'grey.500',
-                      opacity: 0.8,
-                      flexShrink: 0,
-                      pointerEvents: 'none',
-                    }}
-                  />
-                </Box>
-              </Box>
-            )}
-          </Box>
-        )}
+        label={label}
         sx={{
           '& .MuiTab-iconWrapper': {
             marginRight: 1,
           },
+          'transition': 'padding-left 0.3s ease, padding-right 0.3s ease',
+          // Always reserve space for icons to prevent tab width change
+          // 'paddingRight': !showIcons ? (onRemoveTab ? '44px' : (isDraggable ? '28px' : '12px')) : '12px',
+          'textAlign': 'center',
+
+          'pl': showIcons && (onRemoveTab || isDraggable) ? 1 : 3,
+          'pr': showIcons && (onRemoveTab || isDraggable) ? 5 : 3,
         }}
       />
+      {isDraggable && (
+        <Box
+          ref={setActivatorNodeRef}
+          {...attributes}
+          {...listeners}
+          component="span"
+          onClick={(e: React.MouseEvent) => {
+            e.stopPropagation();
+            e.preventDefault();
+          }}
+          sx={{
+            'position': 'absolute',
+            'right': onRemoveTab ? '20px' : '4px',
+            'top': '50%',
+            'transform': 'translateY(-50%)',
+            'display': 'flex',
+            'alignItems': 'center',
+            'cursor': 'grab',
+            'outline': 'none',
+            'touchAction': 'none',
+            'width': '18px',
+            'height': '18px',
+            'opacity': showIcons ? 1 : 0,
+            'transition': 'opacity 0.3s ease',
+            'pointerEvents': showIcons ? 'auto' : 'none',
+            'zIndex': 1,
+            '&:hover svg': {
+              opacity: 1,
+              color: 'grey.700',
+            },
+            '&:active': {
+              cursor: 'grabbing',
+            },
+          }}
+        >
+          <DragIcon
+            sx={{
+              fontSize: 18,
+              color: 'grey.500',
+              opacity: 0.8,
+              flexShrink: 0,
+              pointerEvents: 'none',
+            }}
+          />
+        </Box>
+      )}
       {onRemoveTab && (
         <Box
           component="span"
-          className="remove-tab-button"
           onClick={(e: React.MouseEvent) => {
             e.stopPropagation();
             e.preventDefault();
@@ -224,16 +248,21 @@ function SortableTab({ id, label, icon, isDraggable, handleTabClick, onRemoveTab
           }}
           sx={{
             'position': 'absolute',
-            'right': '-2px',
+            'right': '4px',
             'top': '50%',
             'transform': 'translateY(-50%)',
-            'display': 'inline-flex',
+            'display': showIcons ? 'flex' : 'none',
             'alignItems': 'center',
             'justifyContent': 'center',
             'cursor': 'pointer',
             'padding': '2px',
             'borderRadius': '4px',
-            'zIndex': 1,
+            'width': '18px',
+            'height': '18px',
+            'opacity': showIcons ? 1 : 0,
+            'transition': 'opacity 0.3s ease',
+            'pointerEvents': showIcons ? 'auto' : 'none',
+            'zIndex': 2,
             '&:hover': {
               backgroundColor: 'action.hover',
             },

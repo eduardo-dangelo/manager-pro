@@ -3,14 +3,11 @@
 import {
   ContentCopy as ContentCopyIcon,
   Edit as EditIcon,
-  MoreVert as MoreVertIcon,
   NoteAltOutlined as NoteAltOutlinedIcon,
 } from '@mui/icons-material';
 import {
   Box,
   Button,
-  Card,
-  CardContent,
   Collapse,
   Dialog,
   DialogActions,
@@ -21,17 +18,15 @@ import {
   Grid,
   IconButton,
   InputLabel,
-  ListItemIcon,
-  ListItemText,
-  Menu,
   MenuItem,
   Select,
   TextField,
-  Tooltip,
   Typography,
 } from '@mui/material';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import { Card } from '@/components/common/Card';
+import { DropdownButton } from '@/components/common/DropdownButton';
 import { useHoverSound } from '@/hooks/useHoverSound';
 
 type Asset = {
@@ -58,8 +53,6 @@ export function PropertyInfoSection({ asset, locale, onUpdateAsset }: PropertyIn
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [copiedItem, setCopiedItem] = useState<string | null>(null);
   const [copiedAll, setCopiedAll] = useState(false);
-  const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
-  const menuOpen = Boolean(menuAnchorEl);
   const [editedInfo, setEditedInfo] = useState(() => {
     const metadata = asset.metadata || {};
     return {
@@ -145,14 +138,6 @@ export function PropertyInfoSection({ asset, locale, onUpdateAsset }: PropertyIn
     }
   };
 
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setMenuAnchorEl(event.currentTarget);
-  };
-
-  const handleMenuClose = () => {
-    setMenuAnchorEl(null);
-  };
-
   const handleCopyAll = async () => {
     try {
       const allItems = [...visibleItems, ...hiddenItems];
@@ -162,7 +147,6 @@ export function PropertyInfoSection({ asset, locale, onUpdateAsset }: PropertyIn
       setTimeout(() => {
         setCopiedAll(false);
       }, 1000);
-      handleMenuClose();
     } catch (error) {
       console.error('Failed to copy all:', error);
     }
@@ -170,8 +154,20 @@ export function PropertyInfoSection({ asset, locale, onUpdateAsset }: PropertyIn
 
   const handleEdit = () => {
     setIsModalOpen(true);
-    handleMenuClose();
   };
+
+  const dropdownOptions = [
+    {
+      label: 'Copy',
+      onClick: handleCopyAll,
+      icon: <ContentCopyIcon fontSize="small" />,
+    },
+    {
+      label: 'Edit',
+      onClick: handleEdit,
+      icon: <EditIcon fontSize="small" />,
+    },
+  ];
 
   return (
     <Box sx={{ mt: 3 }}>
@@ -203,231 +199,207 @@ export function PropertyInfoSection({ asset, locale, onUpdateAsset }: PropertyIn
             </Box>
           )
         : (
-            <Card sx={{ mt: 2, boxShadow: 'none' }}>
-              <CardContent>
-                <Box
+            <Card sx={{ mt: 2, p: 2.5 }}>
+
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  mb: 2,
+                }}
+              >
+                <Typography
+                  variant="subtitle1"
                   sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    mb: 2,
+                    fontWeight: 500,
+                    color: 'text.primary',
                   }}
                 >
-                  <Typography
-                    variant="subtitle1"
-                    sx={{
-                      fontWeight: 500,
-                      color: 'text.primary',
-                    }}
-                  >
-                    {t('property_info_title')}
-                  </Typography>
-                  <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                    <Tooltip title="Actions">
-                      <IconButton
-                        size="small"
-                        onClick={handleMenuOpen}
-                        sx={{ color: 'text.secondary' }}
-                      >
-                        <MoreVertIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Fade in={copiedAll} mountOnEnter unmountOnExit>
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          position: 'absolute',
-                          right: 40,
-                          whiteSpace: 'nowrap',
-                          color: 'text.secondary',
-                          fontSize: '0.75rem',
-                          fontWeight: 500,
-                        }}
-                      >
-                        Copied
-                      </Typography>
-                    </Fade>
-                    <Menu
-                      anchorEl={menuAnchorEl}
-                      open={menuOpen}
-                      onClose={handleMenuClose}
-                      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                  {t('property_info_title')}
+                </Typography>
+                <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <Fade in={copiedAll} mountOnEnter unmountOnExit>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        position: 'absolute',
+                        right: 40,
+                        whiteSpace: 'nowrap',
+                        color: 'text.secondary',
+                        fontSize: '0.75rem',
+                        fontWeight: 500,
+                      }}
                     >
-                      <MenuItem onClick={handleCopyAll}>
-                        <ListItemIcon>
-                          <ContentCopyIcon fontSize="small" />
-                        </ListItemIcon>
-                        <ListItemText>Copy</ListItemText>
-                      </MenuItem>
-                      <MenuItem onClick={handleEdit}>
-                        <ListItemIcon>
-                          <EditIcon fontSize="small" />
-                        </ListItemIcon>
-                        <ListItemText>Edit</ListItemText>
-                      </MenuItem>
-                    </Menu>
-                  </Box>
+                      Copied
+                    </Typography>
+                  </Fade>
+                  <DropdownButton
+                    options={dropdownOptions}
+                    tooltip="Actions"
+                  />
                 </Box>
+              </Box>
 
-                <Grid container spacing={1}>
-                  {visibleItems.map(item => (
-                    <Grid item xs={12} sm={6} key={item.key}>
-                      <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                        <Typography variant="caption" sx={{ color: 'text.secondary', minWidth: 140, flexShrink: 0 }}>
-                          {item.label}
-                          :
+              <Grid container spacing={0}>
+                {visibleItems.map(item => (
+                  <Grid item key={item.key} sx={{ width: { xs: '100%', md: '50%' } }}>
+                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                      <Typography variant="caption" sx={{ color: 'text.secondary', minWidth: 140, flexShrink: 0 }}>
+                        {item.label}
+                        :
+                      </Typography>
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 0.5,
+                          minWidth: 200,
+                          flexShrink: 0,
+                          position: 'relative',
+                        }}
+                        onMouseEnter={() => {
+                          setHoveredItem(item.key);
+                          playHoverSound();
+                        }}
+                        onMouseLeave={() => setHoveredItem(null)}
+                        onClick={() => handleCopy(item.format(item.value), item.key)}
+                      >
+                        <Typography variant="body2" sx={{ color: '#4caf50', fontWeight: 500, cursor: 'pointer' }}>
+                          {item.format(item.value)}
                         </Typography>
-                        <Box
-                          sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 0.5,
-                            minWidth: 200,
-                            flexShrink: 0,
-                            position: 'relative',
-                          }}
-                          onMouseEnter={() => {
-                            setHoveredItem(item.key);
-                            playHoverSound();
-                          }}
-                          onMouseLeave={() => setHoveredItem(null)}
-                          onClick={() => handleCopy(item.format(item.value), item.key)}
-                        >
-                          <Typography variant="body2" sx={{ color: '#4caf50', fontWeight: 600, cursor: 'pointer' }}>
-                            {item.format(item.value)}
-                          </Typography>
-                          {hoveredItem === item.key && (
-                            <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                              <IconButton
-                                size="small"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleCopy(item.format(item.value), item.key);
-                                }}
+                        {hoveredItem === item.key && (
+                          <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                            <IconButton
+                              size="small"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCopy(item.format(item.value), item.key);
+                              }}
+                              sx={{
+                                'padding': 0.25,
+                                'minWidth': 'auto',
+                                'width': 20,
+                                'height': 20,
+                                'color': 'text.secondary',
+                                '&:hover': {
+                                  color: 'primary.main',
+                                  backgroundColor: 'action.hover',
+                                },
+                              }}
+                            >
+                              <ContentCopyIcon sx={{ fontSize: 14 }} />
+                            </IconButton>
+                            <Fade in={copiedItem === item.key} mountOnEnter unmountOnExit>
+                              <Typography
+                                variant="caption"
                                 sx={{
-                                  'padding': 0.25,
-                                  'minWidth': 'auto',
-                                  'width': 20,
-                                  'height': 20,
-                                  'color': 'text.secondary',
-                                  '&:hover': {
-                                    color: 'primary.main',
-                                    backgroundColor: 'action.hover',
-                                  },
+                                  position: 'absolute',
+                                  left: 28,
+                                  whiteSpace: 'nowrap',
+                                  color: 'text.secondary',
+                                  fontSize: '0.75rem',
+                                  fontWeight: 500,
                                 }}
                               >
-                                <ContentCopyIcon sx={{ fontSize: 14 }} />
-                              </IconButton>
-                              <Fade in={copiedItem === item.key} mountOnEnter unmountOnExit>
-                                <Typography
-                                  variant="caption"
-                                  sx={{
-                                    position: 'absolute',
-                                    left: 28,
-                                    whiteSpace: 'nowrap',
-                                    color: 'text.secondary',
-                                    fontSize: '0.75rem',
-                                    fontWeight: 500,
-                                  }}
-                                >
-                                  Copied
-                                </Typography>
-                              </Fade>
-                            </Box>
-                          )}
-                        </Box>
-                      </Box>
-                    </Grid>
-                  ))}
-                </Grid>
-
-                {hasHiddenItems && (
-                  <>
-                    <Collapse in={showMore}>
-                      <Grid container spacing={1} sx={{ mt: 1 }}>
-                        {hiddenItems.map(item => (
-                          <Grid item xs={12} sm={6} key={item.key}>
-                            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                              <Typography variant="caption" sx={{ color: 'text.secondary', minWidth: 140, flexShrink: 0 }}>
-                                {item.label}
-                                :
+                                Copied
                               </Typography>
-                              <Box
-                                sx={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: 0.5,
-                                  minWidth: 200,
-                                  flexShrink: 0,
-                                  position: 'relative',
-                                }}
-                                onMouseEnter={() => {
-                                  setHoveredItem(item.key);
-                                  playHoverSound();
-                                }}
-                                onMouseLeave={() => setHoveredItem(null)}
-                                onClick={() => handleCopy(item.format(item.value), item.key)}
-                              >
-                                <Typography variant="body2" sx={{ color: '#4caf50', fontWeight: 600, cursor: 'pointer' }}>
-                                  {item.format(item.value)}
-                                </Typography>
-                                {hoveredItem === item.key && (
-                                  <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                                    <IconButton
-                                      size="small"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleCopy(item.format(item.value), item.key);
-                                      }}
+                            </Fade>
+                          </Box>
+                        )}
+                      </Box>
+                    </Box>
+                  </Grid>
+                ))}
+              </Grid>
+
+              {hasHiddenItems && (
+                <>
+                  <Collapse in={showMore}>
+                    <Grid container spacing={0} sx={{ mt: 1 }}>
+                      {hiddenItems.map(item => (
+                        <Grid item key={item.key} sx={{ width: { xs: '100%', md: '50%' } }}>
+                          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                            <Typography variant="caption" sx={{ color: 'text.secondary', minWidth: 140, flexShrink: 0 }}>
+                              {item.label}
+                              :
+                            </Typography>
+                            <Box
+                              sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 0.5,
+                                minWidth: 200,
+                                flexShrink: 0,
+                                position: 'relative',
+                              }}
+                              onMouseEnter={() => {
+                                setHoveredItem(item.key);
+                                playHoverSound();
+                              }}
+                              onMouseLeave={() => setHoveredItem(null)}
+                              onClick={() => handleCopy(item.format(item.value), item.key)}
+                            >
+                              <Typography variant="body2" sx={{ color: '#4caf50', fontWeight: 500, cursor: 'pointer' }}>
+                                {item.format(item.value)}
+                              </Typography>
+                              {hoveredItem === item.key && (
+                                <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                                  <IconButton
+                                    size="small"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleCopy(item.format(item.value), item.key);
+                                    }}
+                                    sx={{
+                                      'padding': 0.25,
+                                      'minWidth': 'auto',
+                                      'width': 20,
+                                      'height': 20,
+                                      'color': 'text.secondary',
+                                      '&:hover': {
+                                        color: 'primary.main',
+                                        backgroundColor: 'action.hover',
+                                      },
+                                    }}
+                                  >
+                                    <ContentCopyIcon sx={{ fontSize: 14 }} />
+                                  </IconButton>
+                                  <Fade in={copiedItem === item.key} mountOnEnter unmountOnExit>
+                                    <Typography
+                                      variant="caption"
                                       sx={{
-                                        'padding': 0.25,
-                                        'minWidth': 'auto',
-                                        'width': 20,
-                                        'height': 20,
-                                        'color': 'text.secondary',
-                                        '&:hover': {
-                                          color: 'primary.main',
-                                          backgroundColor: 'action.hover',
-                                        },
+                                        position: 'absolute',
+                                        left: 28,
+                                        whiteSpace: 'nowrap',
+                                        color: 'text.secondary',
+                                        fontSize: '0.75rem',
+                                        fontWeight: 500,
                                       }}
                                     >
-                                      <ContentCopyIcon sx={{ fontSize: 14 }} />
-                                    </IconButton>
-                                    <Fade in={copiedItem === item.key} mountOnEnter unmountOnExit>
-                                      <Typography
-                                        variant="caption"
-                                        sx={{
-                                          position: 'absolute',
-                                          left: 28,
-                                          whiteSpace: 'nowrap',
-                                          color: 'text.secondary',
-                                          fontSize: '0.75rem',
-                                          fontWeight: 500,
-                                        }}
-                                      >
-                                        Copied
-                                      </Typography>
-                                    </Fade>
-                                  </Box>
-                                )}
-                              </Box>
+                                      Copied
+                                    </Typography>
+                                  </Fade>
+                                </Box>
+                              )}
                             </Box>
-                          </Grid>
-                        ))}
-                      </Grid>
-                    </Collapse>
-                    <Box sx={{ mt: 1, display: 'flex', justifyContent: 'center' }}>
-                      <Button
-                        size="small"
-                        onClick={() => setShowMore(!showMore)}
-                        sx={{ textTransform: 'none' }}
-                      >
-                        {showMore ? 'View Less' : `View More (${hiddenItems.length})`}
-                      </Button>
-                    </Box>
-                  </>
-                )}
-              </CardContent>
+                          </Box>
+                        </Grid>
+                      ))}
+                    </Grid>
+                  </Collapse>
+                  <Box sx={{ mt: 1, display: 'flex', justifyContent: 'center' }}>
+                    <Button
+                      size="small"
+                      onClick={() => setShowMore(!showMore)}
+                      sx={{ textTransform: 'none' }}
+                    >
+                      {showMore ? 'View Less' : `View More (${hiddenItems.length})`}
+                    </Button>
+                  </Box>
+                </>
+              )}
+
             </Card>
           )}
 

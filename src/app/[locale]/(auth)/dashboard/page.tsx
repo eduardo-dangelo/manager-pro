@@ -3,7 +3,6 @@ import { currentUser } from '@clerk/nextjs/server';
 import {
   Avatar,
   Box,
-  Card,
   CardContent,
   Divider,
   Grid,
@@ -11,6 +10,7 @@ import {
   Typography,
 } from '@mui/material';
 import { getTranslations } from 'next-intl/server';
+import { Card } from '@/components/common/Card';
 import { Hello } from '@/components/Hello';
 import { UserService } from '@/services/userService';
 
@@ -74,13 +74,7 @@ export default async function Dashboard() {
         {/* Stats Cards */}
         <Grid container spacing={3}>
           <Grid item xs={12} sm={6} lg={3}>
-            <Card
-              sx={{
-                border: 1,
-                borderColor: 'grey.200',
-                borderRadius: 2,
-              }}
-            >
+            <Card>
               <CardContent>
                 <Typography
                   variant="body2"
@@ -118,13 +112,7 @@ export default async function Dashboard() {
           </Grid>
 
           <Grid item xs={12} sm={6} lg={3}>
-            <Card
-              sx={{
-                border: 1,
-                borderColor: 'grey.200',
-                borderRadius: 2,
-              }}
-            >
+            <Card>
               <CardContent>
                 <Typography
                   variant="body2"
@@ -162,13 +150,7 @@ export default async function Dashboard() {
           </Grid>
 
           <Grid item xs={12} sm={6} lg={3}>
-            <Card
-              sx={{
-                border: 1,
-                borderColor: 'grey.200',
-                borderRadius: 2,
-              }}
-            >
+            <Card>
               <CardContent>
                 <Typography
                   variant="body2"
@@ -206,13 +188,7 @@ export default async function Dashboard() {
           </Grid>
 
           <Grid item xs={12} sm={6} lg={3}>
-            <Card
-              sx={{
-                border: 1,
-                borderColor: 'grey.200',
-                borderRadius: 2,
-              }}
-            >
+            <Card>
               <CardContent>
                 <Typography
                   variant="body2"
@@ -251,13 +227,7 @@ export default async function Dashboard() {
         </Grid>
 
         {/* Recent Activity */}
-        <Card
-          sx={{
-            border: 1,
-            borderColor: 'grey.200',
-            borderRadius: 2,
-          }}
-        >
+        <Card>
           <CardContent>
             <Typography
               variant="h6"

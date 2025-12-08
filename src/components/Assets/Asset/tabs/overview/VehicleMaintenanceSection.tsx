@@ -15,6 +15,7 @@ import {
 } from '@mui/material';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import { Card } from '@/components/common/Card';
 
 type Asset = {
   id: number;
@@ -121,10 +122,9 @@ export function VehicleMaintenanceSection({
     const todoData = data as Array<{ text: string; checked: boolean }>;
 
     return (
-      <Box
+      <Card
         sx={{
-          borderLeft: '2px solid',
-          borderColor: 'divider',
+
           pl: 2,
           py: 1.5,
           minHeight: 120,
@@ -265,18 +265,15 @@ export function VehicleMaintenanceSection({
                 )}
               </>
             )}
-      </Box>
+      </Card>
     );
   };
 
   return (
-    <Box>
-      <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main', mb: 3 }}>
-        {t('vehicle_maintenance_title')}
-      </Typography>
+    <Box sx={{ m: -1.5 }}>
 
-      <Grid container spacing={2}>
-        <Grid item xs={12} md={4}>
+      <Grid container spacing={0}>
+        <Grid item key={0} sx={{ width: { xs: '100%', sm: '50%', md: '33.33%' }, p: 1.5 }}>
           <MaintenanceCard
             title={t('mot')}
             data={mot}
@@ -284,7 +281,7 @@ export function VehicleMaintenanceSection({
           />
         </Grid>
 
-        <Grid item xs={12} md={4}>
+        <Grid item key={1} sx={{ width: { xs: '100%', sm: '50%', md: '33.33%' }, p: 1.5 }}>
           <MaintenanceCard
             title={t('tax')}
             data={tax}
@@ -292,7 +289,7 @@ export function VehicleMaintenanceSection({
           />
         </Grid>
 
-        <Grid item xs={12} md={4}>
+        <Grid item key={2} sx={{ width: { xs: '100%', sm: '50%', md: '33.33%' }, p: 1.5 }}>
           <MaintenanceCard
             title={t('insurance')}
             data={insurance}
@@ -300,7 +297,7 @@ export function VehicleMaintenanceSection({
           />
         </Grid>
 
-        <Grid item xs={12} md={4}>
+        <Grid item key={3} sx={{ width: { xs: '100%', sm: '50%', md: '33.33%' }, p: 1.5 }}>
           <MaintenanceCard
             title={t('finance_agreement')}
             data={finance}
@@ -309,7 +306,7 @@ export function VehicleMaintenanceSection({
           />
         </Grid>
 
-        <Grid item xs={12} md={4}>
+        <Grid item key={4} sx={{ width: { xs: '100%', sm: '50%', md: '33.33%' }, p: 1.5 }}>
           <MaintenanceCard
             title={t('service')}
             data={service}
@@ -318,7 +315,7 @@ export function VehicleMaintenanceSection({
           />
         </Grid>
 
-        <Grid item xs={12} md={4}>
+        <Grid item key={5} sx={{ width: { xs: '100%', sm: '50%', md: '33.33%' }, p: 1.5 }}>
           <MaintenanceCard
             title={t('todo')}
             data={todo}

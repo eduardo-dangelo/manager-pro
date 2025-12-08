@@ -2,7 +2,7 @@
 
 import { Box, MenuItem, Select, TextField, Typography } from '@mui/material';
 import { useTranslations } from 'next-intl';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 type Asset = {
   id: number;
@@ -10,6 +10,7 @@ type Asset = {
   description: string;
   color: string;
   status: string;
+  type?: string | null;
 };
 
 type AssetHeaderProps = {
@@ -31,6 +32,11 @@ export function AssetHeader({
   const [localAsset, setLocalAsset] = useState(asset);
   const [saving, setSaving] = useState(false);
 
+  // Sync local state when asset prop changes
+  useEffect(() => {
+    setLocalAsset(asset);
+  }, [asset]);
+
   const handleSave = async (updates: Partial<Asset>) => {
     setSaving(true);
     await onUpdate(updates);
@@ -42,6 +48,15 @@ export function AssetHeader({
       e.preventDefault();
       descriptionRef.current.focus();
     }
+  };
+
+  // Get placeholder text - show "New {{asset type}}" if name is empty and type exists
+  const getPlaceholder = () => {
+    if (!localAsset.name && localAsset.type) {
+      const typeLabel = t(`type_${localAsset.type}` as any);
+      return `New ${typeLabel}`;
+    }
+    return t('asset_name');
   };
 
   return (
@@ -61,7 +76,7 @@ export function AssetHeader({
           onChange={e => setLocalAsset({ ...localAsset, name: e.target.value })}
           onBlur={() => handleSave({ name: localAsset.name })}
           onKeyDown={handleTitleKeyDown}
-          placeholder={t('asset_name')}
+          placeholder={getPlaceholder()}
           variant="standard"
           sx={{
             'flex': 1,

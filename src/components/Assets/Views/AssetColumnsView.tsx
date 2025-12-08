@@ -31,7 +31,7 @@ import { useHoverSound } from '@/hooks/useHoverSound';
 
 type Asset = {
   id: number;
-  name: string;
+  name: string | null;
   description: string;
   color: string;
   status: string;
@@ -191,7 +191,7 @@ export function AssetColumnsView({ assets, locale, onAssetDeleted }: AssetColumn
                           />
                         </ListItemIcon>
                         <ListItemText
-                          primary={asset.name.length > 30 ? `${asset.name.slice(0, 40)}…` : asset.name}
+                          primary={asset.name ? (asset.name.length > 30 ? `${asset.name.slice(0, 40)}…` : asset.name) : 'Untitled'}
                           primaryTypographyProps={{
                             fontSize: '0.875rem',
                             fontWeight: 500,

@@ -4,13 +4,12 @@ import { Add as AddIcon, Folder as FolderIcon } from '@mui/icons-material';
 import { Box, Button, Typography, useMediaQuery } from '@mui/material';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
-import { CreateAssetModal } from '@/components/Assets/CreateAssetModal';
 import { AssetsTopBar } from '@/components/Assets/AssetsTopBar';
 import { AssetsList } from '@/components/Assets/Views/AssetsList';
 
 type Asset = {
   id: number;
-  name: string;
+  name: string | null;
   description: string;
   color: string;
   status: string;
@@ -36,7 +35,6 @@ type AssetsPageClientProps = {
 
 export function AssetsPageClient({ assets, locale, assetType, userPreferences }: AssetsPageClientProps) {
   const t = useTranslations('Assets');
-  const [modalOpen, setModalOpen] = useState(false);
   const [assetsList, setAssetsList] = useState<Asset[]>(assets);
 
   // State for view controls
@@ -102,7 +100,6 @@ export function AssetsPageClient({ assets, locale, assetType, userPreferences }:
             onViewModeChange={handleViewModeChange}
             onCardSizeChange={setCardSize}
             onSortByChange={setSortBy}
-            onCreateAsset={() => setModalOpen(true)}
             locale={locale}
             assetType={assetType}
           />
@@ -158,7 +155,6 @@ export function AssetsPageClient({ assets, locale, assetType, userPreferences }:
                 <Button
                   variant="contained"
                   startIcon={<AddIcon />}
-                  onClick={() => setModalOpen(true)}
                   sx={{
                     'bgcolor': '#1e293b',
                     'color': 'white',
@@ -187,15 +183,6 @@ export function AssetsPageClient({ assets, locale, assetType, userPreferences }:
               />
             )}
       </Box>
-
-      {/* Create Asset Modal */}
-      <CreateAssetModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        locale={locale}
-        preSelectedType={assetType}
-      />
     </>
   );
 }
-
