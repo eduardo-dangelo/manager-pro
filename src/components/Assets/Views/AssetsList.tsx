@@ -70,4 +70,3 @@ export function AssetsList({ assets, locale, viewMode, cardSize, sortBy, searchQ
     <AssetFolderView assets={sortedAssets} locale={locale} cardSize={cardSize} onAssetDeleted={onAssetDeleted} />
   );
 }
-

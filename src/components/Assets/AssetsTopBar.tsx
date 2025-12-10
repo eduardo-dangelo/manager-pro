@@ -1,12 +1,6 @@
 'use client';
 
 import {
-  Add as AddIcon,
-  Category as CategoryIcon,
-  DirectionsCar as DirectionsCarIcon,
-  Flight as FlightIcon,
-  Home as HomeIcon,
-  Person as PersonIcon,
   ViewColumn as ColumnsIcon,
   ViewModule as FolderIcon,
   ViewModule as LargeIcon,
@@ -15,7 +9,6 @@ import {
   Search as SearchIcon,
   ViewModule as SmallIcon,
   SwapVert as SortIcon,
-  Work as WorkIcon,
 } from '@mui/icons-material';
 import {
   Badge,
@@ -31,38 +24,13 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   Tooltip,
-  Typography,
   useMediaQuery,
   useTheme,
 } from '@mui/material';
 import { useTranslations } from 'next-intl';
-import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
 import { Breadcrumb } from '@/components/Breadcrumb';
-
-// Helper function to pluralize asset types for routes
-const pluralizeType = (type: string): string => {
-  const pluralMap: Record<string, string> = {
-    vehicle: 'vehicles',
-    property: 'properties',
-    person: 'persons',
-    project: 'projects',
-    trip: 'trips',
-    custom: 'customs',
-  };
-  return pluralMap[type] || `${type}s`;
-};
-
-const assetTypes = [
-  { value: 'vehicle', label: 'type_vehicle', icon: DirectionsCarIcon },
-  { value: 'property', label: 'type_property', icon: HomeIcon },
-  { value: 'person', label: 'type_person', icon: PersonIcon },
-  { value: 'project', label: 'type_project', icon: WorkIcon },
-  { value: 'trip', label: 'type_trip', icon: FlightIcon },
-  { value: 'custom', label: 'type_custom', icon: CategoryIcon },
-];
-
-// no-op
+import { NewAssetButton } from './NewAssetButton';
 
 type ViewMode = 'folder' | 'list' | 'columns';
 type CardSize = 'small' | 'medium' | 'large';
@@ -94,13 +62,10 @@ export function AssetsTopBar({
   assetType,
 }: AssetsTopBarProps) {
   const theme = useTheme();
-  const router = useRouter();
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [sortAnchorEl, setSortAnchorEl] = useState<null | HTMLElement>(null);
-  const [assetMenuAnchorEl, setAssetMenuAnchorEl] = useState<null | HTMLElement>(null);
   const searchFieldRef = useRef<HTMLInputElement>(null);
   const sortOpen = Boolean(sortAnchorEl);
-  const assetMenuOpen = Boolean(assetMenuAnchorEl);
   const t = useTranslations('Assets');
   const dashboardT = useTranslations('DashboardLayout');
   const isMobile = useMediaQuery('(max-width:930px)');
@@ -175,39 +140,6 @@ export function AssetsTopBar({
   const handleSortSelect = (value: SortBy) => {
     handleSortByChange(value);
     handleSortClose();
-  };
-
-  const handleAssetMenuClick = (event: React.MouseEvent<HTMLElement>) => {
-    setAssetMenuAnchorEl(event.currentTarget);
-  };
-
-  const handleAssetMenuClose = () => {
-    setAssetMenuAnchorEl(null);
-  };
-
-  const handleCreateAsset = async (assetType: string) => {
-    handleAssetMenuClose();
-    
-    try {
-      const response = await fetch(`/${locale}/api/assets`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ type: assetType }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to create asset');
-      }
-
-      const data = await response.json();
-      router.push(`/${locale}/assets/${pluralizeType(data.asset.type)}/${data.asset.id}`);
-      router.refresh();
-    } catch (error) {
-      console.error('Error creating asset:', error);
-    }
   };
 
   // Collapsible search handlers
@@ -475,55 +407,7 @@ export function AssetsTopBar({
             mx: 1,
           }}
         />
-        <Tooltip title="New Asset">
-          <IconButton
-            size="small"
-            onClick={handleAssetMenuClick}
-            sx={iconButtonSx}
-          >
-            <AddIcon sx={{ color: 'grey.700', fontSize: 18 }} />
-          </IconButton>
-        </Tooltip>
-        <Popper
-          open={assetMenuOpen}
-          anchorEl={assetMenuAnchorEl}
-          role={undefined}
-          placement="bottom-end"
-          transition
-          disablePortal
-          style={{ zIndex: 1300 }}
-        >
-          {({ TransitionProps, placement }) => (
-            <Grow
-              {...TransitionProps}
-              style={{
-                transformOrigin:
-                  placement === 'bottom-start' ? 'left top' : 'right top',
-              }}
-            >
-              <Paper>
-                <ClickAwayListener onClickAway={handleAssetMenuClose}>
-                  <MenuList autoFocusItem={assetMenuOpen} id="asset-type-menu">
-                    {assetTypes.map((type) => {
-                      const Icon = type.icon;
-                      return (
-                        <MenuItem
-                          key={type.value}
-                          onClick={() => handleCreateAsset(type.value)}
-                        >
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                            <Icon sx={{ fontSize: 20, color: 'grey.600' }} />
-                            <Typography>{t(type.label as any)}</Typography>
-                          </Box>
-                        </MenuItem>
-                      );
-                    })}
-                  </MenuList>
-                </ClickAwayListener>
-              </Paper>
-            </Grow>
-          )}
-        </Popper>
+        <NewAssetButton locale={locale} iconButtonSx={iconButtonSx} />
 
         {/* Collapsible Search */}
         <Box

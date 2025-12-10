@@ -26,6 +26,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { useHoverSound } from '@/hooks/useHoverSound';
+import { NewAssetButton } from './Assets/NewAssetButton';
 import { GlobalTopbar } from './GlobalTopbar';
 import { Logo } from './Logo';
 
@@ -54,10 +55,17 @@ export function Sidebar({
   const [mobileOpen, setMobileOpen] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(() => new Set());
   const [clickedHref, setClickedHref] = useState<string | null>(null);
+  const [hoveredHref, setHoveredHref] = useState<string | null>(null);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
   const pathname = usePathname();
   const { playHoverSound } = useHoverSound();
+
+  // Extract locale from pathname once
+  const locale = (() => {
+    const match = pathname.match(/^\/([a-z]{2})\//);
+    return match ? match[1] : 'en';
+  })();
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -171,6 +179,40 @@ export function Sidebar({
     setClickedHref(null);
   }, [pathname]);
 
+  // Helper function to extract asset type from href
+  const extractAssetTypeFromHref = (href: string, locale: string): string | null => {
+    const hrefWithoutLocale = href.replace(/^\/[a-z]{2}\//, '/');
+    const assetsPattern = new RegExp(`^/assets/(vehicles|properties|persons|projects|trips|customs)$`);
+    const match = hrefWithoutLocale.match(assetsPattern);
+
+    if (match) {
+      const pluralType = match[1];
+      // Reverse mapping from plural to singular
+      const typeMap: Record<string, string> = {
+        vehicles: 'vehicle',
+        properties: 'property',
+        persons: 'person',
+        projects: 'project',
+        trips: 'trip',
+        customs: 'custom',
+      };
+      return typeMap[pluralType] || null;
+    }
+
+    return null;
+  };
+
+  // Helper function to check if item is parent Assets item
+  const isAssetsParentItem = (href: string, locale: string): boolean => {
+    const hrefWithoutLocale = href.replace(/^\/[a-z]{2}\//, '/');
+    return hrefWithoutLocale === '/assets';
+  };
+
+  // Helper function to check if item is an asset subitem
+  const isAssetSubItem = (href: string, locale: string): boolean => {
+    return extractAssetTypeFromHref(href, locale) !== null;
+  };
+
   const drawerContent = (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Logo - Hidden on mobile */}
@@ -190,13 +232,22 @@ export function Sidebar({
           const hasChildren = children.length > 0;
           const hasActiveChild = children.some(child => isActive(child.href));
 
+          const isAssetsParent = isAssetsParentItem(parent.href, locale);
+          const isHovered = hoveredHref === parent.href;
+
           return (
             <Box key={parent.href}>
               <ListItem disablePadding sx={{ mb: 0.5 }}>
                 <ListItemButton
                   component={Link}
                   href={parent.href}
-                  onMouseEnter={playHoverSound}
+                  onMouseEnter={(e) => {
+                    playHoverSound();
+                    setHoveredHref(parent.href);
+                  }}
+                  onMouseLeave={() => {
+                    setHoveredHref(null);
+                  }}
                   onClick={() => {
                     setClickedHref(parent.href);
                     toggleExpanded(parent.href);
@@ -208,6 +259,8 @@ export function Sidebar({
                     'pl': 2,
                     'pr': hasChildren ? 0.5 : 2,
                     'py': 0.5,
+                    'minHeight': 40,
+                    'height': 40,
                     'boxShadow': active ? theme.shadows[8] : 'none',
                     'transition': 'boxShadow 0.3s ease-in-out, background-color 0.3s ease-in-out',
                     '&:hover': {
@@ -236,25 +289,59 @@ export function Sidebar({
                       fontWeight: 500,
                     }}
                   />
-                  {hasChildren && (
-                    <IconButton
-                      size="small"
-                      onMouseEnter={playHoverSound}
-                      sx={{
-                        'color': theme.palette.sidebar.textSecondary,
-                        'p': 0.5,
-                        'mr': 0.5,
-                        'transition': 'transform 0.2s, color 0.2s',
-                        'transform': isExpanded || hasActiveChild ? 'rotate(90deg)' : 'rotate(0deg)',
-                        '&:hover': {
-                          color: theme.palette.sidebar.textPrimary,
-                          bgcolor: theme.palette.mode === 'dark' ? theme.palette.action.hover : 'rgba(255, 255, 255, 0.08)',
-                        },
-                      }}
-                    >
-                      <ChevronRight sx={{ fontSize: 20 }} />
-                    </IconButton>
-                  )}
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    {isAssetsParent && (
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          lineHeight: 0,
+                          height: 'fit-content',
+                          opacity: isHovered ? 1 : 0,
+                          transition: 'opacity 0.3s ease',
+                        }}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                        }}
+                      >
+                        <NewAssetButton
+                          locale={locale}
+                          iconButtonSx={{
+                            'color': theme.palette.sidebar.textSecondary,
+                            'bgcolor': 'transparent',
+                            'borderRadius': '50%',
+                            '& > svg': {
+                              color: theme.palette.sidebar.textSecondary,
+                            },
+                            '&:hover': {
+                              color: theme.palette.sidebar.textPrimary,
+                              bgcolor: theme.palette.mode === 'dark' ? theme.palette.action.hover : 'rgba(255, 255, 255, 0.08)',
+                            },
+                          }}
+                        />
+                      </Box>
+                    )}
+                    {hasChildren && (
+                      <IconButton
+                        size="small"
+                        onMouseEnter={playHoverSound}
+                        sx={{
+                          'color': theme.palette.sidebar.textSecondary,
+                          'p': 0.5,
+                          'mr': 0.5,
+                          'transition': 'transform 0.2s, color 0.2s',
+                          'transform': isExpanded || hasActiveChild ? 'rotate(90deg)' : 'rotate(0deg)',
+                          '&:hover': {
+                            color: theme.palette.sidebar.textPrimary,
+                            bgcolor: theme.palette.mode === 'dark' ? theme.palette.action.hover : 'rgba(255, 255, 255, 0.08)',
+                          },
+                        }}
+                      >
+                        <ChevronRight sx={{ fontSize: 20 }} />
+                      </IconButton>
+                    )}
+                  </Box>
                 </ListItemButton>
               </ListItem>
               {hasChildren && (
@@ -263,12 +350,22 @@ export function Sidebar({
                     {children.map((child) => {
                       const ChildIcon = child.icon;
                       const childActive = isActive(child.href);
+                      const assetType = extractAssetTypeFromHref(child.href, locale);
+                      const isAssetSub = isAssetSubItem(child.href, locale);
+                      const isChildHovered = hoveredHref === child.href;
+
                       return (
                         <ListItem key={child.href} disablePadding sx={{ mb: 0.5 }}>
                           <ListItemButton
                             component={Link}
                             href={child.href}
-                            onMouseEnter={playHoverSound}
+                            onMouseEnter={(e) => {
+                              playHoverSound();
+                              setHoveredHref(child.href);
+                            }}
+                            onMouseLeave={() => {
+                              setHoveredHref(null);
+                            }}
                             onClick={() => {
                               setClickedHref(child.href);
                             }}
@@ -277,7 +374,10 @@ export function Sidebar({
                               'color': childActive ? theme.palette.sidebar.textPrimary : theme.palette.sidebar.textSecondary,
                               'bgcolor': childActive ? (theme.palette.mode === 'dark' ? theme.palette.action.selected : 'rgba(255, 255, 255, 0.12)') : 'transparent',
                               'pl': 4,
+                              'pr': 2,
                               'py': 0.5,
+                              'minHeight': 40,
+                              'height': 40,
                               'boxShadow': childActive ? theme.shadows[8] : 'none',
                               'transition': 'boxShadow 0.3s ease-in-out, background-color 0.3s ease-in-out',
                               '&:hover': {
@@ -306,6 +406,40 @@ export function Sidebar({
                                 fontWeight: 500,
                               }}
                             />
+                            {isAssetSub && assetType && (
+                              <Box
+                                sx={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  lineHeight: 0,
+                                  height: 'fit-content',
+                                  opacity: isChildHovered ? 1 : 0,
+                                  transition: 'opacity 0.3s ease',
+                                  ml: 'auto',
+                                }}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                }}
+                              >
+                                <NewAssetButton
+                                  locale={locale}
+                                  preSelectedType={assetType}
+                                  iconButtonSx={{
+                                    'color': theme.palette.sidebar.textSecondary,
+                                    'bgcolor': 'transparent',
+                                    'borderRadius': '50%',
+                                    '& > svg': {
+                                      color: theme.palette.sidebar.textSecondary,
+                                    },
+                                    '&:hover': {
+                                      color: theme.palette.sidebar.textPrimary,
+                                      bgcolor: theme.palette.mode === 'dark' ? theme.palette.action.hover : 'rgba(255, 255, 255, 0.08)',
+                                    },
+                                  }}
+                                />
+                              </Box>
+                            )}
                           </ListItemButton>
                         </ListItem>
                       );
