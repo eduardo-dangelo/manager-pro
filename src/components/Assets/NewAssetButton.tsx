@@ -26,7 +26,7 @@ import {
 } from '@mui/material';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 // Helper function to pluralize asset types for routes
 const pluralizeType = (type: string): string => {
@@ -70,6 +70,8 @@ export function NewAssetButton({
   const t = useTranslations('Assets');
   const [assetMenuAnchorEl, setAssetMenuAnchorEl] = useState<null | HTMLElement>(null);
   const assetMenuOpen = Boolean(assetMenuAnchorEl);
+  const [isRecentlyCreated, setIsRecentlyCreated] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Generate tooltip title based on preSelectedType
   const getTooltipTitle = (): string => {
@@ -142,12 +144,35 @@ export function NewAssetButton({
         onAssetCreated(data.asset.id);
       }
 
+      // Only hide button for subitems (when preSelectedType is provided)
+      if (preSelectedType) {
+        setIsRecentlyCreated(true);
+        // Clear any existing timeout
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
+        // Set timeout to reset state after 10 seconds
+        timeoutRef.current = setTimeout(() => {
+          setIsRecentlyCreated(false);
+          timeoutRef.current = null;
+        }, 5000);
+      }
+
       router.push(`/${locale}/assets/${pluralizeType(data.asset.type)}/${data.asset.id}`);
       router.refresh();
     } catch (error) {
       console.error('Error creating asset:', error);
     }
   };
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleButtonClick = (event: React.MouseEvent<HTMLElement>) => {
     if (preSelectedType) {
@@ -158,6 +183,11 @@ export function NewAssetButton({
       handleAssetMenuClick(event);
     }
   };
+
+  // Hide button for subitems if recently created
+  if (preSelectedType && isRecentlyCreated) {
+    return null;
+  }
 
   return (
     <>
