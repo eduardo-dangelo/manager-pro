@@ -3,7 +3,7 @@
 import {
   ContentCopy as ContentCopyIcon,
   Edit as EditIcon,
-  NoteAltOutlined as NoteAltOutlinedIcon,
+  Search as SearchIcon,
 } from '@mui/icons-material';
 import {
   Box,
@@ -55,6 +55,7 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
   const [hasLookedUp, setHasLookedUp] = useState(false);
   const [lookupError, setLookupError] = useState<string | null>(null);
   const [registrationInput, setRegistrationInput] = useState('');
+  const [registrationError, setRegistrationError] = useState<string | null>(null);
   const [lookedUpSpecs, setLookedUpSpecs] = useState(() => {
     const metadata = asset.metadata || {};
     return {
@@ -96,9 +97,49 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
     };
   });
 
+  // UK registration format: AB12 CDE (2 letters, 2 numbers, space, 3 letters)
+  const UK_REGISTRATION_REGEX = /^[A-Z]{2}\d{2} [A-Z]{3}$/;
+
+  const formatRegistration = (value: string): string => {
+    // Remove all spaces and non-alphanumeric characters, convert to uppercase
+    const cleaned = value.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+
+    // Auto-insert space after 4th character
+    if (cleaned.length > 4) {
+      return `${cleaned.slice(0, 4)} ${cleaned.slice(4, 7)}`;
+    }
+    return cleaned;
+  };
+
+  const validateRegistration = (value: string): boolean => {
+    if (!value.trim()) {
+      return true; // Empty is valid (will be checked on submit)
+    }
+    return UK_REGISTRATION_REGEX.test(value);
+  };
+
+  const handleRegistrationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const inputValue = e.target.value;
+    const formatted = formatRegistration(inputValue);
+    setRegistrationInput(formatted);
+    setLookupError(null);
+
+    // Validate the formatted value
+    if (formatted.trim() && !validateRegistration(formatted)) {
+      setRegistrationError(t('vehicle_registration_invalid'));
+    } else {
+      setRegistrationError(null);
+    }
+  };
+
   const handleLookup = async () => {
     if (!registrationInput.trim()) {
       setLookupError('Please enter a registration number');
+      return;
+    }
+
+    if (!validateRegistration(registrationInput)) {
+      setRegistrationError(t('vehicle_registration_invalid'));
       return;
     }
 
@@ -171,6 +212,7 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
     setRegistrationInput('');
     setHasLookedUp(false);
     setLookupError(null);
+    setRegistrationError(null);
     setIsModalOpen(false);
   };
 
@@ -197,6 +239,7 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
       setRegistrationInput('');
       setHasLookedUp(false);
       setLookupError(null);
+      setRegistrationError(null);
       setIsModalOpen(false);
     } catch (error) {
       console.error('Error updating vehicle specs:', error);
@@ -297,7 +340,7 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
               }}
               onClick={() => setIsModalOpen(true)}
             >
-              <NoteAltOutlinedIcon sx={{ fontSize: 24, color: 'text.secondary' }} />
+              <SearchIcon sx={{ fontSize: 24, color: 'text.secondary' }} />
               <Typography sx={{ color: 'text.secondary' }}>
                 {t('add_vehicle_specs_invitation')}
               </Typography>
@@ -517,20 +560,22 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
             ? (
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
                   <Box>
-                    <ButtonGroup fullWidth variant="outlined" sx={{ display: 'flex' }}>
+                    <ButtonGroup variant="outlined" sx={{ display: 'flex' }}>
                       <TextField
-                        fullWidth
+                        // fullWidth
                         size="small"
                         label={t('vehicle_registration')}
                         value={registrationInput}
-                        onChange={(e) => {
-                          const upperValue = e.target.value.toUpperCase();
-                          setRegistrationInput(upperValue);
-                          setLookupError(null);
-                        }}
+                        onChange={handleRegistrationChange}
+                        error={!!registrationError}
+                        helperText={registrationError || ''}
                         sx={{
                           '& .MuiInputBase-input': {
                             textTransform: 'uppercase',
+                          },
+                          '& .MuiOutlinedInput-root': {
+                            borderTopRightRadius: 0,
+                            borderBottomRightRadius: 0,
                           },
                         }}
                         onKeyDown={(e) => {
@@ -541,13 +586,20 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
                       />
                       <Button
                         onClick={handleLookup}
-                        disabled={isLookingUp || !registrationInput.trim()}
+                        disabled={isLookingUp || !registrationInput.trim() || !!registrationError}
                         variant="contained"
-                        sx={{ minWidth: 100 }}
+                        sx={{ minWidth: 280, px: 2 }}
                       >
                         Lookup
                       </Button>
                     </ButtonGroup>
+                    <Button
+                      variant="text"
+                      size="small"
+                      sx={{ mt: 1, textTransform: 'none' }}
+                    >
+                      enter details manually
+                    </Button>
                     {isLookingUp && (
                       <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
                         <CircularProgress size={24} />
