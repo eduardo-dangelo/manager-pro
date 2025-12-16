@@ -56,6 +56,8 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
   const [lookupError, setLookupError] = useState<string | null>(null);
   const [registrationInput, setRegistrationInput] = useState('');
   const [registrationError, setRegistrationError] = useState<string | null>(null);
+  const [dvlaData, setDvlaData] = useState<any | null>(asset.metadata?.dvla ?? null);
+  const [motData, setMotData] = useState<any | null>(asset.metadata?.mot ?? null);
   const [lookedUpSpecs, setLookedUpSpecs] = useState(() => {
     const metadata = asset.metadata || {};
     return {
@@ -179,6 +181,8 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
           cost: data.vehicle.cost || '',
         });
         setHasLookedUp(true);
+        setDvlaData(data.dvla ?? null);
+        setMotData(data.mot ?? null);
       } else {
         throw new Error('No vehicle data found');
       }
@@ -210,6 +214,8 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
       cost: metadata.specs?.cost || '',
     });
     setRegistrationInput('');
+    setDvlaData(asset.metadata?.dvla ?? null);
+    setMotData(asset.metadata?.mot ?? null);
     setHasLookedUp(false);
     setLookupError(null);
     setRegistrationError(null);
@@ -222,20 +228,31 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
       const updatedMetadata = {
         ...metadata,
         specs: hasLookedUp ? lookedUpSpecs : editedSpecs,
+        dvla: hasLookedUp ? dvlaData : metadata.dvla,
+        mot: hasLookedUp ? motData : metadata.mot,
       };
+
+      const registrationToPersist
+        = (hasLookedUp ? lookedUpSpecs.registration : editedSpecs.registration)
+          || metadata.specs?.registration
+          || '';
 
       const response = await fetch(`/${locale}/api/assets/${asset.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ metadata: updatedMetadata }),
+        body: JSON.stringify(
+          registrationToPersist
+            ? { metadata: updatedMetadata, registrationNumber: registrationToPersist }
+            : { metadata: updatedMetadata },
+        ),
       });
 
       if (!response.ok) {
         throw new Error('Failed to update asset');
       }
 
-      await response.json();
-      onUpdateAsset({ ...asset, metadata: updatedMetadata });
+      const updated = await response.json();
+      onUpdateAsset({ ...asset, ...(updated.asset || {}), metadata: updatedMetadata });
       setRegistrationInput('');
       setHasLookedUp(false);
       setLookupError(null);

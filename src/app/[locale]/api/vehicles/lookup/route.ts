@@ -1,6 +1,7 @@
 import { currentUser } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { logger } from '@/libs/Logger';
+import { fetchDvlaVehicle, fetchMotHistory } from '@/services/vehicleLookupService';
 
 export const POST = async (request: Request) => {
   try {
@@ -82,65 +83,69 @@ export const POST = async (request: Request) => {
 
     // TODO: Replace this mock section with actual UK vehicle lookup API integration
     // Example APIs: VehicleSmart, DVLA, CarCheck
-    
-    console.log('=== Vehicle Lookup Request ===');
-    console.log('Registration:', normalizedRegistration);
-    console.log('User ID:', user.id);
 
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    // Mock API response - This simulates what a real API would return
-    // When integrating a real API, replace this section with the actual API call
-    const mockApiResponse = {
+    console.warn('=== Vehicle Lookup Request ===', {
       registration: normalizedRegistration,
-      make: 'BMW',
-      model: '320d',
-      year: '2018',
-      color: 'Black',
-      fuel: 'Diesel',
-      vin: 'WBA8A9C58JG123456',
-      engineSize: '2.0L',
-      transmission: 'Automatic',
-      mileage: '45000',
-      seats: '5',
-      weight: '1520',
-      driveTrain: 'Rear Wheel Drive',
-      engineNumber: 'N47D20C',
-      description: 'BMW 320d Saloon, 2.0L Diesel, Automatic',
+      userId: user.id,
+    });
+
+    // Call DVLA and MOT history APIs in parallel
+    const [dvlaResult, motResult] = await Promise.allSettled([
+      fetchDvlaVehicle(normalizedRegistration),
+      fetchMotHistory(normalizedRegistration),
+    ]);
+
+    const dvlaData = dvlaResult.status === 'fulfilled' ? dvlaResult.value : null;
+    const motData = motResult.status === 'fulfilled' ? motResult.value : null;
+
+    if (dvlaResult.status === 'rejected') {
+      console.error('DVLA lookup failed:', dvlaResult.reason);
+    }
+    if (motResult.status === 'rejected') {
+      console.error('MOT history lookup failed:', motResult.reason);
+    }
+
+    console.warn('=== DVLA API Response ===', dvlaData);
+
+    console.warn('=== MOT History API Response ===', motData);
+
+    // Map DVLA (and optionally MOT) data into the vehicle data structure used by the UI
+    const vehicleData = {
+      registration: (dvlaData as any)?.registrationNumber || normalizedRegistration,
+      make: (dvlaData as any)?.make || '',
+      model: (dvlaData as any)?.model || '',
+      year:
+        (dvlaData as any)?.yearOfManufacture?.toString()
+        || (dvlaData as any)?.monthOfFirstRegistration
+        || '',
+      color: (dvlaData as any)?.colour || '',
+      fuel: (dvlaData as any)?.fuelType || '',
+      vin: (dvlaData as any)?.vin || '',
+      engineSize:
+        typeof (dvlaData as any)?.engineCapacity === 'number'
+          ? (dvlaData as any).engineCapacity.toString()
+          : (dvlaData as any)?.engineCapacity || '',
+      transmission: '',
+      mileage: '',
+      seats: '',
+      weight:
+        typeof (dvlaData as any)?.revenueWeight === 'number'
+          ? (dvlaData as any).revenueWeight.toString()
+          : (dvlaData as any)?.revenueWeight || '',
+      driveTrain: (dvlaData as any)?.wheelplan || '',
+      engineNumber: '',
+      description: '',
       cost: '',
     };
 
-    console.log('=== Mock API Response ===');
-    console.log(JSON.stringify(mockApiResponse, null, 2));
+    console.warn('=== Mapped Vehicle Data ===', vehicleData);
 
-    // Map mock API response to our vehicle data structure
-    // When using a real API, map the actual API response fields here
-    const vehicleData = {
-      registration: mockApiResponse.registration || normalizedRegistration,
-      make: mockApiResponse.make || '',
-      model: mockApiResponse.model || '',
-      year: mockApiResponse.year || '',
-      color: mockApiResponse.color || '',
-      fuel: mockApiResponse.fuel || '',
-      vin: mockApiResponse.vin || '',
-      engineSize: mockApiResponse.engineSize || '',
-      transmission: mockApiResponse.transmission || '',
-      mileage: mockApiResponse.mileage || '',
-      seats: mockApiResponse.seats || '',
-      weight: mockApiResponse.weight || '',
-      driveTrain: mockApiResponse.driveTrain || '',
-      engineNumber: mockApiResponse.engineNumber || '',
-      description: mockApiResponse.description || '',
-      cost: mockApiResponse.cost || '',
+    const response = {
+      vehicle: vehicleData,
+      dvla: dvlaData,
+      mot: motData,
     };
-
-    console.log('=== Mapped Vehicle Data ===');
-    console.log(JSON.stringify(vehicleData, null, 2));
-
-    const response = { vehicle: vehicleData };
-    console.log('=== Final API Response ===');
-    console.log(JSON.stringify(response, null, 2));
+    console.warn('=== Final API Response ===', response);
 
     try {
       logger.info('Vehicle lookup successful', {
@@ -156,7 +161,7 @@ export const POST = async (request: Request) => {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     const errorStack = error instanceof Error ? error.stack : undefined;
-    
+
     console.error('Error looking up vehicle:', errorMessage);
     console.error('Error stack:', errorStack);
     console.error('Full error:', error);
@@ -176,5 +181,3 @@ export const POST = async (request: Request) => {
     );
   }
 };
-
-
