@@ -10,10 +10,43 @@ type DvlaVehicleResponse = {
   yearOfManufacture?: number;
   monthOfFirstRegistration?: string;
   revenueWeight?: number;
+  taxStatus?: string;
+  taxDueDate?: string;
+  sorn?: boolean | string;
+  co2Emissions?: number;
+  dateOfLastV5CIssued?: string;
+  wheelplan?: string;
   [key: string]: unknown;
 };
 
-type MotHistoryResponse = unknown;
+type MotTest = {
+  completedDate?: string;
+  testResult?: string;
+  expiryDate?: string;
+  odometerValue?: number;
+  odometerUnit?: string;
+  odometerResultType?: string;
+  motTestNumber?: string;
+  rfrAndComments?: Array<{
+    text?: string;
+    type?: string;
+    dangerous?: boolean;
+  }>;
+  [key: string]: unknown;
+};
+
+type MotHistoryResponse = {
+  registration?: string;
+  make?: string;
+  model?: string;
+  firstUsedDate?: string;
+  fuelType?: string;
+  primaryColour?: string;
+  motStatus?: string;
+  motExpiryDate?: string;
+  motTests?: MotTest[];
+  [key: string]: unknown;
+};
 
 const DVLA_VES_API_URL
   = Env.DVLA_VES_API_URL

@@ -58,6 +58,15 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
   const [registrationError, setRegistrationError] = useState<string | null>(null);
   const [dvlaData, setDvlaData] = useState<any | null>(asset.metadata?.dvla ?? null);
   const [motData, setMotData] = useState<any | null>(asset.metadata?.mot ?? null);
+  const [previewData, setPreviewData] = useState<{
+    make?: string;
+    model?: string;
+    year?: string;
+    color?: string;
+    taxStatus?: string;
+    motStatus?: string;
+    fuel?: string;
+  } | null>(null);
   const [lookedUpSpecs, setLookedUpSpecs] = useState(() => {
     const metadata = asset.metadata || {};
     return {
@@ -76,6 +85,8 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
       weight: metadata.specs?.weight || '',
       seats: metadata.specs?.seats || '',
       cost: metadata.specs?.cost || '',
+      taxStatus: metadata.specs?.taxStatus || '',
+      motStatus: metadata.specs?.motStatus || '',
     };
   });
   const [editedSpecs, setEditedSpecs] = useState(() => {
@@ -163,6 +174,18 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
       const data = await response.json();
 
       if (data.vehicle) {
+        // Set preview data for the preview card
+        setPreviewData({
+          make: data.vehicle.make || '',
+          model: data.vehicle.model || '',
+          year: data.vehicle.year || '',
+          color: data.vehicle.color || '',
+          taxStatus: data.vehicle.taxStatus || '',
+          motStatus: data.vehicle.motStatus || '',
+          fuel: data.vehicle.fuel || '',
+        });
+
+        // Set full lookup specs
         setLookedUpSpecs({
           registration: data.vehicle.registration || registrationInput.trim().toUpperCase(),
           make: data.vehicle.make || '',
@@ -179,6 +202,8 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
           weight: data.vehicle.weight || '',
           seats: data.vehicle.seats || '',
           cost: data.vehicle.cost || '',
+          taxStatus: data.vehicle.taxStatus || '',
+          motStatus: data.vehicle.motStatus || '',
         });
         setHasLookedUp(true);
         setDvlaData(data.dvla ?? null);
@@ -214,6 +239,7 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
       cost: metadata.specs?.cost || '',
     });
     setRegistrationInput('');
+    setPreviewData(null);
     setDvlaData(asset.metadata?.dvla ?? null);
     setMotData(asset.metadata?.mot ?? null);
     setHasLookedUp(false);
@@ -225,11 +251,50 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
   const handleSave = async () => {
     try {
       const metadata = asset.metadata || {};
+      const maintenance = metadata.maintenance || {};
+
+      // Extract tax expiry date from DVLA data
+      let taxExpires: string | undefined;
+      if (hasLookedUp && dvlaData) {
+        taxExpires = (dvlaData as any)?.taxDueDate || undefined;
+      }
+
+      // Extract MOT expiry date from MOT data
+      let motExpires: string | undefined;
+      if (hasLookedUp && motData) {
+        // Check for direct motExpiryDate field
+        motExpires = (motData as any)?.motExpiryDate || undefined;
+
+        // If not found, check the latest MOT test
+        if (!motExpires && Array.isArray((motData as any)?.motTests) && (motData as any).motTests.length > 0) {
+          const latestTest = (motData as any).motTests[0];
+          motExpires = latestTest.expiryDate || undefined;
+        }
+      }
+
+      // Update maintenance structure with expiry dates
+      const updatedMaintenance = {
+        ...maintenance,
+        ...(taxExpires && {
+          tax: {
+            ...maintenance.tax,
+            expires: taxExpires,
+          },
+        }),
+        ...(motExpires && {
+          mot: {
+            ...maintenance.mot,
+            expires: motExpires,
+          },
+        }),
+      };
+
       const updatedMetadata = {
         ...metadata,
         specs: hasLookedUp ? lookedUpSpecs : editedSpecs,
         dvla: hasLookedUp ? dvlaData : metadata.dvla,
         mot: hasLookedUp ? motData : metadata.mot,
+        maintenance: updatedMaintenance,
       };
 
       const registrationToPersist
@@ -254,6 +319,7 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
       const updated = await response.json();
       onUpdateAsset({ ...asset, ...(updated.asset || {}), metadata: updatedMetadata });
       setRegistrationInput('');
+      setPreviewData(null);
       setHasLookedUp(false);
       setLookupError(null);
       setRegistrationError(null);
@@ -573,237 +639,345 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
       <Dialog open={isModalOpen} onClose={handleCancel} maxWidth="sm" fullWidth>
         <DialogTitle>{t('edit_vehicle_specs')}</DialogTitle>
         <DialogContent>
-          {!hasLookedUp
-            ? (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
-                  <Box>
-                    <ButtonGroup variant="outlined" sx={{ display: 'flex' }}>
-                      <TextField
-                        // fullWidth
-                        size="small"
-                        label={t('vehicle_registration')}
-                        value={registrationInput}
-                        onChange={handleRegistrationChange}
-                        error={!!registrationError}
-                        helperText={registrationError || ''}
-                        sx={{
-                          '& .MuiInputBase-input': {
-                            textTransform: 'uppercase',
-                          },
-                          '& .MuiOutlinedInput-root': {
-                            borderTopRightRadius: 0,
-                            borderBottomRightRadius: 0,
-                          },
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && !isLookingUp) {
-                            handleLookup();
-                          }
-                        }}
-                      />
-                      <Button
-                        onClick={handleLookup}
-                        disabled={isLookingUp || !registrationInput.trim() || !!registrationError}
-                        variant="contained"
-                        sx={{ minWidth: 280, px: 2 }}
-                      >
-                        Lookup
-                      </Button>
-                    </ButtonGroup>
-                    <Button
-                      variant="text"
-                      size="small"
-                      sx={{ mt: 1, textTransform: 'none' }}
-                    >
-                      enter details manually
-                    </Button>
-                    {isLookingUp && (
-                      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-                        <CircularProgress size={24} />
-                      </Box>
-                    )}
-                    {lookupError && (
-                      <Typography variant="caption" sx={{ color: 'error.main', mt: 1, display: 'block' }}>
-                        {lookupError}
-                      </Typography>
-                    )}
-                  </Box>
-                </Box>
-              )
-            : (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
-                  {lookedUpSpecs.registration && (
-                    <Box sx={{ mb: 1.5 }}>
-                      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-                        {t('vehicle_registration')}
-                      </Typography>
-                      <Typography variant="body1" sx={{ color: '#4caf50' }}>
-                        {lookedUpSpecs.registration}
-                      </Typography>
-                    </Box>
-                  )}
-
-                  {lookedUpSpecs.make && (
-                    <Box sx={{ mb: 1.5 }}>
-                      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-                        {t('vehicle_make')}
-                      </Typography>
-                      <Typography variant="body1" sx={{ color: '#4caf50' }}>
-                        {lookedUpSpecs.make}
-                      </Typography>
-                    </Box>
-                  )}
-
-                  {lookedUpSpecs.model && (
-                    <Box sx={{ mb: 1.5 }}>
-                      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-                        {t('vehicle_model')}
-                      </Typography>
-                      <Typography variant="body1" sx={{ color: '#4caf50' }}>
-                        {lookedUpSpecs.model}
-                      </Typography>
-                    </Box>
-                  )}
-
-                  {lookedUpSpecs.year && (
-                    <Box sx={{ mb: 1.5 }}>
-                      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-                        {t('vehicle_year')}
-                      </Typography>
-                      <Typography variant="body1" sx={{ color: '#4caf50' }}>
-                        {lookedUpSpecs.year}
-                      </Typography>
-                    </Box>
-                  )}
-
-                  {lookedUpSpecs.color && (
-                    <Box sx={{ mb: 1.5 }}>
-                      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-                        {t('vehicle_color')}
-                      </Typography>
-                      <Typography variant="body1" sx={{ color: '#4caf50' }}>
-                        {lookedUpSpecs.color}
-                      </Typography>
-                    </Box>
-                  )}
-
-                  {lookedUpSpecs.fuel && (
-                    <Box sx={{ mb: 1.5 }}>
-                      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-                        {t('vehicle_fuel')}
-                      </Typography>
-                      <Typography variant="body1" sx={{ color: '#4caf50' }}>
-                        {lookedUpSpecs.fuel}
-                      </Typography>
-                    </Box>
-                  )}
-
-                  {lookedUpSpecs.engineNumber && (
-                    <Box sx={{ mb: 1.5 }}>
-                      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-                        {t('vehicle_engine_number')}
-                      </Typography>
-                      <Typography variant="body1" sx={{ color: '#4caf50' }}>
-                        {lookedUpSpecs.engineNumber}
-                      </Typography>
-                    </Box>
-                  )}
-
-                  {lookedUpSpecs.driveTrain && (
-                    <Box sx={{ mb: 1.5 }}>
-                      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-                        {t('vehicle_drive_train')}
-                      </Typography>
-                      <Typography variant="body1" sx={{ color: '#4caf50' }}>
-                        {lookedUpSpecs.driveTrain}
-                      </Typography>
-                    </Box>
-                  )}
-
-                  {lookedUpSpecs.transmission && (
-                    <Box sx={{ mb: 1.5 }}>
-                      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-                        {t('vehicle_transmission')}
-                      </Typography>
-                      <Typography variant="body1" sx={{ color: '#4caf50' }}>
-                        {lookedUpSpecs.transmission}
-                      </Typography>
-                    </Box>
-                  )}
-
-                  {lookedUpSpecs.weight && (
-                    <Box sx={{ mb: 1.5 }}>
-                      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-                        {t('vehicle_weight')}
-                      </Typography>
-                      <Typography variant="body1" sx={{ color: '#4caf50' }}>
-                        {lookedUpSpecs.weight}
-                        {' '}
-                        {t('kg')}
-                      </Typography>
-                    </Box>
-                  )}
-
-                  {lookedUpSpecs.seats && (
-                    <Box sx={{ mb: 1.5 }}>
-                      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-                        {t('vehicle_seats')}
-                      </Typography>
-                      <Typography variant="body1" sx={{ color: '#4caf50' }}>
-                        {lookedUpSpecs.seats}
-                      </Typography>
-                    </Box>
-                  )}
-
-                  {lookedUpSpecs.mileage && (
-                    <Box sx={{ mb: 1.5 }}>
-                      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-                        {t('vehicle_mileage')}
-                      </Typography>
-                      <Typography variant="body1" sx={{ color: '#4caf50' }}>
-                        {typeof lookedUpSpecs.mileage === 'number'
-                          ? lookedUpSpecs.mileage.toLocaleString()
-                          : lookedUpSpecs.mileage}
-                        {' '}
-                        {t('miles')}
-                      </Typography>
-                    </Box>
-                  )}
-
-                  {lookedUpSpecs.vin && (
-                    <Box sx={{ mb: 1.5 }}>
-                      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-                        {t('vehicle_vin')}
-                      </Typography>
-                      <Typography variant="body1" sx={{ color: '#4caf50' }}>
-                        {lookedUpSpecs.vin}
-                      </Typography>
-                    </Box>
-                  )}
-
-                  {lookedUpSpecs.engineSize && (
-                    <Box sx={{ mb: 1.5 }}>
-                      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-                        {t('vehicle_engine_size')}
-                      </Typography>
-                      <Typography variant="body1" sx={{ color: '#4caf50' }}>
-                        {lookedUpSpecs.engineSize}
-                      </Typography>
-                    </Box>
-                  )}
-
-                  {lookedUpSpecs.cost && (
-                    <Box sx={{ mb: 1.5 }}>
-                      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-                        {t('vehicle_cost')}
-                      </Typography>
-                      <Typography variant="body1" sx={{ color: '#4caf50' }}>
-                        {lookedUpSpecs.cost}
-                      </Typography>
-                    </Box>
-                  )}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
+            {/* Lookup input - always visible */}
+            <Box>
+              <ButtonGroup variant="outlined" sx={{ display: 'flex' }}>
+                <TextField
+                  size="small"
+                  label={t('vehicle_registration')}
+                  value={registrationInput}
+                  onChange={handleRegistrationChange}
+                  error={!!registrationError}
+                  helperText={registrationError || ''}
+                  sx={{
+                    '& .MuiInputBase-input': {
+                      textTransform: 'uppercase',
+                    },
+                    '& .MuiOutlinedInput-root': {
+                      borderTopRightRadius: 0,
+                      borderBottomRightRadius: 0,
+                    },
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !isLookingUp) {
+                      handleLookup();
+                    }
+                  }}
+                />
+                <Button
+                  onClick={handleLookup}
+                  disabled={isLookingUp || !registrationInput.trim() || !!registrationError}
+                  variant="contained"
+                  sx={{ minWidth: 280, px: 2 }}
+                >
+                  Lookup
+                </Button>
+              </ButtonGroup>
+              <Button
+                variant="text"
+                size="small"
+                sx={{ mt: 1, textTransform: 'none' }}
+              >
+                enter details manually
+              </Button>
+              {isLookingUp && (
+                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+                  <CircularProgress size={24} />
                 </Box>
               )}
+              {lookupError && (
+                <Typography variant="caption" sx={{ color: 'error.main', mt: 1, display: 'block' }}>
+                  {lookupError}
+                </Typography>
+              )}
+            </Box>
+
+            {/* Preview card - shown when lookup is successful */}
+            {previewData && (
+              <Card sx={{ mt: 2, p: 2.5 }}>
+                <Typography
+                  variant="subtitle1"
+                  sx={{
+                    fontWeight: 500,
+                    color: 'text.primary',
+                    mb: 2,
+                  }}
+                >
+                  {t('vehicle_specs_title')}
+                </Typography>
+                <Grid container spacing={0}>
+                  {previewData.make && (
+                    <Grid item sx={{ width: { xs: '100%', md: '50%' } }}>
+                      <Box sx={{ display: 'flex', gap: 1, alignItems: 'baseline', mb: 0.5 }}>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', minWidth: 130, flexShrink: 0 }}>
+                          {t('vehicle_make')}
+                          :
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#4caf50', fontWeight: 500 }}>
+                          {previewData.make}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                  )}
+                  {previewData.model && (
+                    <Grid item sx={{ width: { xs: '100%', md: '50%' } }}>
+                      <Box sx={{ display: 'flex', gap: 1, alignItems: 'baseline', mb: 0.5 }}>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', minWidth: 130, flexShrink: 0 }}>
+                          {t('vehicle_model')}
+                          :
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#4caf50', fontWeight: 500 }}>
+                          {previewData.model}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                  )}
+                  {previewData.year && (
+                    <Grid item sx={{ width: { xs: '100%', md: '50%' } }}>
+                      <Box sx={{ display: 'flex', gap: 1, alignItems: 'baseline', mb: 0.5 }}>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', minWidth: 130, flexShrink: 0 }}>
+                          {t('vehicle_year')}
+                          :
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#4caf50', fontWeight: 500 }}>
+                          {previewData.year}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                  )}
+                  {previewData.color && (
+                    <Grid item sx={{ width: { xs: '100%', md: '50%' } }}>
+                      <Box sx={{ display: 'flex', gap: 1, alignItems: 'baseline', mb: 0.5 }}>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', minWidth: 130, flexShrink: 0 }}>
+                          {t('vehicle_color')}
+                          :
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#4caf50', fontWeight: 500 }}>
+                          {previewData.color}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                  )}
+                  {previewData.taxStatus && (
+                    <Grid item sx={{ width: { xs: '100%', md: '50%' } }}>
+                      <Box sx={{ display: 'flex', gap: 1, alignItems: 'baseline', mb: 0.5 }}>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', minWidth: 130, flexShrink: 0 }}>
+                          {t('vehicle_tax_status')}
+                          :
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#4caf50', fontWeight: 500 }}>
+                          {previewData.taxStatus}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                  )}
+                  {previewData.motStatus && (
+                    <Grid item sx={{ width: { xs: '100%', md: '50%' } }}>
+                      <Box sx={{ display: 'flex', gap: 1, alignItems: 'baseline', mb: 0.5 }}>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', minWidth: 130, flexShrink: 0 }}>
+                          {t('vehicle_mot_status')}
+                          :
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#4caf50', fontWeight: 500 }}>
+                          {previewData.motStatus}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                  )}
+                  {previewData.fuel && (
+                    <Grid item sx={{ width: { xs: '100%', md: '50%' } }}>
+                      <Box sx={{ display: 'flex', gap: 1, alignItems: 'baseline', mb: 0.5 }}>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', minWidth: 130, flexShrink: 0 }}>
+                          {t('vehicle_fuel')}
+                          :
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#4caf50', fontWeight: 500 }}>
+                          {previewData.fuel}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                  )}
+                </Grid>
+              </Card>
+            )}
+
+            {/* Full details view - shown when hasLookedUp is true (for backward compatibility) */}
+            {hasLookedUp && !previewData && (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
+                {lookedUpSpecs.registration && (
+                  <Box sx={{ mb: 1.5 }}>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+                      {t('vehicle_registration')}
+                    </Typography>
+                    <Typography variant="body1" sx={{ color: '#4caf50' }}>
+                      {lookedUpSpecs.registration}
+                    </Typography>
+                  </Box>
+                )}
+
+                {lookedUpSpecs.make && (
+                  <Box sx={{ mb: 1.5 }}>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+                      {t('vehicle_make')}
+                    </Typography>
+                    <Typography variant="body1" sx={{ color: '#4caf50' }}>
+                      {lookedUpSpecs.make}
+                    </Typography>
+                  </Box>
+                )}
+
+                {lookedUpSpecs.model && (
+                  <Box sx={{ mb: 1.5 }}>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+                      {t('vehicle_model')}
+                    </Typography>
+                    <Typography variant="body1" sx={{ color: '#4caf50' }}>
+                      {lookedUpSpecs.model}
+                    </Typography>
+                  </Box>
+                )}
+
+                {lookedUpSpecs.year && (
+                  <Box sx={{ mb: 1.5 }}>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+                      {t('vehicle_year')}
+                    </Typography>
+                    <Typography variant="body1" sx={{ color: '#4caf50' }}>
+                      {lookedUpSpecs.year}
+                    </Typography>
+                  </Box>
+                )}
+
+                {lookedUpSpecs.color && (
+                  <Box sx={{ mb: 1.5 }}>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+                      {t('vehicle_color')}
+                    </Typography>
+                    <Typography variant="body1" sx={{ color: '#4caf50' }}>
+                      {lookedUpSpecs.color}
+                    </Typography>
+                  </Box>
+                )}
+
+                {lookedUpSpecs.fuel && (
+                  <Box sx={{ mb: 1.5 }}>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+                      {t('vehicle_fuel')}
+                    </Typography>
+                    <Typography variant="body1" sx={{ color: '#4caf50' }}>
+                      {lookedUpSpecs.fuel}
+                    </Typography>
+                  </Box>
+                )}
+
+                {lookedUpSpecs.engineNumber && (
+                  <Box sx={{ mb: 1.5 }}>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+                      {t('vehicle_engine_number')}
+                    </Typography>
+                    <Typography variant="body1" sx={{ color: '#4caf50' }}>
+                      {lookedUpSpecs.engineNumber}
+                    </Typography>
+                  </Box>
+                )}
+
+                {lookedUpSpecs.driveTrain && (
+                  <Box sx={{ mb: 1.5 }}>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+                      {t('vehicle_drive_train')}
+                    </Typography>
+                    <Typography variant="body1" sx={{ color: '#4caf50' }}>
+                      {lookedUpSpecs.driveTrain}
+                    </Typography>
+                  </Box>
+                )}
+
+                {lookedUpSpecs.transmission && (
+                  <Box sx={{ mb: 1.5 }}>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+                      {t('vehicle_transmission')}
+                    </Typography>
+                    <Typography variant="body1" sx={{ color: '#4caf50' }}>
+                      {lookedUpSpecs.transmission}
+                    </Typography>
+                  </Box>
+                )}
+
+                {lookedUpSpecs.weight && (
+                  <Box sx={{ mb: 1.5 }}>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+                      {t('vehicle_weight')}
+                    </Typography>
+                    <Typography variant="body1" sx={{ color: '#4caf50' }}>
+                      {lookedUpSpecs.weight}
+                      {' '}
+                      {t('kg')}
+                    </Typography>
+                  </Box>
+                )}
+
+                {lookedUpSpecs.seats && (
+                  <Box sx={{ mb: 1.5 }}>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+                      {t('vehicle_seats')}
+                    </Typography>
+                    <Typography variant="body1" sx={{ color: '#4caf50' }}>
+                      {lookedUpSpecs.seats}
+                    </Typography>
+                  </Box>
+                )}
+
+                {lookedUpSpecs.mileage && (
+                  <Box sx={{ mb: 1.5 }}>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+                      {t('vehicle_mileage')}
+                    </Typography>
+                    <Typography variant="body1" sx={{ color: '#4caf50' }}>
+                      {typeof lookedUpSpecs.mileage === 'number'
+                        ? lookedUpSpecs.mileage.toLocaleString()
+                        : lookedUpSpecs.mileage}
+                      {' '}
+                      {t('miles')}
+                    </Typography>
+                  </Box>
+                )}
+
+                {lookedUpSpecs.vin && (
+                  <Box sx={{ mb: 1.5 }}>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+                      {t('vehicle_vin')}
+                    </Typography>
+                    <Typography variant="body1" sx={{ color: '#4caf50' }}>
+                      {lookedUpSpecs.vin}
+                    </Typography>
+                  </Box>
+                )}
+
+                {lookedUpSpecs.engineSize && (
+                  <Box sx={{ mb: 1.5 }}>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+                      {t('vehicle_engine_size')}
+                    </Typography>
+                    <Typography variant="body1" sx={{ color: '#4caf50' }}>
+                      {lookedUpSpecs.engineSize}
+                    </Typography>
+                  </Box>
+                )}
+
+                {lookedUpSpecs.cost && (
+                  <Box sx={{ mb: 1.5 }}>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+                      {t('vehicle_cost')}
+                    </Typography>
+                    <Typography variant="body1" sx={{ color: '#4caf50' }}>
+                      {lookedUpSpecs.cost}
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+            )}
+          </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCancel}>{t('cancel')}</Button>

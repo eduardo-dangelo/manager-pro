@@ -269,6 +269,8 @@
     "vehicle_weight": "Poids",
     "vehicle_seats": "Sièges",
     "vehicle_cost": "Coût",
+    "vehicle_tax_status": "Statut Fiscal",
+    "vehicle_mot_status": "Statut CT",
     "kg": "kg"
   }
 }

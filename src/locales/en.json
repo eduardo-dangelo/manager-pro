@@ -270,6 +270,8 @@
     "vehicle_weight": "Weight",
     "vehicle_seats": "Seats",
     "vehicle_cost": "Cost",
+    "vehicle_tax_status": "Tax Status",
+    "vehicle_mot_status": "MOT Status",
     "kg": "kg"
   }
 }
