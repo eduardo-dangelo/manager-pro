@@ -16,7 +16,6 @@ import {
   DialogContent,
   DialogTitle,
   Fade,
-  Grid,
   IconButton,
   TextField,
   Typography,
@@ -25,6 +24,7 @@ import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { Card } from '@/components/common/Card';
 import { DropdownButton } from '@/components/common/DropdownButton';
+import { RegistrationPlate } from '@/components/common/RegistrationPlate';
 import { useHoverSound } from '@/hooks/useHoverSound';
 
 type Asset = {
@@ -302,14 +302,23 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
           || metadata.specs?.registration
           || '';
 
+      // Always update the asset name to Make Model on lookup save
+      const newMake = hasLookedUp ? lookedUpSpecs.make : editedSpecs.make;
+      const newModel = hasLookedUp ? lookedUpSpecs.model : editedSpecs.model;
+      const newMakeModel = [newMake, newModel].filter(Boolean).join(' ');
+
+      const updatePayload: Record<string, any> = { metadata: updatedMetadata };
+      if (registrationToPersist) {
+        updatePayload.registrationNumber = registrationToPersist;
+      }
+      if (newMakeModel) {
+        updatePayload.name = newMakeModel;
+      }
+
       const response = await fetch(`/${locale}/api/assets/${asset.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(
-          registrationToPersist
-            ? { metadata: updatedMetadata, registrationNumber: registrationToPersist }
-            : { metadata: updatedMetadata },
-        ),
+        body: JSON.stringify(updatePayload),
       });
 
       if (!response.ok) {
@@ -438,7 +447,6 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   mb: 2,
-                  // border: '1px solid',
                 }}
               >
                 <Typography
@@ -473,9 +481,9 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
                 </Box>
               </Box>
 
-              <Grid container spacing={0}>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap' }}>
                 {visibleItems.map(item => (
-                  <Grid item key={item.key} sx={{ width: { xs: '100%', md: '50%' } }}>
+                  <Box key={item.key} sx={{ width: { xs: '100%', md: '50%' } }}>
                     <Box sx={{ display: 'flex', gap: 1, alignItems: 'baseline', mb: 0.5 }}>
                       <Typography variant="caption" sx={{ color: 'text.secondary', minWidth: 130, flexShrink: 0 }}>
                         {item.label}
@@ -498,7 +506,7 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
                         onMouseLeave={() => setHoveredItem(null)}
                         onClick={() => handleCopy(item.format(item.value), item.key)}
                       >
-                        <Typography variant="body2" sx={{ color: '#4caf50', fontWeight: 500, cursor: 'pointer' }}>
+                        <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 500, cursor: 'pointer' }}>
                           {item.format(item.value)}
                         </Typography>
                         {hoveredItem === item.key && (
@@ -542,16 +550,16 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
                         )}
                       </Box>
                     </Box>
-                  </Grid>
+                  </Box>
                 ))}
-              </Grid>
+              </Box>
 
               {hasHiddenItems && (
                 <>
                   <Collapse in={showMore}>
-                    <Grid container spacing={0} sx={{ mt: 1 }}>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', mt: 1 }}>
                       {hiddenItems.map(item => (
-                        <Grid item key={item.key} sx={{ width: { xs: '100%', md: '50%' } }}>
+                        <Box key={item.key} sx={{ width: { xs: '100%', md: '50%' } }}>
                           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
                             <Typography variant="caption" sx={{ color: 'text.secondary', minWidth: 130, flexShrink: 0 }}>
                               {item.label}
@@ -573,7 +581,7 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
                               onMouseLeave={() => setHoveredItem(null)}
                               onClick={() => handleCopy(item.format(item.value), item.key)}
                             >
-                              <Typography variant="body2" sx={{ color: '#4caf50', fontWeight: 500, cursor: 'pointer' }}>
+                              <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 500, cursor: 'pointer' }}>
                                 {item.format(item.value)}
                               </Typography>
                               {hoveredItem === item.key && (
@@ -617,9 +625,9 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
                               )}
                             </Box>
                           </Box>
-                        </Grid>
+                        </Box>
                       ))}
-                    </Grid>
+                    </Box>
                   </Collapse>
                   <Box sx={{ mt: 1, display: 'flex', justifyContent: 'center' }}>
                     <Button
@@ -696,109 +704,115 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
             {/* Preview card - shown when lookup is successful */}
             {previewData && (
               <Card sx={{ mt: 2, p: 2.5 }}>
-                <Typography
-                  variant="subtitle1"
-                  sx={{
-                    fontWeight: 500,
-                    color: 'text.primary',
-                    mb: 2,
-                  }}
-                >
-                  {t('vehicle_specs_title')}
-                </Typography>
-                <Grid container spacing={0}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+                  {registrationInput && (
+                    <RegistrationPlate registration={registrationInput} size="medium" />
+                  )}
+                  {(previewData.make || previewData.model) && (
+                    <Typography
+                      variant="subtitle1"
+                      sx={{
+                        fontWeight: 500,
+                        color: 'text.primary',
+                      }}
+                    >
+                      {[previewData.make, previewData.model].filter(Boolean).join(' ')}
+                    </Typography>
+                  )}
+                </Box>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap' }}>
                   {previewData.make && (
-                    <Grid item sx={{ width: { xs: '100%', md: '50%' } }}>
+                    <Box sx={{ width: { xs: '100%', md: '50%' } }}>
                       <Box sx={{ display: 'flex', gap: 1, alignItems: 'baseline', mb: 0.5 }}>
                         <Typography variant="caption" sx={{ color: 'text.secondary', minWidth: 130, flexShrink: 0 }}>
                           {t('vehicle_make')}
                           :
                         </Typography>
-                        <Typography variant="body2" sx={{ color: '#4caf50', fontWeight: 500 }}>
+                        <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 500 }}>
                           {previewData.make}
                         </Typography>
                       </Box>
-                    </Grid>
+                    </Box>
                   )}
                   {previewData.model && (
-                    <Grid item sx={{ width: { xs: '100%', md: '50%' } }}>
+                    <Box sx={{ width: { xs: '100%', md: '50%' } }}>
                       <Box sx={{ display: 'flex', gap: 1, alignItems: 'baseline', mb: 0.5 }}>
                         <Typography variant="caption" sx={{ color: 'text.secondary', minWidth: 130, flexShrink: 0 }}>
                           {t('vehicle_model')}
                           :
                         </Typography>
-                        <Typography variant="body2" sx={{ color: '#4caf50', fontWeight: 500 }}>
+                        <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 500 }}>
                           {previewData.model}
                         </Typography>
                       </Box>
-                    </Grid>
+                    </Box>
                   )}
                   {previewData.year && (
-                    <Grid item sx={{ width: { xs: '100%', md: '50%' } }}>
+                    <Box sx={{ width: { xs: '100%', md: '50%' } }}>
                       <Box sx={{ display: 'flex', gap: 1, alignItems: 'baseline', mb: 0.5 }}>
                         <Typography variant="caption" sx={{ color: 'text.secondary', minWidth: 130, flexShrink: 0 }}>
                           {t('vehicle_year')}
                           :
                         </Typography>
-                        <Typography variant="body2" sx={{ color: '#4caf50', fontWeight: 500 }}>
+                        <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 500 }}>
                           {previewData.year}
                         </Typography>
                       </Box>
-                    </Grid>
+                    </Box>
                   )}
                   {previewData.color && (
-                    <Grid item sx={{ width: { xs: '100%', md: '50%' } }}>
+                    <Box sx={{ width: { xs: '100%', md: '50%' } }}>
                       <Box sx={{ display: 'flex', gap: 1, alignItems: 'baseline', mb: 0.5 }}>
                         <Typography variant="caption" sx={{ color: 'text.secondary', minWidth: 130, flexShrink: 0 }}>
                           {t('vehicle_color')}
                           :
                         </Typography>
-                        <Typography variant="body2" sx={{ color: '#4caf50', fontWeight: 500 }}>
+                        <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 500 }}>
                           {previewData.color}
                         </Typography>
                       </Box>
-                    </Grid>
+                    </Box>
                   )}
                   {previewData.taxStatus && (
-                    <Grid item sx={{ width: { xs: '100%', md: '50%' } }}>
+                    <Box sx={{ width: { xs: '100%', md: '50%' } }}>
                       <Box sx={{ display: 'flex', gap: 1, alignItems: 'baseline', mb: 0.5 }}>
                         <Typography variant="caption" sx={{ color: 'text.secondary', minWidth: 130, flexShrink: 0 }}>
                           {t('vehicle_tax_status')}
                           :
                         </Typography>
-                        <Typography variant="body2" sx={{ color: '#4caf50', fontWeight: 500 }}>
+                        <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 500 }}>
                           {previewData.taxStatus}
                         </Typography>
                       </Box>
-                    </Grid>
+                    </Box>
                   )}
                   {previewData.motStatus && (
-                    <Grid item sx={{ width: { xs: '100%', md: '50%' } }}>
+                    <Box sx={{ width: { xs: '100%', md: '50%' } }}>
                       <Box sx={{ display: 'flex', gap: 1, alignItems: 'baseline', mb: 0.5 }}>
                         <Typography variant="caption" sx={{ color: 'text.secondary', minWidth: 130, flexShrink: 0 }}>
                           {t('vehicle_mot_status')}
                           :
                         </Typography>
-                        <Typography variant="body2" sx={{ color: '#4caf50', fontWeight: 500 }}>
+                        <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 500 }}>
                           {previewData.motStatus}
                         </Typography>
                       </Box>
-                    </Grid>
+                    </Box>
                   )}
                   {previewData.fuel && (
-                    <Grid item sx={{ width: { xs: '100%', md: '50%' } }}>
+                    <Box sx={{ width: { xs: '100%', md: '50%' } }}>
                       <Box sx={{ display: 'flex', gap: 1, alignItems: 'baseline', mb: 0.5 }}>
                         <Typography variant="caption" sx={{ color: 'text.secondary', minWidth: 130, flexShrink: 0 }}>
                           {t('vehicle_fuel')}
                           :
                         </Typography>
-                        <Typography variant="body2" sx={{ color: '#4caf50', fontWeight: 500 }}>
+                        <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 500 }}>
                           {previewData.fuel}
                         </Typography>
                       </Box>
-                    </Grid>
+                    </Box>
                   )}
-                </Grid>
+                </Box>
               </Card>
             )}
 
@@ -810,7 +824,7 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
                     <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
                       {t('vehicle_registration')}
                     </Typography>
-                    <Typography variant="body1" sx={{ color: '#4caf50' }}>
+                    <Typography variant="body1" sx={{ color: 'text.primary' }}>
                       {lookedUpSpecs.registration}
                     </Typography>
                   </Box>
@@ -821,7 +835,7 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
                     <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
                       {t('vehicle_make')}
                     </Typography>
-                    <Typography variant="body1" sx={{ color: '#4caf50' }}>
+                    <Typography variant="body1" sx={{ color: 'text.primary' }}>
                       {lookedUpSpecs.make}
                     </Typography>
                   </Box>
@@ -832,7 +846,7 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
                     <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
                       {t('vehicle_model')}
                     </Typography>
-                    <Typography variant="body1" sx={{ color: '#4caf50' }}>
+                    <Typography variant="body1" sx={{ color: 'text.primary' }}>
                       {lookedUpSpecs.model}
                     </Typography>
                   </Box>
@@ -843,7 +857,7 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
                     <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
                       {t('vehicle_year')}
                     </Typography>
-                    <Typography variant="body1" sx={{ color: '#4caf50' }}>
+                    <Typography variant="body1" sx={{ color: 'text.primary' }}>
                       {lookedUpSpecs.year}
                     </Typography>
                   </Box>
@@ -854,7 +868,7 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
                     <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
                       {t('vehicle_color')}
                     </Typography>
-                    <Typography variant="body1" sx={{ color: '#4caf50' }}>
+                    <Typography variant="body1" sx={{ color: 'text.primary' }}>
                       {lookedUpSpecs.color}
                     </Typography>
                   </Box>
@@ -865,7 +879,7 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
                     <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
                       {t('vehicle_fuel')}
                     </Typography>
-                    <Typography variant="body1" sx={{ color: '#4caf50' }}>
+                    <Typography variant="body1" sx={{ color: 'text.primary' }}>
                       {lookedUpSpecs.fuel}
                     </Typography>
                   </Box>
@@ -876,7 +890,7 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
                     <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
                       {t('vehicle_engine_number')}
                     </Typography>
-                    <Typography variant="body1" sx={{ color: '#4caf50' }}>
+                    <Typography variant="body1" sx={{ color: 'text.primary' }}>
                       {lookedUpSpecs.engineNumber}
                     </Typography>
                   </Box>
@@ -887,7 +901,7 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
                     <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
                       {t('vehicle_drive_train')}
                     </Typography>
-                    <Typography variant="body1" sx={{ color: '#4caf50' }}>
+                    <Typography variant="body1" sx={{ color: 'text.primary' }}>
                       {lookedUpSpecs.driveTrain}
                     </Typography>
                   </Box>
@@ -898,7 +912,7 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
                     <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
                       {t('vehicle_transmission')}
                     </Typography>
-                    <Typography variant="body1" sx={{ color: '#4caf50' }}>
+                    <Typography variant="body1" sx={{ color: 'text.primary' }}>
                       {lookedUpSpecs.transmission}
                     </Typography>
                   </Box>
@@ -909,7 +923,7 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
                     <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
                       {t('vehicle_weight')}
                     </Typography>
-                    <Typography variant="body1" sx={{ color: '#4caf50' }}>
+                    <Typography variant="body1" sx={{ color: 'text.primary' }}>
                       {lookedUpSpecs.weight}
                       {' '}
                       {t('kg')}
@@ -922,7 +936,7 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
                     <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
                       {t('vehicle_seats')}
                     </Typography>
-                    <Typography variant="body1" sx={{ color: '#4caf50' }}>
+                    <Typography variant="body1" sx={{ color: 'text.primary' }}>
                       {lookedUpSpecs.seats}
                     </Typography>
                   </Box>
@@ -933,7 +947,7 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
                     <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
                       {t('vehicle_mileage')}
                     </Typography>
-                    <Typography variant="body1" sx={{ color: '#4caf50' }}>
+                    <Typography variant="body1" sx={{ color: 'text.primary' }}>
                       {typeof lookedUpSpecs.mileage === 'number'
                         ? lookedUpSpecs.mileage.toLocaleString()
                         : lookedUpSpecs.mileage}
@@ -948,7 +962,7 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
                     <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
                       {t('vehicle_vin')}
                     </Typography>
-                    <Typography variant="body1" sx={{ color: '#4caf50' }}>
+                    <Typography variant="body1" sx={{ color: 'text.primary' }}>
                       {lookedUpSpecs.vin}
                     </Typography>
                   </Box>
@@ -959,7 +973,7 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
                     <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
                       {t('vehicle_engine_size')}
                     </Typography>
-                    <Typography variant="body1" sx={{ color: '#4caf50' }}>
+                    <Typography variant="body1" sx={{ color: 'text.primary' }}>
                       {lookedUpSpecs.engineSize}
                     </Typography>
                   </Box>
@@ -970,7 +984,7 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
                     <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
                       {t('vehicle_cost')}
                     </Typography>
-                    <Typography variant="body1" sx={{ color: '#4caf50' }}>
+                    <Typography variant="body1" sx={{ color: 'text.primary' }}>
                       {lookedUpSpecs.cost}
                     </Typography>
                   </Box>

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { hasLocale, NextIntlClientProvider } from 'next-intl';
 import { setRequestLocale } from 'next-intl/server';
-import { Nunito } from 'next/font/google';
+import { Nunito, Oswald } from 'next/font/google';
 import { notFound } from 'next/navigation';
 import { PostHogProvider } from '@/components/analytics/PostHogProvider';
 import { ThemeProvider } from '@/components/ThemeProvider';
@@ -13,6 +13,14 @@ const nunito = Nunito({
   subsets: ['latin'],
   weight: ['300', '400', '500', '600', '700', '800'],
   variable: '--font-nunito',
+  display: 'swap',
+});
+
+// Configure Oswald font (for UK-style license plates)
+const oswald = Oswald({
+  subsets: ['latin'],
+  weight: ['700'],
+  variable: '--font-oswald',
   display: 'swap',
 });
 
@@ -59,7 +67,7 @@ export default async function RootLayout(props: {
 
   return (
     <html lang={locale}>
-      <body className={nunito.variable}>
+      <body className={`${nunito.variable} ${oswald.variable}`}>
         <NextIntlClientProvider>
           <PostHogProvider>
             <ThemeProvider>

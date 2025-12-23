@@ -271,6 +271,16 @@
     "vehicle_cost": "Coût",
     "vehicle_tax_status": "Statut Fiscal",
     "vehicle_mot_status": "Statut CT",
-    "kg": "kg"
+    "kg": "kg",
+    "mot_passed": "Réussi",
+    "mot_failed": "Échoué",
+    "mot_expires": "Expire",
+    "mot_failures": "Défaillances",
+    "mot_advisories": "Avertissements",
+    "mot_history": "Historique CT",
+    "view_mot_history": "Voir l'historique CT",
+    "add_details": "Ajouter des détails",
+    "status": "Statut",
+    "tax_your_vehicle": "Taxer votre véhicule"
   }
 }

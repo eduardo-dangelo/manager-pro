@@ -3,6 +3,7 @@
 import { Box, MenuItem, Select, TextField, Typography } from '@mui/material';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
+import { RegistrationPlate } from '@/components/common/RegistrationPlate';
 
 type Asset = {
   id: number;
@@ -18,13 +19,15 @@ type AssetHeaderProps = {
   locale: string;
   onUpdate: (updates: Partial<Asset>) => Promise<void>;
   actions?: React.ReactNode;
+  registration?: string;
 };
 
 export function AssetHeader({
   asset,
-  locale,
+  locale: _locale,
   onUpdate,
   actions,
+  registration,
 }: AssetHeaderProps) {
   const t = useTranslations('Assets');
   const titleRef = useRef<HTMLInputElement>(null);
@@ -56,7 +59,7 @@ export function AssetHeader({
       const typeLabel = t(`type_${localAsset.type}` as any);
       return `New ${typeLabel}`;
     }
-    return t('asset_name');
+    return t('project_name');
   };
 
   return (
@@ -70,29 +73,36 @@ export function AssetHeader({
           mb: 1,
         }}
       >
-        <TextField
-          inputRef={titleRef}
-          value={localAsset.name}
-          onChange={e => setLocalAsset({ ...localAsset, name: e.target.value })}
-          onBlur={() => handleSave({ name: localAsset.name })}
-          onKeyDown={handleTitleKeyDown}
-          placeholder={getPlaceholder()}
-          variant="standard"
-          sx={{
-            'flex': 1,
-            '& .MuiInput-root': {
-              'fontSize': '2.5rem',
-              'fontWeight': 700,
-              'color': 'text.primary',
-              '&:before': { borderBottom: 'none' },
-              '&:after': { borderBottom: 'none' },
-              '&:hover:not(.Mui-disabled):before': { borderBottom: 'none' },
-            },
-            '& input': {
-              padding: '8px 0',
-            },
-          }}
-        />
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+          {registration && (
+            <Box sx={{ mt: 3 }}>
+              <RegistrationPlate registration={registration} size="large" />
+            </Box>
+          )}
+          <TextField
+            inputRef={titleRef}
+            value={localAsset.name}
+            onChange={e => setLocalAsset({ ...localAsset, name: e.target.value })}
+            onBlur={() => handleSave({ name: localAsset.name })}
+            onKeyDown={handleTitleKeyDown}
+            placeholder={getPlaceholder()}
+            variant="standard"
+            sx={{
+              'flex': 1,
+              '& .MuiInput-root': {
+                'fontSize': '2.5rem',
+                'fontWeight': 700,
+                'color': 'text.primary',
+                '&:before': { borderBottom: 'none' },
+                '&:after': { borderBottom: 'none' },
+                '&:hover:not(.Mui-disabled):before': { borderBottom: 'none' },
+              },
+              '& input': {
+                // padding: '8px 0',
+              },
+            }}
+          />
+        </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, pt: 1 }}>
           <Select
             value={localAsset.status}
@@ -168,32 +178,6 @@ export function AssetHeader({
           )}
         </Box>
       </Box>
-      {/* <TextField
-        inputRef={descriptionRef}
-        value={localAsset.description}
-        onChange={e =>
-          setLocalAsset({ ...localAsset, description: e.target.value })}
-        onBlur={() => handleSave({ description: localAsset.description })}
-        placeholder={t('asset_description')}
-        variant="standard"
-        fullWidth
-        multiline
-        rows={2}
-        sx={{
-          '& .MuiInput-root': {
-            'fontSize': '1rem',
-            'color': 'grey.600',
-            '&:before': { borderBottom: 'none' },
-            '&:after': { borderBottom: 'none' },
-            '&:hover:not(.Mui-disabled):before': { borderBottom: 'none' },
-          },
-          '& textarea': {
-            padding: '4px 0',
-          },
-          'mb': 3,
-        }}
-      /> */}
     </>
   );
 }
-

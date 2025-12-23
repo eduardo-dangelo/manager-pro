@@ -16,6 +16,12 @@ type Asset = {
   type: string;
   createdAt: Date;
   updatedAt: Date;
+  registrationNumber?: string | null;
+  metadata?: {
+    specs?: {
+      registration?: string;
+    };
+  } | null;
 };
 
 type ViewMode = 'folder' | 'list' | 'columns';

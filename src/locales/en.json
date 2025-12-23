@@ -272,6 +272,16 @@
     "vehicle_cost": "Cost",
     "vehicle_tax_status": "Tax Status",
     "vehicle_mot_status": "MOT Status",
-    "kg": "kg"
+    "kg": "kg",
+    "mot_passed": "Passed",
+    "mot_failed": "Failed",
+    "mot_expires": "Expires",
+    "mot_failures": "Failures",
+    "mot_advisories": "Advisories",
+    "mot_history": "MOT History",
+    "view_mot_history": "View MOT History",
+    "add_details": "Add Details",
+    "status": "Status",
+    "tax_your_vehicle": "Tax your vehicle"
   }
 }

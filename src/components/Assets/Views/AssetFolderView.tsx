@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import Link from 'next/link';
 import { TransitionGroup } from 'react-transition-group';
 import { AssetActions } from '@/components/Assets/AssetActions';
+import { RegistrationPlate } from '@/components/common/RegistrationPlate';
 import { useHoverSound } from '@/hooks/useHoverSound';
 
 type Asset = {
@@ -16,6 +17,12 @@ type Asset = {
   type: string;
   createdAt: Date;
   updatedAt: Date;
+  registrationNumber?: string | null;
+  metadata?: {
+    specs?: {
+      registration?: string;
+    };
+  } | null;
 };
 
 type CardSize = 'small' | 'medium' | 'large';
@@ -49,7 +56,7 @@ const pluralizeType = (type: string): string => {
 
 export function AssetFolderView({ assets, locale, cardSize, onAssetDeleted }: AssetFolderViewProps) {
   // Get grid column sizes based on card size
-  const getGridSizes = () => {
+  const _getGridSizes = () => {
     switch (cardSize) {
       case 'small':
         return { xs: 12, sm: 6, md: 4, lg: 2.4, xl: 2 }; // Smaller cards
@@ -166,6 +173,17 @@ export function AssetFolderView({ assets, locale, cardSize, onAssetDeleted }: As
                       onDeleted={onAssetDeleted ? () => onAssetDeleted(asset.id) : undefined}
                     />
                   </Box>
+                  {/* Registration plate for vehicles */}
+                  {asset.type === 'vehicle' && (asset.metadata?.specs?.registration || asset.registrationNumber) && (
+                    <Fade in={cardSize !== 'small'}>
+                      <Box sx={{ mb: 0, mt: 0.5 }}>
+                        <RegistrationPlate
+                          registration={(asset.metadata?.specs?.registration || asset.registrationNumber)!}
+                          size="medium"
+                        />
+                      </Box>
+                    </Fade>
+                  )}
                   {/* Asset name inside for non-small only */}
                   <Fade in={cardSize !== 'small'}>
                     <Typography
@@ -176,7 +194,7 @@ export function AssetFolderView({ assets, locale, cardSize, onAssetDeleted }: As
                         fontWeight: 600,
                         color: 'text.primary',
                         mb: 1,
-                        mt: 0.5,
+                        mt: asset.type === 'vehicle' && (asset.metadata?.specs?.registration || asset.registrationNumber) ? 0 : 0.5,
                       }}
                     >
                       {asset.name || 'Untitled'}

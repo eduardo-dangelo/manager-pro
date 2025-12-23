@@ -43,6 +43,7 @@ type Asset = {
   status: string;
   type?: string | null;
   tabs?: string[];
+  metadata?: Record<string, any>;
   objectives: Objective[];
   todos: Todo[];
   sprints: Sprint[];
@@ -108,6 +109,7 @@ export function AssetDetail({
           locale={locale}
           onUpdate={updateAsset}
           actions={headerActions}
+          registration={asset.type === 'vehicle' ? asset.metadata?.specs?.registration : undefined}
         />
 
         <AssetTabs

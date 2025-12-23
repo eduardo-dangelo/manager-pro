@@ -1,20 +1,23 @@
 'use client';
 
 import {
-  CheckBox as CheckBoxIcon,
-  CheckBoxOutlineBlank as CheckBoxOutlineBlankIcon,
-  PlayArrow as PlayArrowIcon,
+  Add as AddIcon,
+  OpenInNew as OpenInNewIcon,
 } from '@mui/icons-material';
 import {
   Box,
-  Checkbox,
-  Grid,
+  Button,
+  Dialog,
+  DialogContent,
+  DialogTitle,
   Link,
-  TextField,
   Typography,
 } from '@mui/material';
+import moment from 'moment';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+
+import { MotTestResultItem } from '@/components/Assets/Asset/tabs/overview/MotTestResultItem';
 import { Card } from '@/components/common/Card';
 
 type Asset = {
@@ -47,185 +50,239 @@ type MaintenanceItem = {
   nextService?: { date: string; mileage: number };
 };
 
+type MotTest = {
+  completedDate?: string;
+  testResult?: string;
+  expiryDate?: string;
+  odometerValue?: number;
+  odometerUnit?: string;
+  odometerResultType?: string;
+  motTestNumber?: string;
+  rfrAndComments?: Array<{
+    text?: string;
+    type?: string;
+    dangerous?: boolean;
+  }>;
+};
+
+// Format date using moment
+const formatDate = (dateStr: string | undefined) => {
+  if (!dateStr) {
+    return '-';
+  }
+  return moment(dateStr).format('D MMM YYYY');
+};
+
+// Check if a maintenance item has data
+const hasMaintenanceData = (item: MaintenanceItem) => {
+  return item.expires || item.endsOn || item.lastService || item.nextService || (item.links && item.links.length > 0);
+};
+
 export function VehicleMaintenanceSection({
   asset,
-  locale,
-  onUpdateAsset,
+  locale: _locale,
+  onUpdateAsset: _onUpdateAsset,
 }: VehicleMaintenanceSectionProps) {
   const t = useTranslations('Assets');
-  const [isEditing, setIsEditing] = useState(false);
+  const [motHistoryOpen, setMotHistoryOpen] = useState(false);
 
   const metadata = asset.metadata || {};
   const maintenance = metadata.maintenance || {};
+  const motData = metadata.mot || {};
 
   const mot: MaintenanceItem = maintenance.mot || {};
   const tax: MaintenanceItem = maintenance.tax || {};
   const insurance: MaintenanceItem = maintenance.insurance || {};
   const finance: MaintenanceItem = maintenance.finance || {};
   const service: MaintenanceItem = maintenance.service || {};
-  const todo: Array<{ text: string; checked: boolean }> = maintenance.todo || [];
 
-  const handleUpdateMaintenance = async (field: string, value: any) => {
-    try {
-      const updatedMetadata = {
-        ...metadata,
-        maintenance: {
-          ...maintenance,
-          [field]: value,
-        },
-      };
+  // Get MOT tests from the stored MOT data
+  const motTests: MotTest[] = motData.motTests || [];
+  const latestMotTest = motTests.length > 0 ? motTests[0] : null;
 
-      const response = await fetch(`/${locale}/api/assets/${asset.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ metadata: updatedMetadata }),
-      });
+  // Get DVLA data for tax info
+  const dvlaData = metadata.dvla || {};
 
-      if (!response.ok) {
-        throw new Error('Failed to update asset');
-      }
+  const hasMotData = latestMotTest || mot.expires;
+  const hasTaxData = tax.expires || dvlaData.taxStatus || dvlaData.taxDueDate;
+  const taxExpiry = tax.expires || dvlaData.taxDueDate;
+  const taxStatus = dvlaData.taxStatus;
 
-      const { asset: updatedAsset } = await response.json();
-      onUpdateAsset({ ...asset, metadata: updatedMetadata });
-    } catch (error) {
-      console.error('Error updating maintenance:', error);
-    }
+  const cardSx = {
+    width: { xs: '100%', sm: 'calc(50% - 12px)', md: 'calc(33.33% - 16px)' },
+    minHeight: 120,
   };
 
-  const handleDateChange = (field: string, date: string) => {
-    const current = maintenance[field] || {};
-    handleUpdateMaintenance(field, { ...current, expires: date });
+  const emptyStateBoxSx = {
+    'flex': 1,
+    'display': 'flex',
+    'alignItems': 'center',
+    'justifyContent': 'center',
+    'm': 1.5,
+    'mt': 0,
+    'border': '1px dashed',
+    'borderColor': 'divider',
+    'borderRadius': 1,
+    'cursor': 'pointer',
+    'transition': 'all 0.2s ease',
+    '&:hover': {
+      borderColor: 'primary.main',
+      backgroundColor: 'action.hover',
+    },
   };
 
-  const handleTodoToggle = (index: number) => {
-    const updatedTodo = [...todo];
-    updatedTodo[index] = { ...updatedTodo[index], checked: !updatedTodo[index].checked };
-    handleUpdateMaintenance('todo', updatedTodo);
+  const titleSx = {
+    color: 'text.secondary',
+    fontWeight: 600,
+    mb: 1,
+    textTransform: 'uppercase' as const,
   };
 
-  const MaintenanceCard = ({
-    title,
-    data,
-    field,
-    showEndsOn = false,
-    showService = false,
-    showTodo = false,
-  }: {
-    title: string;
-    data: MaintenanceItem | Array<{ text: string; checked: boolean }>;
-    field: string;
-    showEndsOn?: boolean;
-    showService?: boolean;
-    showTodo?: boolean;
-  }) => {
-    const maintenanceData = data as MaintenanceItem;
-    const todoData = data as Array<{ text: string; checked: boolean }>;
-
-    return (
-      <Card
+  return (
+    <Box sx={{ m: -1.5 }}>
+      <Box
         sx={{
-
-          pl: 2,
-          py: 1.5,
-          minHeight: 120,
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: 3,
+          p: 1.5,
         }}
       >
-        <Typography
-          variant="subtitle2"
-          sx={{
-            color: 'primary.main',
-            fontWeight: 600,
-            mb: 1,
-            textTransform: 'uppercase',
-          }}
-        >
-          {title}
-          :
-        </Typography>
-
-        {showTodo
+        {/* MOT Card */}
+        {hasMotData
           ? (
-              <Box>
-                {todoData.map((item, index) => (
-                  <Box
-                    key={index}
-                    sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}
-                  >
-                    <Checkbox
-                      checked={item.checked}
-                      onChange={() => handleTodoToggle(index)}
-                      size="small"
-                      icon={<CheckBoxOutlineBlankIcon />}
-                      checkedIcon={<CheckBoxIcon />}
-                    />
-                    <Typography variant="body2" sx={{ color: 'text.primary' }}>
-                      {item.text}
-                    </Typography>
-                  </Box>
-                ))}
-              </Box>
-            )
-          : (
-              <>
-                {showService
+              <Card sx={{ ...cardSx, pl: 2, py: 1.5 }}>
+                <Typography variant="subtitle2" sx={titleSx}>
+                  {t('mot')}
+                  :
+                </Typography>
+                {latestMotTest
                   ? (
-                      <>
-                        {maintenanceData.lastService && (
-                          <Typography variant="body2" sx={{ color: 'success.main', mb: 0.5 }}>
-                            {t('last_service')}
-                            :
-                            {maintenanceData.lastService.date}
+                      <Box>
+                        <MotTestResultItem test={latestMotTest} isLatest showDetails={false} />
+                        {motTests.length > 1 && (
+                          <Button
+                            size="small"
+                            onClick={() => setMotHistoryOpen(true)}
+                            sx={{ textTransform: 'none', mt: 0.5, p: 0, minWidth: 'auto' }}
+                          >
+                            {t('view_mot_history')}
                             {' '}
-                            -
-                            {' '}
-                            {maintenanceData.lastService.mileage.toLocaleString()}
-                            {' '}
-                            {t('miles')}
-                          </Typography>
+                            (
+                            {motTests.length}
+                            )
+                          </Button>
                         )}
-                        {maintenanceData.nextService && (
-                          <Typography variant="body2" sx={{ color: 'success.main' }}>
-                            {t('next_service')}
-                            :
-                            {maintenanceData.nextService.date}
-                            {' '}
-                            -
-                            {' '}
-                            {maintenanceData.nextService.mileage.toLocaleString()}
-                            {' '}
-                            {t('miles')}
-                          </Typography>
-                        )}
-                      </>
+                      </Box>
                     )
                   : (
-                      <Typography variant="body2" sx={{ color: 'success.main', mb: 1 }}>
-                        {showEndsOn ? t('ends_on') : t('expires')}
+                      <Typography variant="body2" sx={{ color: 'text.primary', mb: 1 }}>
+                        {t('expires')}
                         :
                         {' '}
-                        {isEditing
-                          ? (
-                              <TextField
-                                type="date"
-                                value={maintenanceData.endsOn || maintenanceData.expires || ''}
-                                onChange={e =>
-                                  handleDateChange(field, e.target.value)}
-                                size="small"
-                                sx={{ width: 150, ml: 1 }}
-                                InputLabelProps={{ shrink: true }}
-                              />
-                            )
-                          : (
-                              maintenanceData.endsOn || maintenanceData.expires || '-'
-                            )}
+                        {formatDate(mot.expires)}
                       </Typography>
                     )}
+              </Card>
+            )
+          : (
+              <Card sx={{ ...cardSx, display: 'flex', flexDirection: 'column' }}>
+                <Typography variant="subtitle2" sx={{ ...titleSx, px: 2, pt: 1.5 }}>
+                  {t('mot')}
+                  :
+                </Typography>
+                <Box sx={emptyStateBoxSx}>
+                  <Button
+                    startIcon={<AddIcon />}
+                    size="small"
+                    sx={{ textTransform: 'none', color: 'text.secondary' }}
+                  >
+                    {t('add_details')}
+                  </Button>
+                </Box>
+              </Card>
+            )}
 
-                {maintenanceData.links && maintenanceData.links.length > 0 && (
+        {/* Tax Card */}
+        {hasTaxData
+          ? (
+              <Card sx={{ ...cardSx, pl: 2, py: 1.5 }}>
+                <Typography variant="subtitle2" sx={titleSx}>
+                  {t('tax')}
+                  :
+                </Typography>
+                {taxStatus && (
+                  <Typography variant="body2" sx={{ color: 'text.primary', mb: 0.5 }}>
+                    {t('status')}
+                    :
+                    {' '}
+                    {taxStatus}
+                  </Typography>
+                )}
+                {taxExpiry && (
+                  <Typography variant="body2" sx={{ color: 'text.primary', mb: 1 }}>
+                    {t('expires')}
+                    :
+                    {' '}
+                    {formatDate(taxExpiry)}
+                  </Typography>
+                )}
+                <Link
+                  href="https://www.gov.uk/vehicle-tax"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  sx={{
+                    'display': 'inline-flex',
+                    'alignItems': 'center',
+                    'gap': 0.5,
+                    'fontSize': '0.875rem',
+                    'color': 'primary.main',
+                    'textDecoration': 'none',
+                    '&:hover': { textDecoration: 'underline' },
+                  }}
+                >
+                  {t('tax_your_vehicle')}
+                  <OpenInNewIcon sx={{ fontSize: 14 }} />
+                </Link>
+              </Card>
+            )
+          : (
+              <Card sx={{ ...cardSx, display: 'flex', flexDirection: 'column' }}>
+                <Typography variant="subtitle2" sx={{ ...titleSx, px: 2, pt: 1.5 }}>
+                  {t('tax')}
+                  :
+                </Typography>
+                <Box sx={emptyStateBoxSx}>
+                  <Button
+                    startIcon={<AddIcon />}
+                    size="small"
+                    sx={{ textTransform: 'none', color: 'text.secondary' }}
+                  >
+                    {t('add_details')}
+                  </Button>
+                </Box>
+              </Card>
+            )}
+
+        {/* Insurance Card */}
+        {hasMaintenanceData(insurance)
+          ? (
+              <Card sx={{ ...cardSx, pl: 2, py: 1.5 }}>
+                <Typography variant="subtitle2" sx={titleSx}>
+                  {t('insurance')}
+                  :
+                </Typography>
+                <Typography variant="body2" sx={{ color: 'text.primary', mb: 1 }}>
+                  {t('expires')}
+                  :
+                  {' '}
+                  {formatDate(insurance.expires)}
+                </Typography>
+                {insurance.links && insurance.links.length > 0 && (
                   <Box sx={{ mt: 1 }}>
-                    {maintenanceData.links.map((link, index) => (
+                    {insurance.links.map(link => (
                       <Link
-                        key={index}
+                        key={`insurance-link-${link.url}`}
                         href={link.url}
                         target="_blank"
                         rel="noopener noreferrer"
@@ -245,85 +302,156 @@ export function VehicleMaintenanceSection({
                     ))}
                   </Box>
                 )}
-
-                {field === 'finance' && maintenanceData.links && maintenanceData.links.length > 0 && (
-                  <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <PlayArrowIcon fontSize="small" />
-                    <Link
-                      href={maintenanceData.links[0].url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      sx={{
-                        'color': 'text.primary',
-                        'textDecoration': 'none',
-                        '&:hover': { textDecoration: 'underline', color: 'primary.main' },
-                      }}
-                    >
-                      {t('details')}
-                    </Link>
-                  </Box>
-                )}
-              </>
+              </Card>
+            )
+          : (
+              <Card sx={{ ...cardSx, display: 'flex', flexDirection: 'column' }}>
+                <Typography variant="subtitle2" sx={{ ...titleSx, px: 2, pt: 1.5 }}>
+                  {t('insurance')}
+                  :
+                </Typography>
+                <Box sx={emptyStateBoxSx}>
+                  <Button
+                    startIcon={<AddIcon />}
+                    size="small"
+                    sx={{ textTransform: 'none', color: 'text.secondary' }}
+                  >
+                    {t('add_details')}
+                  </Button>
+                </Box>
+              </Card>
             )}
-      </Card>
-    );
-  };
 
-  return (
-    <Box sx={{ m: -1.5 }}>
+        {/* Finance Card */}
+        {hasMaintenanceData(finance)
+          ? (
+              <Card sx={{ ...cardSx, pl: 2, py: 1.5 }}>
+                <Typography variant="subtitle2" sx={titleSx}>
+                  {t('finance_agreement')}
+                  :
+                </Typography>
+                <Typography variant="body2" sx={{ color: 'text.primary', mb: 1 }}>
+                  {t('ends_on')}
+                  :
+                  {' '}
+                  {formatDate(finance.endsOn || finance.expires)}
+                </Typography>
+                {finance.links && finance.links.length > 0 && (
+                  <Link
+                    href={finance.links[0]?.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    sx={{
+                      'display': 'inline-flex',
+                      'alignItems': 'center',
+                      'gap': 0.5,
+                      'color': 'primary.main',
+                      'textDecoration': 'none',
+                      '&:hover': { textDecoration: 'underline' },
+                    }}
+                  >
+                    {t('details')}
+                    <OpenInNewIcon sx={{ fontSize: 14 }} />
+                  </Link>
+                )}
+              </Card>
+            )
+          : (
+              <Card sx={{ ...cardSx, display: 'flex', flexDirection: 'column' }}>
+                <Typography variant="subtitle2" sx={{ ...titleSx, px: 2, pt: 1.5 }}>
+                  {t('finance_agreement')}
+                  :
+                </Typography>
+                <Box sx={emptyStateBoxSx}>
+                  <Button
+                    startIcon={<AddIcon />}
+                    size="small"
+                    sx={{ textTransform: 'none', color: 'text.secondary' }}
+                  >
+                    {t('add_details')}
+                  </Button>
+                </Box>
+              </Card>
+            )}
 
-      <Grid container spacing={0}>
-        <Grid item key={0} sx={{ width: { xs: '100%', sm: '50%', md: '33.33%' }, p: 1.5 }}>
-          <MaintenanceCard
-            title={t('mot')}
-            data={mot}
-            field="mot"
-          />
-        </Grid>
+        {/* Service Card */}
+        {hasMaintenanceData(service)
+          ? (
+              <Card sx={{ ...cardSx, pl: 2, py: 1.5 }}>
+                <Typography variant="subtitle2" sx={titleSx}>
+                  {t('service')}
+                  :
+                </Typography>
+                {service.lastService && (
+                  <Typography variant="body2" sx={{ color: 'text.primary', mb: 0.5 }}>
+                    {t('last_service')}
+                    :
+                    {' '}
+                    {formatDate(service.lastService.date)}
+                    {' '}
+                    -
+                    {' '}
+                    {service.lastService.mileage.toLocaleString()}
+                    {' '}
+                    {t('miles')}
+                  </Typography>
+                )}
+                {service.nextService && (
+                  <Typography variant="body2" sx={{ color: 'text.primary' }}>
+                    {t('next_service')}
+                    :
+                    {' '}
+                    {formatDate(service.nextService.date)}
+                    {' '}
+                    -
+                    {' '}
+                    {service.nextService.mileage.toLocaleString()}
+                    {' '}
+                    {t('miles')}
+                  </Typography>
+                )}
+              </Card>
+            )
+          : (
+              <Card sx={{ ...cardSx, display: 'flex', flexDirection: 'column' }}>
+                <Typography variant="subtitle2" sx={{ ...titleSx, px: 2, pt: 1.5 }}>
+                  {t('service')}
+                  :
+                </Typography>
+                <Box sx={emptyStateBoxSx}>
+                  <Button
+                    startIcon={<AddIcon />}
+                    size="small"
+                    sx={{ textTransform: 'none', color: 'text.secondary' }}
+                  >
+                    {t('add_details')}
+                  </Button>
+                </Box>
+              </Card>
+            )}
+      </Box>
 
-        <Grid item key={1} sx={{ width: { xs: '100%', sm: '50%', md: '33.33%' }, p: 1.5 }}>
-          <MaintenanceCard
-            title={t('tax')}
-            data={tax}
-            field="tax"
-          />
-        </Grid>
-
-        <Grid item key={2} sx={{ width: { xs: '100%', sm: '50%', md: '33.33%' }, p: 1.5 }}>
-          <MaintenanceCard
-            title={t('insurance')}
-            data={insurance}
-            field="insurance"
-          />
-        </Grid>
-
-        <Grid item key={3} sx={{ width: { xs: '100%', sm: '50%', md: '33.33%' }, p: 1.5 }}>
-          <MaintenanceCard
-            title={t('finance_agreement')}
-            data={finance}
-            field="finance"
-            showEndsOn
-          />
-        </Grid>
-
-        <Grid item key={4} sx={{ width: { xs: '100%', sm: '50%', md: '33.33%' }, p: 1.5 }}>
-          <MaintenanceCard
-            title={t('service')}
-            data={service}
-            field="service"
-            showService
-          />
-        </Grid>
-
-        <Grid item key={5} sx={{ width: { xs: '100%', sm: '50%', md: '33.33%' }, p: 1.5 }}>
-          <MaintenanceCard
-            title={t('todo')}
-            data={todo}
-            field="todo"
-            showTodo
-          />
-        </Grid>
-      </Grid>
+      {/* MOT History Modal */}
+      <Dialog
+        open={motHistoryOpen}
+        onClose={() => setMotHistoryOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>{t('mot_history')}</DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 1 }}>
+            {motTests.map((test, index) => (
+              <MotTestResultItem
+                key={test.motTestNumber || `mot-test-${index}`}
+                test={test}
+                isLatest={index === 0}
+                showDetails
+              />
+            ))}
+          </Box>
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 }
