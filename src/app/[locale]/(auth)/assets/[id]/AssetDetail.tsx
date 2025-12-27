@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { AssetHeader } from '@/components/Assets/Asset/AssetHeader';
 import { AssetTabs } from '@/components/Assets/Asset/AssetTabs';
-import { Breadcrumb } from '@/components/Breadcrumb';
+import { useSetBreadcrumb } from '@/components/BreadcrumbContext';
 
 type Todo = {
   id: number;
@@ -74,11 +74,16 @@ export function AssetDetail({
     return asset.name;
   };
 
-  const breadcrumbItems = [
-    { label: dashboardT('menu_dashboard'), href: `/${locale}/dashboard` },
-    { label: t('page_title'), href: `/${locale}/assets` },
-    { label: getBreadcrumbLabel() },
-  ];
+  // Set breadcrumb in global topbar (only if not hidden)
+  useSetBreadcrumb(
+    hideBreadcrumb
+      ? []
+      : [
+          { label: dashboardT('menu_dashboard'), href: `/${locale}/dashboard` },
+          { label: t('page_title'), href: `/${locale}/assets` },
+          { label: getBreadcrumbLabel() },
+        ],
+  );
 
   const updateAsset = async (updates: Partial<Asset>) => {
     try {
@@ -102,8 +107,6 @@ export function AssetDetail({
   return (
     <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
       <Box sx={{ width: '100%', px: 0 }}>
-        {!hideBreadcrumb && <Breadcrumb items={breadcrumbItems} />}
-
         <AssetHeader
           asset={asset}
           locale={locale}

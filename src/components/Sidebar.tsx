@@ -27,8 +27,11 @@ import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { useHoverSound } from '@/hooks/useHoverSound';
 import { NewAssetButton } from './Assets/NewAssetButton';
+import { BreadcrumbProvider } from './BreadcrumbContext';
 import { GlobalTopbar } from './GlobalTopbar';
+import { GlobalTopbarContentProvider } from './GlobalTopbarContentContext';
 import { Logo } from './Logo';
+import { TopbarActions } from './TopbarActions';
 
 type MenuItem = {
   icon: React.ComponentType<any>;
@@ -510,22 +513,28 @@ export function Sidebar({
             transition: 'background-color 0.3s ease',
           }}
         >
-          <Toolbar>
-            <IconButton
-              aria-label="open drawer"
-              edge="start"
-              onClick={handleDrawerToggle}
-              sx={{
-                mr: 0.5,
-                color: mobileOpen
-                  ? theme.palette.text.primary // When drawer is open, use primary text color (light on dark background)
-                  : (theme.palette.mode === 'dark' ? theme.palette.text.primary : '#1a1a1a'), // When closed, match the main background
-              }}
-            >
-              <MenuIcon />
-            </IconButton>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <Logo variant={mobileOpen ? 'light' : 'dark'} />
+          <Toolbar sx={{ justifyContent: 'space-between' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <IconButton
+                aria-label="open drawer"
+                edge="start"
+                onClick={handleDrawerToggle}
+                sx={{
+                  mr: 0.5,
+                  color: mobileOpen
+                    ? theme.palette.text.primary // When drawer is open, use primary text color (light on dark background)
+                    : (theme.palette.mode === 'dark' ? theme.palette.text.primary : '#1a1a1a'), // When closed, match the main background
+                }}
+              >
+                <MenuIcon />
+              </IconButton>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <Logo variant={mobileOpen ? 'light' : 'dark'} />
+              </Box>
+            </Box>
+            {/* Actions on mobile - same level as logo */}
+            <Box sx={{ display: { xs: 'flex', lg: 'none' }, alignItems: 'center' }}>
+              <TopbarActions />
             </Box>
           </Toolbar>
         </AppBar>
@@ -576,31 +585,35 @@ export function Sidebar({
       </Box>
 
       {/* Main Content */}
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          height: '100vh',
-          overflow: 'auto',
-          bgcolor: 'background.default',
-          px: { xs: 2, sm: 3, md: 4 },
-          pb: { xs: 2, sm: 3, md: 4 },
-        }}
-      >
-        {/* Global Topbar */}
-        <GlobalTopbar />
+      <BreadcrumbProvider>
+        <GlobalTopbarContentProvider>
+          <Box
+            component="main"
+            sx={{
+              flexGrow: 1,
+              height: '100vh',
+              overflow: 'auto',
+              bgcolor: 'background.default',
+              px: { xs: 2, sm: 3, md: 4 },
+              pb: { xs: 2, sm: 3, md: 4 },
+            }}
+          >
+            {/* Global Topbar */}
+            <GlobalTopbar />
 
-        {/* Content with topbar spacing */}
-        <Box
-          sx={{
-            width: '100%',
-            maxWidth: 1400,
-            mx: 'auto',
-          }}
-        >
-          {children}
-        </Box>
-      </Box>
+            {/* Content with topbar spacing */}
+            <Box
+              sx={{
+                width: '100%',
+                maxWidth: 1400,
+                mx: 'auto',
+              }}
+            >
+              {children}
+            </Box>
+          </Box>
+        </GlobalTopbarContentProvider>
+      </BreadcrumbProvider>
     </Box>
   );
 }

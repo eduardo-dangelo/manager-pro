@@ -28,8 +28,9 @@ import {
   useTheme,
 } from '@mui/material';
 import { useTranslations } from 'next-intl';
-import { useRef, useState } from 'react';
-import { Breadcrumb } from '@/components/Breadcrumb';
+import { useEffect, useRef, useState } from 'react';
+import { useSetBreadcrumb } from '@/components/BreadcrumbContext';
+import { useGlobalTopbarContent } from '@/components/GlobalTopbarContentContext';
 import { NewAssetButton } from './NewAssetButton';
 
 type ViewMode = 'folder' | 'list' | 'columns';
@@ -69,6 +70,8 @@ export function AssetsTopBar({
   const t = useTranslations('Assets');
   const dashboardT = useTranslations('DashboardLayout');
   const isMobile = useMediaQuery('(max-width:930px)');
+  const { setRightContent } = useGlobalTopbarContent();
+
   // Determine page title based on asset type
   const getPageTitle = () => {
     if (assetType) {
@@ -76,6 +79,13 @@ export function AssetsTopBar({
     }
     return t('page_title');
   };
+
+  // Set breadcrumb in global topbar
+  useSetBreadcrumb([
+    { label: dashboardT('menu_dashboard'), href: `/${locale}/dashboard` },
+    { label: t('page_title'), href: `/${locale}/assets` },
+    ...(assetType ? [{ label: getPageTitle() }] : []),
+  ]);
 
   // no-op
 
@@ -210,295 +220,303 @@ export function AssetsTopBar({
     },
   };
 
+  // Render controls component
+  const renderControls = () => (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      {/* Card Size Controls (only visible in folder view) */}
+      {viewMode === 'folder' && (
+        <>
+          <ToggleButtonGroup
+            value={cardSize}
+            exclusive
+            onChange={handleCardSizeChange}
+            size="small"
+            sx={buttonGroupSx}
+          >
+            <Tooltip title="Small cards">
+              <ToggleButton value="small" aria-label="small cards">
+                <SmallIcon sx={{ fontSize: 16 }} />
+              </ToggleButton>
+            </Tooltip>
+            <Tooltip title="Medium cards">
+              <ToggleButton value="medium" aria-label="medium cards">
+                <MediumIcon sx={{ fontSize: 18 }} />
+              </ToggleButton>
+            </Tooltip>
+            <Tooltip title="Large cards">
+              <ToggleButton value="large" aria-label="large cards">
+                <LargeIcon sx={{ fontSize: 20 }} />
+              </ToggleButton>
+            </Tooltip>
+          </ToggleButtonGroup>
+
+          {/* Vertical Divider */}
+          <Box
+            sx={{
+              // width: '1px',
+              height: 20,
+              bgcolor: 'grey.300',
+              mx: 1,
+            }}
+          />
+        </>
+      )}
+
+      {/* View Mode Controls */}
+      <ToggleButtonGroup
+        value={viewMode}
+        exclusive
+        onChange={handleViewModeChange}
+        size="small"
+        sx={buttonGroupSx}
+      >
+        <Tooltip title="Folder view">
+          <ToggleButton value="folder" aria-label="folder view">
+            <FolderIcon sx={{ fontSize: 18 }} />
+          </ToggleButton>
+        </Tooltip>
+        <Tooltip title="List view">
+          <ToggleButton value="list" aria-label="list view">
+            <ListIcon sx={{ fontSize: 18 }} />
+          </ToggleButton>
+        </Tooltip>
+        {/* Hide columns view on iPhone-width screens */}
+        {!isMobile && (
+          <Tooltip title="Columns view">
+            <ToggleButton value="columns" aria-label="columns view">
+              <ColumnsIcon sx={{ fontSize: 18 }} />
+            </ToggleButton>
+          </Tooltip>
+        )}
+      </ToggleButtonGroup>
+
+      {/* Sort Controls */}
+      <Tooltip title="Sort by">
+        <Badge
+          badgeContent="1"
+          invisible={sortBy === 'dateModified'}
+          overlap="circular"
+          anchorOrigin={{
+            vertical: 'bottom',
+            horizontal: 'right',
+          }}
+          onClick={handleSortClick}
+          sx={{
+            'cursor': 'pointer',
+            '& .MuiBadge-badge': {
+              bgcolor: 'primary.main',
+              color: 'white',
+              fontSize: '0.625rem',
+              fontWeight: 600,
+              width: 14,
+              height: 14,
+              minWidth: 16,
+              cursor: 'pointer',
+            },
+          }}
+        >
+          <IconButton
+            size="small"
+            onClick={handleSortClick}
+            sx={{ ...iconButtonSx, bgcolor: sortOpen ? theme.palette.action.hover : 'transparent' }}
+          >
+            <SortIcon sx={{ color: theme.palette.text.secondary, fontSize: 18 }} />
+          </IconButton>
+        </Badge>
+      </Tooltip>
+
+      <Popper
+        open={sortOpen}
+        anchorEl={sortAnchorEl}
+        role={undefined}
+        placement="bottom-end"
+        transition
+        disablePortal
+        style={{ zIndex: 1300 }}
+      >
+        {({ TransitionProps, placement }) => (
+          <Grow
+            {...TransitionProps}
+            style={{
+              transformOrigin:
+                  placement === 'bottom-start' ? 'left top' : 'right top',
+            }}
+          >
+            <Paper>
+              <ClickAwayListener onClickAway={handleSortClose}>
+                <MenuList autoFocusItem={sortOpen} id="sort-menu">
+                  <MenuItem
+                    onClick={() => handleSortSelect('dateModified')}
+                    selected={sortBy === 'dateModified'}
+                  >
+                    Date Modified
+                  </MenuItem>
+                  <MenuItem
+                    onClick={() => handleSortSelect('dateCreated')}
+                    selected={sortBy === 'dateCreated'}
+                  >
+                    Date Created
+                  </MenuItem>
+                  <MenuItem
+                    onClick={() => handleSortSelect('name')}
+                    selected={sortBy === 'name'}
+                  >
+                    Name
+                  </MenuItem>
+                  <MenuItem
+                    onClick={() => handleSortSelect('type')}
+                    selected={sortBy === 'type'}
+                  >
+                    Type
+                  </MenuItem>
+                  <MenuItem
+                    onClick={() => handleSortSelect('status')}
+                    selected={sortBy === 'status'}
+                  >
+                    Status
+                  </MenuItem>
+                </MenuList>
+              </ClickAwayListener>
+            </Paper>
+          </Grow>
+        )}
+      </Popper>
+
+      {/* Vertical Divider */}
+      <Box
+        sx={{
+          width: '1px',
+          height: 20,
+          bgcolor: theme.palette.action.selected,
+          mx: 1,
+        }}
+      />
+      <NewAssetButton locale={locale} iconButtonSx={iconButtonSx} />
+
+      {/* Collapsible Search */}
+      <Box
+        sx={{
+          width: isSearchExpanded ? 200 : 30,
+          height: 45,
+          // overflow: 'hidden',
+          transition: 'width 0.3s ease',
+          display: 'flex',
+          alignItems: 'center',
+        }}
+      >
+        {!isSearchExpanded
+          ? (
+              <Tooltip title="Search assets">
+                <Badge
+                  badgeContent="1"
+                  invisible={!searchQuery.length}
+                  overlap="circular"
+                  anchorOrigin={{
+                    vertical: 'bottom',
+                    horizontal: 'right',
+                  }}
+                  onClick={() => {
+                    setIsSearchExpanded(true);
+                    setTimeout(() => searchFieldRef.current?.focus(), 0);
+                  }}
+                  sx={{
+                    'cursor': 'pointer',
+                    '& .MuiBadge-badge': {
+                      bgcolor: 'primary.main',
+                      color: 'white',
+                      fontSize: '0.625rem',
+                      fontWeight: 600,
+                      width: 14,
+                      height: 14,
+                      minWidth: 16,
+                      cursor: 'pointer',
+                    },
+                  }}
+                >
+                  <IconButton
+                    size="small"
+                    onClick={() => {
+                      setIsSearchExpanded(true);
+                      setTimeout(() => searchFieldRef.current?.focus(), 0);
+                    }}
+                    sx={iconButtonSx}
+                  >
+                    <SearchIcon sx={{ color: 'grey.700', fontSize: 18 }} />
+                  </IconButton>
+                </Badge>
+              </Tooltip>
+            )
+          : (
+              <TextField
+                inputRef={searchFieldRef}
+                label="Search assets"
+                value={searchQuery}
+                onChange={e => onSearchChange(e.target.value)}
+                onKeyDown={handleKeyDown}
+                size="small"
+                variant="outlined"
+                sx={{
+                  'width': '100%',
+                  'height': 35,
+                  '& .MuiInputBase-root': {
+                    height: 40,
+                  },
+                }}
+                InputLabelProps={{
+                  shrink: searchQuery.length > 0,
+                  sx: {
+                    left: searchQuery.length > 0 ? 0 : 22,
+                  },
+                }}
+                onFocus={handleSearchFocus}
+                onBlur={handleSearchBlur}
+                InputProps={{
+                  startAdornment: (
+                    <Box sx={{ display: 'flex', alignItems: 'center', pr: 0.5 }}>
+                      <SearchIcon sx={{ color: 'grey.500', fontSize: 18 }} />
+                    </Box>
+                  ),
+                }}
+              />
+            )}
+
+      </Box>
+    </Box>
+  );
+
+  // Register controls in GlobalTopbar on mobile, render normally on desktop
+  useEffect(() => {
+    if (isMobile) {
+      setRightContent(renderControls());
+      return () => {
+        setRightContent(null);
+      };
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMobile, viewMode, cardSize, sortBy, searchQuery, isSearchExpanded, setRightContent]);
+
+  // On mobile, don't render the controls here (they're in GlobalTopbar)
+  if (isMobile) {
+    return null;
+  }
+
+  // On desktop, render the controls normally
   return (
     <Box
       sx={{
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
+        justifyContent: 'flex-end',
         mb: 3,
         position: 'sticky',
-        top: 58, // Position directly below GlobalTopbar (p: 2 = 16px top + 16px bottom + ~26px content = 58px) with no vertical gap
+        top: 56, // Position directly below GlobalTopbar
         zIndex: 100,
         borderRadius: 2,
         bgcolor: theme.palette.background.default,
         pb: 0,
       }}
     >
-      {/* Left side - Breadcrumb */}
-      {/* <Box sx={{ display: 'flex', alignItems: 'center' }}> */}
-      <Breadcrumb
-        items={[
-          { label: dashboardT('menu_dashboard'), href: `/${locale}/dashboard` },
-          { label: t('page_title'), href: `/${locale}/assets` },
-          ...(assetType ? [{ label: getPageTitle() }] : []),
-        ]}
-      />
-      {/* </Box> */}
-
-      {/* Right side controls */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        {/* Card Size Controls (only visible in folder view) */}
-        {viewMode === 'folder' && (
-          <>
-            <ToggleButtonGroup
-              value={cardSize}
-              exclusive
-              onChange={handleCardSizeChange}
-              size="small"
-              sx={buttonGroupSx}
-            >
-              <Tooltip title="Small cards">
-                <ToggleButton value="small" aria-label="small cards">
-                  <SmallIcon sx={{ fontSize: 16 }} />
-                </ToggleButton>
-              </Tooltip>
-              <Tooltip title="Medium cards">
-                <ToggleButton value="medium" aria-label="medium cards">
-                  <MediumIcon sx={{ fontSize: 18 }} />
-                </ToggleButton>
-              </Tooltip>
-              <Tooltip title="Large cards">
-                <ToggleButton value="large" aria-label="large cards">
-                  <LargeIcon sx={{ fontSize: 20 }} />
-                </ToggleButton>
-              </Tooltip>
-            </ToggleButtonGroup>
-
-            {/* Vertical Divider */}
-            <Box
-              sx={{
-                // width: '1px',
-                height: 20,
-                bgcolor: 'grey.300',
-                mx: 1,
-              }}
-            />
-          </>
-        )}
-
-        {/* View Mode Controls */}
-        <ToggleButtonGroup
-          value={viewMode}
-          exclusive
-          onChange={handleViewModeChange}
-          size="small"
-          sx={buttonGroupSx}
-        >
-          <Tooltip title="Folder view">
-            <ToggleButton value="folder" aria-label="folder view">
-              <FolderIcon sx={{ fontSize: 18 }} />
-            </ToggleButton>
-          </Tooltip>
-          <Tooltip title="List view">
-            <ToggleButton value="list" aria-label="list view">
-              <ListIcon sx={{ fontSize: 18 }} />
-            </ToggleButton>
-          </Tooltip>
-          {/* Hide columns view on iPhone-width screens */}
-          {!isMobile && (
-            <Tooltip title="Columns view">
-              <ToggleButton value="columns" aria-label="columns view">
-                <ColumnsIcon sx={{ fontSize: 18 }} />
-              </ToggleButton>
-            </Tooltip>
-          )}
-        </ToggleButtonGroup>
-
-        {/* Sort Controls */}
-        <Tooltip title="Sort by">
-          <Badge
-            badgeContent="1"
-            invisible={sortBy === 'dateModified'}
-            overlap="circular"
-            anchorOrigin={{
-              vertical: 'bottom',
-              horizontal: 'right',
-            }}
-            onClick={handleSortClick}
-            sx={{
-              'cursor': 'pointer',
-              '& .MuiBadge-badge': {
-                bgcolor: 'primary.main',
-                color: 'white',
-                fontSize: '0.625rem',
-                fontWeight: 600,
-                width: 14,
-                height: 14,
-                minWidth: 16,
-                cursor: 'pointer',
-              },
-            }}
-          >
-            <IconButton
-              size="small"
-              onClick={handleSortClick}
-              sx={{ ...iconButtonSx, bgcolor: sortOpen ? theme.palette.action.hover : 'transparent' }}
-            >
-              <SortIcon sx={{ color: theme.palette.text.secondary, fontSize: 18 }} />
-            </IconButton>
-          </Badge>
-        </Tooltip>
-
-        <Popper
-          open={sortOpen}
-          anchorEl={sortAnchorEl}
-          role={undefined}
-          placement="bottom-end"
-          transition
-          disablePortal
-          style={{ zIndex: 1300 }}
-        >
-          {({ TransitionProps, placement }) => (
-            <Grow
-              {...TransitionProps}
-              style={{
-                transformOrigin:
-                  placement === 'bottom-start' ? 'left top' : 'right top',
-              }}
-            >
-              <Paper>
-                <ClickAwayListener onClickAway={handleSortClose}>
-                  <MenuList autoFocusItem={sortOpen} id="sort-menu">
-                    <MenuItem
-                      onClick={() => handleSortSelect('dateModified')}
-                      selected={sortBy === 'dateModified'}
-                    >
-                      Date Modified
-                    </MenuItem>
-                    <MenuItem
-                      onClick={() => handleSortSelect('dateCreated')}
-                      selected={sortBy === 'dateCreated'}
-                    >
-                      Date Created
-                    </MenuItem>
-                    <MenuItem
-                      onClick={() => handleSortSelect('name')}
-                      selected={sortBy === 'name'}
-                    >
-                      Name
-                    </MenuItem>
-                    <MenuItem
-                      onClick={() => handleSortSelect('type')}
-                      selected={sortBy === 'type'}
-                    >
-                      Type
-                    </MenuItem>
-                    <MenuItem
-                      onClick={() => handleSortSelect('status')}
-                      selected={sortBy === 'status'}
-                    >
-                      Status
-                    </MenuItem>
-                  </MenuList>
-                </ClickAwayListener>
-              </Paper>
-            </Grow>
-          )}
-        </Popper>
-
-        {/* Vertical Divider */}
-        <Box
-          sx={{
-            width: '1px',
-            height: 20,
-            bgcolor: theme.palette.action.selected,
-            mx: 1,
-          }}
-        />
-        <NewAssetButton locale={locale} iconButtonSx={iconButtonSx} />
-
-        {/* Collapsible Search */}
-        <Box
-          sx={{
-            width: isSearchExpanded ? 200 : 30,
-            height: 45,
-            // overflow: 'hidden',
-            transition: 'width 0.3s ease',
-            display: 'flex',
-            alignItems: 'center',
-          }}
-        >
-          {!isSearchExpanded
-            ? (
-                <Tooltip title="Search assets">
-                  <Badge
-                    badgeContent="1"
-                    invisible={!searchQuery.length}
-                    overlap="circular"
-                    anchorOrigin={{
-                      vertical: 'bottom',
-                      horizontal: 'right',
-                    }}
-                    onClick={() => {
-                      setIsSearchExpanded(true);
-                      setTimeout(() => searchFieldRef.current?.focus(), 0);
-                    }}
-                    sx={{
-                      'cursor': 'pointer',
-                      '& .MuiBadge-badge': {
-                        bgcolor: 'primary.main',
-                        color: 'white',
-                        fontSize: '0.625rem',
-                        fontWeight: 600,
-                        width: 14,
-                        height: 14,
-                        minWidth: 16,
-                        cursor: 'pointer',
-                      },
-                    }}
-                  >
-                    <IconButton
-                      size="small"
-                      onClick={() => {
-                        setIsSearchExpanded(true);
-                        setTimeout(() => searchFieldRef.current?.focus(), 0);
-                      }}
-                      sx={iconButtonSx}
-                    >
-                      <SearchIcon sx={{ color: 'grey.700', fontSize: 18 }} />
-                    </IconButton>
-                  </Badge>
-                </Tooltip>
-              )
-            : (
-                <TextField
-                  inputRef={searchFieldRef}
-                  label="Search assets"
-                  value={searchQuery}
-                  onChange={e => onSearchChange(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  size="small"
-                  variant="outlined"
-                  sx={{
-                    'width': '100%',
-                    'height': 35,
-                    '& .MuiInputBase-root': {
-                      height: 40,
-                    },
-                  }}
-                  InputLabelProps={{
-                    shrink: searchQuery.length > 0,
-                    sx: {
-                      left: searchQuery.length > 0 ? 0 : 22,
-                    },
-                  }}
-                  onFocus={handleSearchFocus}
-                  onBlur={handleSearchBlur}
-                  InputProps={{
-                    startAdornment: (
-                      <Box sx={{ display: 'flex', alignItems: 'center', pr: 0.5 }}>
-                        <SearchIcon sx={{ color: 'grey.500', fontSize: 18 }} />
-                      </Box>
-                    ),
-                  }}
-                />
-              )}
-
-        </Box>
-      </Box>
+      {renderControls()}
     </Box>
   );
 }
-

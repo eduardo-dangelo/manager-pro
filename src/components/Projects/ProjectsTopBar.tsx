@@ -31,7 +31,7 @@ import {
 } from '@mui/material';
 import { useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
-import { Breadcrumb } from '@/components/Breadcrumb';
+import { useSetBreadcrumb } from '@/components/BreadcrumbContext';
 
 // no-op
 
@@ -73,6 +73,7 @@ export function ProjectsTopBar({
   const sortOpen = Boolean(sortAnchorEl);
   const t = useTranslations('Projects');
   const dashboardT = useTranslations('DashboardLayout');
+  
   // Determine page title based on project type
   const getPageTitle = () => {
     if (projectType) {
@@ -80,6 +81,13 @@ export function ProjectsTopBar({
     }
     return t('page_title');
   };
+
+  // Set breadcrumb in global topbar
+  useSetBreadcrumb([
+    { label: dashboardT('menu_dashboard'), href: `/${locale}/dashboard` },
+    { label: t('page_title'), href: `/${locale}/projects` },
+    ...(projectType ? [{ label: getPageTitle() }] : []),
+  ]);
 
   // no-op
 
@@ -219,28 +227,17 @@ export function ProjectsTopBar({
       sx={{
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between',
+        justifyContent: 'flex-end',
         flexWrap: 'wrap',
         mb: 3,
         position: 'sticky',
-        top: 58, // Position directly below GlobalTopbar (p: 2 = 16px top + 16px bottom + ~26px content = 58px) with no vertical gap
+        top: { xs: 112, lg: 56 }, // Position directly below GlobalTopbar (account for mobile AppBar + GlobalTopbar with breadcrumb)
         zIndex: 100,
         borderRadius: 2,
         bgcolor: theme.palette.background.default,
         pb: 0,
       }}
     >
-      {/* Left side - Breadcrumb */}
-      {/* <Box sx={{ display: 'flex', alignItems: 'center' }}> */}
-      <Breadcrumb
-        items={[
-          { label: dashboardT('menu_dashboard'), href: `/${locale}/dashboard` },
-          { label: t('page_title'), href: `/${locale}/projects` },
-          ...(projectType ? [{ label: getPageTitle() }] : []),
-        ]}
-      />
-      {/* </Box> */}
-
       {/* Right side controls */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         {/* Card Size Controls (only visible in folder view) */}
