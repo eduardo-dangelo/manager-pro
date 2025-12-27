@@ -33,7 +33,7 @@ export function GlobalTopbar() {
         flexWrap: 'wrap',
         alignItems: 'center',
         justifyContent: 'space-between',
-        py: 2,
+        py: { xs: 0, md: 2 },
         bgcolor: theme.palette.background.default,
         zIndex: theme.zIndex.appBar - 1,
         gap: 1,
@@ -48,6 +48,7 @@ export function GlobalTopbar() {
             flexGrow: 1,
             minWidth: 0, // Allow shrinking
             overflow: 'hidden',
+            py: 1,
           }}
         >
           <Breadcrumb items={breadcrumbItems} />

@@ -507,7 +507,7 @@ export function Sidebar({
           position="fixed"
           elevation={0}
           sx={{
-            bgcolor: 'transparent',
+            bgcolor: 'background.default',
             display: { xs: 'block', lg: 'none' },
             zIndex: theme => theme.zIndex.drawer + 1,
             transition: 'background-color 0.3s ease',
@@ -607,6 +607,7 @@ export function Sidebar({
                 width: '100%',
                 maxWidth: 1400,
                 mx: 'auto',
+                pt: { xs: 8, lg: 0 }, // ~96px mobile, ~72px desktop
               }}
             >
               {children}
