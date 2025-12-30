@@ -69,7 +69,7 @@ export function AssetsTopBar({
   const sortOpen = Boolean(sortAnchorEl);
   const t = useTranslations('Assets');
   const dashboardT = useTranslations('DashboardLayout');
-  const isMobile = useMediaQuery('(max-width:930px)');
+  const isDesktop = useMediaQuery('(min-width:1200px)');
   const { setRightContent } = useGlobalTopbarContent();
 
   // Determine page title based on asset type
@@ -281,7 +281,7 @@ export function AssetsTopBar({
           </ToggleButton>
         </Tooltip>
         {/* Hide columns view on iPhone-width screens */}
-        {!isMobile && (
+        {isDesktop && (
           <Tooltip title="Columns view">
             <ToggleButton value="columns" aria-label="columns view">
               <ColumnsIcon sx={{ fontSize: 18 }} />
@@ -486,17 +486,17 @@ export function AssetsTopBar({
 
   // Register controls in GlobalTopbar on mobile, render normally on desktop
   useEffect(() => {
-    if (isMobile) {
+    if (!isDesktop) {
       setRightContent(renderControls());
       return () => {
         setRightContent(null);
       };
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isMobile, viewMode, cardSize, sortBy, searchQuery, isSearchExpanded, setRightContent]);
+  }, [isDesktop, viewMode, cardSize, sortBy, searchQuery, isSearchExpanded, setRightContent]);
 
   // On mobile, don't render the controls here (they're in GlobalTopbar)
-  if (isMobile) {
+  if (!isDesktop) {
     return null;
   }
 

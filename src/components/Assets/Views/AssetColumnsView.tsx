@@ -69,7 +69,7 @@ export function AssetColumnsView({ assets, locale, onAssetDeleted }: AssetColumn
   const [selectedAsset, setSelectedAsset] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [clickedAssetId, setClickedAssetId] = useState<number | null>(null);
-  const isMobile = useMediaQuery('(max-width:930px)');
+  const isDesktop = useMediaQuery('(min-width:1200px)');
   const theme = useTheme();
   const { playHoverSound } = useHoverSound();
 
@@ -80,7 +80,7 @@ export function AssetColumnsView({ assets, locale, onAssetDeleted }: AssetColumn
     }
   }, [selectedAsset]);
 
-  if (isMobile) {
+  if (!isDesktop) {
     return null;
   }
 

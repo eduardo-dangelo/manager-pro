@@ -33,7 +33,7 @@ export function GlobalTopbar() {
         flexWrap: 'wrap',
         alignItems: 'center',
         justifyContent: 'space-between',
-        py: { xs: 0, md: 2 },
+        py: { xs: 0, lg: 2 },
         bgcolor: theme.palette.background.default,
         zIndex: theme.zIndex.appBar - 1,
         gap: 1,

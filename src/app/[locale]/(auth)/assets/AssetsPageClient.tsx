@@ -66,7 +66,7 @@ export function AssetsPageClient({ assets, locale, assetType, userPreferences }:
   };
 
   // Mobile detection (iPhone width ~430px)
-  const isMobile = useMediaQuery('(max-width:930px)');
+  const isDesktop = useMediaQuery('(min-width:1200px)');
   const [isClient, setIsClient] = useState(false);
 
   // Set client-side flag to prevent hydration mismatch
@@ -76,14 +76,14 @@ export function AssetsPageClient({ assets, locale, assetType, userPreferences }:
 
   // Auto-switch away from columns on mobile (only on client)
   useEffect(() => {
-    if (isClient && isMobile && viewMode === 'columns') {
+    if (isClient && !isDesktop && viewMode === 'columns') {
       setViewMode('list');
     }
-  }, [isClient, isMobile, viewMode]);
+  }, [isClient, isDesktop, viewMode]);
 
   // Guard: prevent switching to columns on mobile
   const handleViewModeChange = (mode: ViewMode) => {
-    if (isMobile && mode === 'columns') {
+    if (!isDesktop && mode === 'columns') {
       setViewMode('list');
       return;
     }
