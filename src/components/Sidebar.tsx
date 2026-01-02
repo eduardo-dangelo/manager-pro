@@ -507,13 +507,23 @@ export function Sidebar({
           position="fixed"
           elevation={0}
           sx={{
-            bgcolor: 'background.default',
+            bgcolor: mobileOpen ? 'transparent' : 'background.default',
             display: { xs: 'block', lg: 'none' },
             zIndex: theme => theme.zIndex.drawer + 1,
             transition: 'background-color 0.3s ease',
           }}
         >
-          <Toolbar sx={{ justifyContent: 'space-between' }}>
+          <Toolbar
+            sx={{ justifyContent: 'space-between' }}
+            onClick={(e) => {
+              // Prevent closing when clicking on toolbar content
+              if (mobileOpen) {
+                handleDrawerToggle();
+              } else {
+                e.stopPropagation();
+              }
+            }}
+          >
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <IconButton
                 aria-label="open drawer"
