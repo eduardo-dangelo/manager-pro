@@ -600,27 +600,63 @@ export function Sidebar({
           <Box
             component="main"
             sx={{
-              flexGrow: 1,
-              height: '100vh',
-              overflow: 'auto',
-              bgcolor: 'background.default',
-              px: { xs: 2, sm: 3, md: 4 },
-              pb: { xs: 2, sm: 3, md: 4 },
+              'flexGrow': 1,
+              'height': '100vh',
+              'overflow': 'auto',
+              'bgcolor': 'background.default',
+              // Custom thin overlay scrollbar styling
+              '&::-webkit-scrollbar': {
+                // width: '8px',
+                border: '1px solid red',
+                position: 'absolute',
+                top: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: 1000,
+              },
+              '&::-webkit-scrollbar-track': {
+                background: 'transparent',
+              },
+              '&::-webkit-scrollbar-thumb': {
+                'background': theme.palette.mode === 'dark'
+                  ? 'rgba(255, 255, 255, 0.2)'
+                  : 'rgba(0, 0, 0, 0.2)',
+                'borderRadius': '4px',
+                '&:hover': {
+                  background: theme.palette.mode === 'dark'
+                    ? 'rgba(255, 255, 255, 0.3)'
+                    : 'rgba(0, 0, 0, 0.3)',
+                },
+              },
+              'scrollbarWidth': 'thin',
+              'scrollbarColor': theme.palette.mode === 'dark'
+                ? 'rgba(255, 255, 255, 0.2) transparent'
+                : 'rgba(0, 0, 0, 0.2) transparent',
+              // Reserve space for scrollbar to prevent layout shift
+              'scrollbarGutter': 'unset',
             }}
           >
-            {/* Global Topbar */}
-            <GlobalTopbar />
-
-            {/* Content with topbar spacing */}
             <Box
               sx={{
-                width: '100%',
-                maxWidth: 1400,
-                mx: 'auto',
-                pt: { xs: 8, lg: 0 }, // ~96px mobile, ~72px desktop
+                px: { xs: 2, sm: 3 },
+                pb: { xs: 2, sm: 3 },
               }}
             >
-              {children}
+              {/* Global Topbar */}
+              <GlobalTopbar />
+
+              {/* Content with topbar spacing */}
+              <Box
+                sx={{
+                  width: '100%',
+                  maxWidth: 1400,
+                  mx: 'auto',
+                  pt: { xs: 8, lg: 0 }, // ~96px mobile, ~72px desktop
+
+                }}
+              >
+                {children}
+              </Box>
             </Box>
           </Box>
         </GlobalTopbarContentProvider>

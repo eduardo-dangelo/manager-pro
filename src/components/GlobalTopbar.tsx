@@ -27,8 +27,6 @@ export function GlobalTopbar() {
       sx={{
         position: 'sticky',
         top: isMobile ? 56 : 0, // Account for mobile AppBar height
-        left: { xs: 0, lg: DRAWER_WIDTH },
-        right: 0,
         display: 'flex',
         flexWrap: 'wrap',
         alignItems: 'center',
