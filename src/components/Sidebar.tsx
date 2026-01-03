@@ -539,7 +539,7 @@ export function Sidebar({
                 <MenuIcon />
               </IconButton>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <Logo variant={mobileOpen ? 'light' : 'dark'} />
+                <Logo variant={mobileOpen ? 'light' : (theme.palette.mode === 'dark' ? 'light' : 'dark')} />
               </Box>
             </Box>
             {/* Actions on mobile - same level as logo */}
