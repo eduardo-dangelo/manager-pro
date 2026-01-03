@@ -1,6 +1,6 @@
 'use client';
 
-import { Box, Chip, Collapse, Fade, Grid, Typography } from '@mui/material';
+import { Box, Chip, Fade, Typography } from '@mui/material';
 import { format } from 'date-fns';
 import Link from 'next/link';
 import { TransitionGroup } from 'react-transition-group';
@@ -56,15 +56,15 @@ const pluralizeType = (type: string): string => {
 
 export function AssetFolderView({ assets, locale, cardSize, onAssetDeleted }: AssetFolderViewProps) {
   // Get grid column sizes based on card size
-  const _getGridSizes = () => {
+  const getGridSizes = () => {
     switch (cardSize) {
       case 'small':
-        return { xs: 12, sm: 6, md: 4, lg: 2.4, xl: 2 }; // Smaller cards
+        return { xs: '33.33%', sm: '33.33%', md: '25%', lg: '20%', xl: '16.66%' }; // Smaller cards
       case 'large':
-        return { xs: 12, sm: 6, md: 3, lg: 3, xl: 3 }; // Full width alignment
+        return { xs: '100%', sm: '100%', md: '50%', lg: '33.33%', xl: '25%' }; // Full width alignment
       case 'medium':
       default:
-        return { xs: 12, sm: 6, md: 4, lg: 4, xl: 4 }; // 3 items per row
+        return { xs: '50%', sm: '50%', md: '33.33%', lg: '25%', xl: '20%' }; // 3 items per row
     }
   };
 
@@ -111,162 +111,164 @@ export function AssetFolderView({ assets, locale, cardSize, onAssetDeleted }: As
   const { playHoverSound } = useHoverSound();
 
   return (
-    <Grid container spacing={cardSize === 'small' ? 0 : 2}>
+    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0 }}>
       <TransitionGroup component={null}>
         {assets.map(asset => (
-          <Collapse orientation="horizontal" key={asset.id}>
+          // <Collapse orientation="horizontal" key={asset.id}>
 
-            <Box
-              component={Link}
-              href={`/${locale}/assets/${pluralizeType(asset.type)}/${asset.id}`}
-              onMouseEnter={playHoverSound}
-              sx={{
-                'textDecoration': 'none',
-                'cursor': 'pointer',
-                'display': 'block',
-                'perspective': '1000px',
-                'padding': 0,
-                'width': cardSize === 'small' ? '180px' : cardSize === 'large' ? '290px' : '250px',
-                'transition': 'all 0.3s ease',
-                '&:hover .folder-body': {
-                  boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.1)',
-                },
-              }}
+          <Box
+            key={asset.id}
+            component={Link}
+            href={`/${locale}/assets/${pluralizeType(asset.type)}/${asset.id}`}
+            onMouseEnter={playHoverSound}
+            sx={{
+              'textDecoration': 'none',
+              'cursor': 'pointer',
+              'display': 'block',
+              'perspective': '1000px',
+              'padding': 0,
+              'width': getGridSizes(),
+              'transition': 'all 0.3s ease',
+              '&:hover .folder-body': {
+                boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.1)',
+              },
+              'p': 1,
+              // 'border': '3px solid red',
+            }}
+          >
+            {/* Folder visual container */}
+            <Box sx={{
+              position: 'relative',
+              height: cardHeight,
+              width: cardSize === 'small' ? '140px' : '100%',
+              mx: cardSize === 'small' ? 'auto' : undefined,
+              transition: 'all 0.3s ease',
+            }}
             >
-              {/* Folder visual container */}
-              <Box sx={{
-                position: 'relative',
-                height: cardHeight,
-                width: cardSize === 'small' ? '140px' : '100%',
-                mx: cardSize === 'small' ? 'auto' : undefined,
-                transition: 'all 0.3s ease',
 
-              }}
+              {/* Folder Body */}
+              <Box
+                className="folder-body"
+                sx={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  bgcolor: 'background.paper',
+                  border: 1,
+                  borderColor: 'divider',
+                  borderRadius: '12px',
+                  // borderTopLeftRadius: '0px',
+                  p: 3,
+                  pb: 2.5,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  transition: 'all 0.3s ease',
+                  transformOrigin: 'top',
+                }}
               >
-
-                {/* Folder Body */}
-                <Box
-                  className="folder-body"
-                  sx={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    bgcolor: 'background.paper',
-                    border: 1,
-                    borderColor: 'divider',
-                    borderRadius: '12px',
-                    // borderTopLeftRadius: '0px',
-                    p: 3,
-                    pb: 2.5,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    transition: 'all 0.3s ease',
-                    transformOrigin: 'top',
-                  }}
-                >
-                  <Box sx={{ position: 'absolute', top: 6, right: 6 }} onClick={e => e.preventDefault()}>
-                    <AssetActions
-                      assetId={asset.id}
-                      locale={locale}
-                      onDeleted={onAssetDeleted ? () => onAssetDeleted(asset.id) : undefined}
-                    />
-                  </Box>
-                  {/* Registration plate for vehicles */}
-                  {asset.type === 'vehicle' && (asset.metadata?.specs?.registration || asset.registrationNumber) && (
-                    <Fade in={cardSize !== 'small'}>
-                      <Box sx={{ mb: 0, mt: 0.5 }}>
-                        <RegistrationPlate
-                          registration={(asset.metadata?.specs?.registration || asset.registrationNumber)!}
-                          size="medium"
-                        />
-                      </Box>
-                    </Fade>
-                  )}
-                  {/* Asset name inside for non-small only */}
+                <Box sx={{ position: 'absolute', top: 6, right: 6 }} onClick={e => e.preventDefault()}>
+                  <AssetActions
+                    assetId={asset.id}
+                    locale={locale}
+                    onDeleted={onAssetDeleted ? () => onAssetDeleted(asset.id) : undefined}
+                  />
+                </Box>
+                {/* Registration plate for vehicles */}
+                {asset.type === 'vehicle' && (asset.metadata?.specs?.registration || asset.registrationNumber) && (
                   <Fade in={cardSize !== 'small'}>
-                    <Typography
-                      variant="h6"
-                      component="h3"
-                      sx={{
-                        fontSize: fontSizes.title,
-                        fontWeight: 600,
-                        color: 'text.primary',
-                        mb: 1,
-                        mt: asset.type === 'vehicle' && (asset.metadata?.specs?.registration || asset.registrationNumber) ? 0 : 0.5,
-                      }}
-                    >
-                      {asset.name || 'Untitled'}
-                    </Typography>
-                  </Fade>
-
-                  {/* Description */}
-                  <Fade in={cardSize !== 'small'}>
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        fontSize: fontSizes.description,
-                        color: 'text.secondary',
-                        mb: 2,
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        minHeight: '2.5em',
-                        flexGrow: 1,
-                      }}
-                    >
-                      {asset.description}
-                    </Typography>
-                  </Fade>
-                  {/* Status */}
-                  <Fade in={cardSize !== 'small'}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 'auto' }}>
-
-                      <Chip
-                        label={asset.status ? asset.status.replace('-', ' ') : 'N/A'}
-                        color={statusColorMap[asset.status || ''] || 'default'}
-                        size="small"
-                        sx={{ textTransform: 'capitalize', fontWeight: 500 }}
+                    <Box sx={{ mb: 0, mt: 0.5 }}>
+                      <RegistrationPlate
+                        registration={(asset.metadata?.specs?.registration || asset.registrationNumber)!}
+                        size="medium"
                       />
-
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          color: 'text.secondary',
-                          fontSize: fontSizes.caption,
-                        }}
-                      >
-                        {format(new Date(asset.updatedAt), 'MMM d, yyyy')}
-                      </Typography>
                     </Box>
                   </Fade>
-                </Box>
-              </Box>
+                )}
+                {/* Asset name inside for non-small only */}
+                <Fade in={cardSize !== 'small'}>
+                  <Typography
+                    variant="h6"
+                    component="h3"
+                    sx={{
+                      fontSize: fontSizes.title,
+                      fontWeight: 600,
+                      color: 'text.primary',
+                      mb: 1,
+                      mt: asset.type === 'vehicle' && (asset.metadata?.specs?.registration || asset.registrationNumber) ? 0 : 0.5,
+                    }}
+                  >
+                    {asset.name || 'Untitled'}
+                  </Typography>
+                </Fade>
 
-              {/* Name below folder for small */}
-              {/* {cardSize === 'small' && ( */}
-              <Fade in={cardSize === 'small'} unmountOnExit>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    textAlign: 'center',
-                    my: 1,
-                    fontWeight: 600,
-                    color: 'text.primary',
-                  }}
-                >
-                  {asset.name || 'Untitled'}
-                </Typography>
-              </Fade>
-              {/* )} */}
+                {/* Description */}
+                <Fade in={cardSize !== 'small'}>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      fontSize: fontSizes.description,
+                      color: 'text.secondary',
+                      mb: 2,
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      minHeight: '2.5em',
+                      flexGrow: 1,
+                    }}
+                  >
+                    {asset.description}
+                  </Typography>
+                </Fade>
+                {/* Status */}
+                <Fade in={cardSize !== 'small'}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 'auto' }}>
+
+                    <Chip
+                      label={asset.status ? asset.status.replace('-', ' ') : 'N/A'}
+                      color={statusColorMap[asset.status || ''] || 'default'}
+                      size="small"
+                      sx={{ textTransform: 'capitalize', fontWeight: 500 }}
+                    />
+
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: 'text.secondary',
+                        fontSize: fontSizes.caption,
+                      }}
+                    >
+                      {format(new Date(asset.updatedAt), 'MMM d, yyyy')}
+                    </Typography>
+                  </Box>
+                </Fade>
+              </Box>
             </Box>
 
-          </Collapse>
+            {/* Name below folder for small */}
+            {/* {cardSize === 'small' && ( */}
+            <Fade in={cardSize === 'small'} unmountOnExit>
+              <Typography
+                variant="body2"
+                sx={{
+                  textAlign: 'center',
+                  my: 1,
+                  fontWeight: 600,
+                  color: 'text.primary',
+                }}
+              >
+                {asset.name || 'Untitled'}
+              </Typography>
+            </Fade>
+            {/* )} */}
+          </Box>
+
+          // </Collapse>
         ))}
       </TransitionGroup>
-    </Grid>
+    </Box>
   );
 }
