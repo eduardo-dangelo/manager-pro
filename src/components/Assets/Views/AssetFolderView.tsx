@@ -351,7 +351,7 @@ export function AssetFolderView({ assets, locale, cardSize, onAssetDeleted }: As
                     {/* MOT and TAX chips for vehicles in medium/large sizes */}
                     {asset.type === 'vehicle' && (
                       <Fade in={true}>
-                        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexGrow: 1 }}>
                           {(() => {
                             const motStatus = getMotStatus(asset);
 
@@ -380,6 +380,7 @@ export function AssetFolderView({ assets, locale, cardSize, onAssetDeleted }: As
                                 )}
                                 size="small"
                                 sx={{
+                                  'flexGrow': cardSize === 'small' ? 1 : undefined,
                                   'backgroundColor': motStatus.isValid ? 'rgba(0, 255, 0, 0.1)' : 'rgba(255, 255, 0, 0.1)',
                                   'borderRadius': '4px',
                                   'borderColor': motStatus.isValid ? 'success.main' : 'warning.main',
@@ -419,6 +420,7 @@ export function AssetFolderView({ assets, locale, cardSize, onAssetDeleted }: As
                                 )}
                                 size="small"
                                 sx={{
+                                  'flexGrow': cardSize === 'small' ? 1 : undefined,
                                   'backgroundColor': taxStatus.isValid ? 'rgba(0, 255, 0, 0.1)' : 'rgba(255, 255, 0, 0.1)',
                                   'borderRadius': '4px',
                                   'borderColor': taxStatus.isValid ? 'success.main' : 'warning.main',
