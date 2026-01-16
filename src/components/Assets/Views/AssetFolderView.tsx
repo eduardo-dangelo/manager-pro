@@ -1,5 +1,7 @@
 'use client';
 
+import CheckIcon from '@mui/icons-material/CheckCircle';
+import WarningIcon from '@mui/icons-material/Warning';
 import { Box, Chip, Fade, Typography } from '@mui/material';
 import { format } from 'date-fns';
 import Link from 'next/link';
@@ -21,6 +23,32 @@ type Asset = {
   metadata?: {
     specs?: {
       registration?: string;
+      year?: string;
+      yearOfManufacture?: string;
+      color?: string;
+      colour?: string;
+      mileage?: string | number;
+    };
+    maintenance?: {
+      mot?: {
+        expires?: string;
+      };
+      tax?: {
+        expires?: string;
+      };
+    };
+    mot?: {
+      motTests?: Array<{
+        testResult?: string;
+        expiryDate?: string;
+        odometerValue?: number;
+        odometerUnit?: string;
+      }>;
+      motExpiryDate?: string;
+    };
+    dvla?: {
+      taxStatus?: string;
+      taxDueDate?: string;
     };
   } | null;
 };
@@ -34,13 +62,6 @@ type AssetFolderViewProps = {
   onAssetDeleted?: (assetId: number) => void;
 };
 
-const statusColorMap: Record<string, 'default' | 'success' | 'info' | 'warning'> = {
-  'active': 'success',
-  'completed': 'info',
-  'archived': 'default',
-  'on-hold': 'warning',
-};
-
 // Helper function to pluralize asset types for routes
 const pluralizeType = (type: string): string => {
   const pluralMap: Record<string, string> = {
@@ -52,6 +73,88 @@ const pluralizeType = (type: string): string => {
     custom: 'customs',
   };
   return pluralMap[type] || `${type}s`;
+};
+
+// Helper function to format vehicle info string (year, color, mileage)
+const formatVehicleInfo = (asset: Asset): string | null => {
+  if (asset.type !== 'vehicle') {
+    return null;
+  }
+
+  const metadata = asset.metadata || {};
+  const specs = metadata.specs || {};
+  const motData = metadata.mot || {};
+
+  const year = specs.year || specs.yearOfManufacture;
+  const color = specs.color || specs.colour;
+
+  // Get mileage from latest MOT test first, fallback to specs.mileage
+  const latestMotTest = motData.motTests?.[0];
+  const mileageFromMot = latestMotTest?.odometerValue;
+  const mileage = mileageFromMot ?? specs.mileage;
+
+  const parts: string[] = [];
+
+  if (year) {
+    parts.push(year.toString());
+  }
+  if (color) {
+    parts.push(color.toString());
+  }
+  if (mileage) {
+    const mileageNum = typeof mileage === 'number' ? mileage : Number.parseFloat(mileage.toString().replace(/[^0-9.]/g, ''));
+    if (!Number.isNaN(mileageNum)) {
+      parts.push(`${mileageNum.toLocaleString('en-US')}mi`);
+    }
+  }
+
+  return parts.length > 0 ? parts.join(', ') : null;
+};
+
+// Helper function to get MOT status and expiry
+const getMotStatus = (asset: Asset): { isValid: boolean; expiryDate: string | null } => {
+  if (asset.type !== 'vehicle') {
+    return { isValid: false, expiryDate: null };
+  }
+
+  const metadata = asset.metadata || {};
+  const maintenance = metadata.maintenance || {};
+  const motData = metadata.mot || {};
+
+  const latestMotTest = motData.motTests?.[0];
+  const motExpires = maintenance.mot?.expires || latestMotTest?.expiryDate || motData.motExpiryDate;
+
+  let isValid = false;
+  if (latestMotTest?.testResult === 'PASS') {
+    isValid = true;
+  } else if (motExpires) {
+    isValid = new Date(motExpires) > new Date();
+  }
+
+  return { isValid, expiryDate: motExpires || null };
+};
+
+// Helper function to get TAX status and expiry
+const getTaxStatus = (asset: Asset): { isValid: boolean; expiryDate: string | null } => {
+  if (asset.type !== 'vehicle') {
+    return { isValid: false, expiryDate: null };
+  }
+
+  const metadata = asset.metadata || {};
+  const maintenance = metadata.maintenance || {};
+  const dvlaData = metadata.dvla || {};
+
+  const taxExpires = maintenance.tax?.expires || dvlaData.taxDueDate;
+  const taxStatus = dvlaData.taxStatus;
+
+  let isValid = false;
+  if (taxStatus === 'Taxed') {
+    isValid = true;
+  } else if (taxExpires) {
+    isValid = new Date(taxExpires) > new Date();
+  }
+
+  return { isValid, expiryDate: taxExpires || null };
 };
 
 export function AssetFolderView({ assets, locale, cardSize, onAssetDeleted }: AssetFolderViewProps) {
@@ -160,8 +263,8 @@ export function AssetFolderView({ assets, locale, cardSize, onAssetDeleted }: As
                   borderColor: 'divider',
                   borderRadius: '12px',
                   // borderTopLeftRadius: '0px',
-                  p: 3,
-                  pb: 2.5,
+                  p: cardSize === 'small' ? 2 : 3,
+                  pb: cardSize === 'small' ? 1.5 : 2.5,
                   display: 'flex',
                   flexDirection: 'column',
                   transition: 'all 0.3s ease',
@@ -177,11 +280,11 @@ export function AssetFolderView({ assets, locale, cardSize, onAssetDeleted }: As
                 </Box>
                 {/* Registration plate for vehicles */}
                 {asset.type === 'vehicle' && (asset.metadata?.specs?.registration || asset.registrationNumber) && (
-                  <Fade in={cardSize !== 'small'}>
-                    <Box sx={{ mb: 0, mt: 0.5 }}>
+                  <Fade in={true}>
+                    <Box sx={{ mb: 0, mt: 0 }}>
                       <RegistrationPlate
                         registration={(asset.metadata?.specs?.registration || asset.registrationNumber)!}
-                        size="medium"
+                        size={cardSize}
                       />
                     </Box>
                   </Fade>
@@ -195,54 +298,155 @@ export function AssetFolderView({ assets, locale, cardSize, onAssetDeleted }: As
                       fontSize: fontSizes.title,
                       fontWeight: 600,
                       color: 'text.primary',
-                      mb: 1,
+                      mb: 0,
                       mt: asset.type === 'vehicle' && (asset.metadata?.specs?.registration || asset.registrationNumber) ? 0 : 0.5,
+                      height: cardSize === 'small' ? '0px' : 'auto',
                     }}
                   >
                     {asset.name || 'Untitled'}
                   </Typography>
                 </Fade>
 
-                {/* Description */}
-                <Fade in={cardSize !== 'small'}>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontSize: fontSizes.description,
-                      color: 'text.secondary',
-                      mb: 2,
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      minHeight: '2.5em',
-                      flexGrow: 1,
-                    }}
-                  >
-                    {asset.description}
-                  </Typography>
-                </Fade>
-                {/* Status */}
-                <Fade in={cardSize !== 'small'}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 'auto' }}>
-
-                    <Chip
-                      label={asset.status ? asset.status.replace('-', ' ') : 'N/A'}
-                      color={statusColorMap[asset.status || ''] || 'default'}
-                      size="small"
-                      sx={{ textTransform: 'capitalize', fontWeight: 500 }}
-                    />
-
+                {/* Vehicle info string for medium/large sizes */}
+                {asset.type === 'vehicle' && formatVehicleInfo(asset) && (
+                  <Fade in={true}>
                     <Typography
-                      variant="caption"
+                      variant={cardSize === 'large' ? 'body2' : 'caption'}
                       sx={{
+                        fontSize: cardSize === 'small' ? '0.525rem' : 'auto',
                         color: 'text.secondary',
-                        fontSize: fontSizes.caption,
+                        mb: 1,
                       }}
                     >
-                      {format(new Date(asset.updatedAt), 'MMM d, yyyy')}
+                      {formatVehicleInfo(asset)}
                     </Typography>
+                  </Fade>
+                )}
+
+                {/* Description */}
+                {asset.type !== 'vehicle' && (
+                  <Fade in={cardSize !== 'small'}>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontSize: fontSizes.description,
+                        color: 'text.secondary',
+                        mb: 2,
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        minHeight: '2.5em',
+                        flexGrow: 1,
+                      }}
+                    >
+                      {asset.description}
+                    </Typography>
+                  </Fade>
+                )}
+                {/* Updated date */}
+                <Fade in={true}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', mt: 'auto' }}>
+                    {/* MOT and TAX chips for vehicles in medium/large sizes */}
+                    {asset.type === 'vehicle' && (
+                      <Fade in={true}>
+                        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                          {(() => {
+                            const motStatus = getMotStatus(asset);
+
+                            return (
+                              <Chip
+                                variant="outlined"
+                                label={(
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                    <Typography
+                                      variant="caption"
+                                      sx={{
+                                        fontSize: cardSize === 'small' ? '0.625rem' : '0.75rem',
+                                        color: motStatus.isValid ? 'success.dark' : 'warning.dark',
+                                      }}
+                                    >
+                                      MOT
+                                    </Typography>
+
+                                    {motStatus.isValid && cardSize !== 'small' && (
+                                      <CheckIcon sx={{ color: 'success.main', fontSize: 'medium' }} />
+                                    )}
+                                    {!motStatus.isValid && cardSize !== 'small' && (
+                                      <WarningIcon sx={{ color: 'warning.main', fontSize: 'medium' }} />
+                                    )}
+                                  </Box>
+                                )}
+                                size="small"
+                                sx={{
+                                  'backgroundColor': motStatus.isValid ? 'rgba(0, 255, 0, 0.1)' : 'rgba(255, 255, 0, 0.1)',
+                                  'borderRadius': '4px',
+                                  'borderColor': motStatus.isValid ? 'success.main' : 'warning.main',
+                                  'height': cardSize === 'small' ? '18px' : '24px',
+                                  '& .MuiChip-label': {
+                                    px: cardSize === 'small' ? 1 : 1.5,
+                                    py: cardSize === 'small' ? 0 : 0.5,
+                                  },
+                                }}
+                              />
+                            );
+                          })()}
+                          {(() => {
+                            const taxStatus = getTaxStatus(asset);
+
+                            return (
+                              <Chip
+                                variant="outlined"
+                                label={(
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                    <Typography
+                                      variant="caption"
+                                      sx={{
+                                        fontSize: cardSize === 'small' ? '0.625rem' : '0.75rem',
+                                        color: taxStatus.isValid ? 'success.dark' : 'warning.dark',
+                                      }}
+                                    >
+                                      TAX
+                                    </Typography>
+                                    {taxStatus.isValid && cardSize !== 'small' && (
+                                      <CheckIcon sx={{ color: 'success.main', fontSize: 'medium' }} />
+                                    )}
+                                    {!taxStatus.isValid && cardSize !== 'small' && (
+                                      <WarningIcon sx={{ color: 'warning.main', fontSize: 'medium' }} />
+                                    )}
+                                  </Box>
+                                )}
+                                size="small"
+                                sx={{
+                                  'backgroundColor': taxStatus.isValid ? 'rgba(0, 255, 0, 0.1)' : 'rgba(255, 255, 0, 0.1)',
+                                  'borderRadius': '4px',
+                                  'borderColor': taxStatus.isValid ? 'success.main' : 'warning.main',
+                                  'height': cardSize === 'small' ? '18px' : '24px',
+                                  '& .MuiChip-label': {
+                                    px: cardSize === 'small' ? 1 : 1.5,
+                                    py: cardSize === 'small' ? 0 : 0.5,
+                                  },
+                                }}
+                              />
+                            );
+                          })()}
+                        </Box>
+                      </Fade>
+                    )}
+
+                    {cardSize === 'large' && (
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          p: 0,
+                          color: 'text.secondary',
+                          fontSize: fontSizes.caption,
+                        }}
+                      >
+                        {format(new Date(asset.updatedAt), 'MMM d, yyyy')}
+                      </Typography>
+                    )}
                   </Box>
                 </Fade>
               </Box>

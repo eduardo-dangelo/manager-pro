@@ -47,3 +47,4 @@ export default async function CustomAssetsPage(props: {
 
   return <AssetsPageClient assets={assets} locale={locale} assetType="custom" />;
 }
+
