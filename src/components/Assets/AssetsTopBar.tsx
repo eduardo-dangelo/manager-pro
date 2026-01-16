@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  ViewColumn as ColumnsIcon,
   ViewModule as FolderIcon,
   ViewModule as LargeIcon,
   ViewList as ListIcon,
@@ -33,7 +32,7 @@ import { useSetBreadcrumb } from '@/components/BreadcrumbContext';
 import { useGlobalTopbarContent } from '@/components/GlobalTopbarContentContext';
 import { NewAssetButton } from './NewAssetButton';
 
-type ViewMode = 'folder' | 'list' | 'columns';
+type ViewMode = 'folder' | 'list';
 type CardSize = 'small' | 'medium' | 'large';
 type SortBy = 'dateCreated' | 'dateModified' | 'name' | 'type' | 'status';
 
@@ -280,14 +279,6 @@ export function AssetsTopBar({
             <ListIcon sx={{ fontSize: 18 }} />
           </ToggleButton>
         </Tooltip>
-        {/* Hide columns view on iPhone-width screens */}
-        {isDesktop && (
-          <Tooltip title="Columns view">
-            <ToggleButton value="columns" aria-label="columns view">
-              <ColumnsIcon sx={{ fontSize: 18 }} />
-            </ToggleButton>
-          </Tooltip>
-        )}
       </ToggleButtonGroup>
 
       {/* Sort Controls */}

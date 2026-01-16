@@ -1,7 +1,7 @@
 'use client';
 
 import { Add as AddIcon, Folder as FolderIcon } from '@mui/icons-material';
-import { Box, Button, Typography, useMediaQuery } from '@mui/material';
+import { Box, Button, Typography } from '@mui/material';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { AssetsTopBar } from '@/components/Assets/AssetsTopBar';
@@ -24,7 +24,7 @@ type Asset = {
   } | null;
 };
 
-type ViewMode = 'folder' | 'list' | 'columns';
+type ViewMode = 'folder' | 'list';
 type CardSize = 'small' | 'medium' | 'large';
 type SortBy = 'dateCreated' | 'dateModified' | 'name' | 'type' | 'status';
 
@@ -65,28 +65,7 @@ export function AssetsPageClient({ assets, locale, assetType, userPreferences }:
     return t('new_asset');
   };
 
-  // Mobile detection (iPhone width ~430px)
-  const isDesktop = useMediaQuery('(min-width:1200px)');
-  const [isClient, setIsClient] = useState(false);
-
-  // Set client-side flag to prevent hydration mismatch
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  // Auto-switch away from columns on mobile (only on client)
-  useEffect(() => {
-    if (isClient && !isDesktop && viewMode === 'columns') {
-      setViewMode('list');
-    }
-  }, [isClient, isDesktop, viewMode]);
-
-  // Guard: prevent switching to columns on mobile
   const handleViewModeChange = (mode: ViewMode) => {
-    if (!isDesktop && mode === 'columns') {
-      setViewMode('list');
-      return;
-    }
     setViewMode(mode);
   };
 

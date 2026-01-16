@@ -1,6 +1,5 @@
 'use client';
 
-import { AssetColumnsView } from '@/components/Assets/Views/AssetColumnsView';
 import { AssetFolderView } from '@/components/Assets/Views/AssetFolderView';
 import { AssetListView } from '@/components/Assets/Views/AssetListView';
 
@@ -21,7 +20,7 @@ type Asset = {
   } | null;
 };
 
-type ViewMode = 'folder' | 'list' | 'columns';
+type ViewMode = 'folder' | 'list';
 type CardSize = 'small' | 'medium' | 'large';
 type SortBy = 'dateCreated' | 'dateModified' | 'name' | 'type' | 'status';
 
@@ -65,10 +64,6 @@ export function AssetsList({ assets, locale, viewMode, cardSize, sortBy, searchQ
     return (
       <AssetListView assets={sortedAssets} locale={locale} onAssetDeleted={onAssetDeleted} />
     );
-  }
-
-  if (viewMode === 'columns') {
-    return <AssetColumnsView assets={sortedAssets} locale={locale} onAssetDeleted={onAssetDeleted} />;
   }
 
   // Default folder view
