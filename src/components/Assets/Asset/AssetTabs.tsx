@@ -27,6 +27,7 @@ import {
   PhotoLibrary as GalleryIcon,
   Assessment as InsightsIcon,
   ListAlt as ListingIcon,
+  MoreHoriz as MoreHorizIcon,
   DirectionsRun as SprintsIcon,
   ShowChart as TimelineIcon,
   CheckBox as TodosIcon,
@@ -40,13 +41,17 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
+  IconButton,
   List,
   ListItem,
   ListItemButton,
   ListItemIcon,
   ListItemText,
+  Menu,
+  MenuItem,
   Tab,
   Tabs,
+  useMediaQuery,
   useTheme,
 } from '@mui/material';
 import { useTranslations } from 'next-intl';
@@ -116,9 +121,10 @@ type SortableTabProps = {
   isDraggable: boolean;
   handleTabClick: () => void;
   onRemoveTab?: () => void;
+  tabRef?: (element: HTMLDivElement | null) => void;
 };
 
-function SortableTab({ id, label, icon, isDraggable, handleTabClick, onRemoveTab }: SortableTabProps) {
+function SortableTab({ id, label, icon, isDraggable, handleTabClick, onRemoveTab, tabRef }: SortableTabProps) {
   const {
     attributes,
     setNodeRef,
@@ -128,6 +134,14 @@ function SortableTab({ id, label, icon, isDraggable, handleTabClick, onRemoveTab
     isDragging,
     listeners,
   } = useSortable({ id, disabled: !isDraggable });
+
+  // Combine refs for both sortable and measurement
+  const combinedRef = (element: HTMLDivElement | null) => {
+    setNodeRef(element);
+    if (tabRef) {
+      tabRef(element);
+    }
+  };
 
   const [showIcons, setShowIcons] = useState(false);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -141,7 +155,7 @@ function SortableTab({ id, label, icon, isDraggable, handleTabClick, onRemoveTab
   const handleMouseEnter = () => {
     hoverTimeoutRef.current = setTimeout(() => {
       setShowIcons(true);
-    }, 1200);
+    }, 500);
   };
 
   const handleMouseLeave = () => {
@@ -151,7 +165,7 @@ function SortableTab({ id, label, icon, isDraggable, handleTabClick, onRemoveTab
     }
     setTimeout(() => {
       setShowIcons(false);
-    }, 1200);
+    }, 500);
   };
 
   useEffect(() => {
@@ -165,7 +179,7 @@ function SortableTab({ id, label, icon, isDraggable, handleTabClick, onRemoveTab
   return (
     <Box
       onClick={handleTabClick}
-      ref={setNodeRef}
+      ref={combinedRef}
       style={style}
       component="div"
       onMouseEnter={handleMouseEnter}
@@ -288,16 +302,26 @@ function SortableTab({ id, label, icon, isDraggable, handleTabClick, onRemoveTab
 export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
   const t = useTranslations('Assets');
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [currentTab, setCurrentTab] = useState(0);
   const [addTabDialogOpen, setAddTabDialogOpen] = useState(false);
   const [removeTabDialogOpen, setRemoveTabDialogOpen] = useState(false);
   const [tabToRemove, setTabToRemove] = useState<string | null>(null);
+
+  // Refs for width calculation and scrolling
+  const tabsContainerRef = useRef<HTMLDivElement>(null);
+  const tabRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const dropdownButtonRef = useRef<HTMLButtonElement>(null);
 
   // Define all available tabs
   const availableTabs = ['overview', 'todos', 'calendar', 'sprints', 'finance', 'docs', 'gallery', 'listing', 'timeline', 'insights'];
 
   // Get asset's current tabs (default to ['overview'] if not set)
   const assetTabs = asset.tabs || ['overview'];
+
+  // State for hidden tabs and menu
+  const [hiddenTabs, setHiddenTabs] = useState<string[]>([]);
+  const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
 
   // Find tabs that haven't been added yet
   // Filter out 'listing' tab unless asset type is 'property'
@@ -307,6 +331,111 @@ export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
     }
     return !assetTabs.includes(tab);
   });
+
+  // Calculate which tabs are partially hidden based on scroll position and container bounds
+  useEffect(() => {
+    const calculatePartiallyHiddenTabs = () => {
+      const container = tabsContainerRef.current;
+
+      if (!container || assetTabs.length === 0) {
+        setHiddenTabs([]);
+        return;
+      }
+
+      // Find MUI's internal scroll container (the div with overflow-x: auto)
+      // MUI Tabs with variant="scrollable" creates a scroll container with class MuiTabs-scrollableX
+      const scrollContainer = container.querySelector<HTMLElement>('.MuiTabs-scrollableX')
+        || container.querySelector<HTMLElement>('[class*="scrollable"]');
+
+      if (!scrollContainer) {
+        // If scroll container not found, assume all visible
+        setHiddenTabs([]);
+        return;
+      }
+
+      const scrollContainerRect = scrollContainer.getBoundingClientRect();
+
+      // Account for dropdown button width (approximately 48px + padding)
+      const dropdownButtonSpace = 64;
+      const visibleRight = scrollContainerRect.width - dropdownButtonSpace;
+
+      const hidden: string[] = [];
+
+      // Check each tab to see if it's partially hidden
+      for (const tabName of assetTabs) {
+        const tabElement = tabRefs.current.get(tabName);
+
+        if (tabElement) {
+          const tabRect = tabElement.getBoundingClientRect();
+
+          // Calculate position relative to scroll container
+          const tabLeft = tabRect.left - scrollContainerRect.left;
+          const tabRight = tabLeft + tabRect.width;
+
+          // Tab is considered partially hidden if its right edge extends beyond visible area
+          // or its left edge is before the visible area starts
+          if (tabRight > visibleRight || tabLeft < 0) {
+            hidden.push(tabName);
+          }
+        }
+      }
+
+      setHiddenTabs(hidden);
+    };
+
+    // Initial calculation with a small delay to ensure DOM is ready
+    const timeoutId = setTimeout(calculatePartiallyHiddenTabs, 100);
+
+    // Add resize observer
+    const resizeObserver = new ResizeObserver(() => {
+      calculatePartiallyHiddenTabs();
+    });
+
+    if (tabsContainerRef.current) {
+      resizeObserver.observe(tabsContainerRef.current);
+    }
+
+    // Find and observe the scroll container
+    let scrollContainer: HTMLElement | null = null;
+    let resizeTimeoutId: NodeJS.Timeout | null = null;
+
+    const handleResize = () => {
+      if (resizeTimeoutId) {
+        clearTimeout(resizeTimeoutId);
+      }
+      resizeTimeoutId = setTimeout(calculatePartiallyHiddenTabs, 100);
+    };
+
+    const scrollContainerTimeout = setTimeout(() => {
+      const container = tabsContainerRef.current;
+      if (!container) {
+        return;
+      }
+
+      scrollContainer = container.querySelector<HTMLElement>('.MuiTabs-scrollableX')
+        || container.querySelector<HTMLElement>('[class*="scrollable"]');
+
+      if (scrollContainer) {
+        resizeObserver.observe(scrollContainer);
+        scrollContainer.addEventListener('scroll', calculatePartiallyHiddenTabs);
+      }
+    }, 150);
+
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      clearTimeout(timeoutId);
+      clearTimeout(scrollContainerTimeout);
+      if (resizeTimeoutId) {
+        clearTimeout(resizeTimeoutId);
+      }
+      window.removeEventListener('resize', handleResize);
+      resizeObserver.disconnect();
+      if (scrollContainer) {
+        scrollContainer.removeEventListener('scroll', calculatePartiallyHiddenTabs);
+      }
+    };
+  }, [assetTabs, remainingTabs.length]);
 
   // Modifier to restrict movement to horizontal axis only
   const restrictToHorizontalAxis: Modifier = ({ transform }) => {
@@ -327,6 +456,77 @@ export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
   const handleTabChange = (_event: React.SyntheticEvent | null, newValue: number) => {
     setCurrentTab(newValue);
   };
+
+  const handleMenuOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setMenuAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setMenuAnchorEl(null);
+  };
+
+  const handleMenuTabClick = (tabName: string) => {
+    const index = assetTabs.indexOf(tabName);
+    if (index !== -1) {
+      setCurrentTab(index);
+
+      // Scroll the tab into view
+      setTimeout(() => {
+        const container = tabsContainerRef.current;
+        const tabElement = tabRefs.current.get(tabName);
+
+        if (!container || !tabElement) {
+          return;
+        }
+
+        // Find MUI's internal scroll container
+        const scrollContainer = container.querySelector<HTMLElement>('.MuiTabs-scrollableX')
+          || container.querySelector<HTMLElement>('[class*="scrollable"]');
+
+        if (scrollContainer) {
+          const containerRect = scrollContainer.getBoundingClientRect();
+          const tabRect = tabElement.getBoundingClientRect();
+
+          // Calculate scroll position needed to make tab fully visible
+          const scrollLeft = scrollContainer.scrollLeft;
+          const containerLeft = containerRect.left;
+          const tabLeftRelativeToContainer = tabRect.left - containerLeft + scrollLeft;
+          const tabRightRelativeToContainer = tabLeftRelativeToContainer + tabRect.width;
+
+          // Account for dropdown button space
+          const dropdownButtonSpace = 64;
+          const visibleRight = containerRect.width - dropdownButtonSpace;
+
+          let newScrollLeft = scrollLeft;
+
+          // If tab is too far right, scroll it into view
+          if (tabRightRelativeToContainer > visibleRight) {
+            newScrollLeft = tabLeftRelativeToContainer - (containerRect.width - tabRect.width - dropdownButtonSpace);
+          } else if (tabLeftRelativeToContainer < 0) {
+            // If tab is too far left, scroll it into view
+            newScrollLeft = tabLeftRelativeToContainer;
+          }
+
+          // Ensure scroll position is within bounds
+          newScrollLeft = Math.max(0, Math.min(newScrollLeft, scrollContainer.scrollWidth - containerRect.width));
+
+          scrollContainer.scrollTo({
+            left: newScrollLeft,
+            behavior: 'smooth',
+          });
+        }
+      }, 50);
+    }
+    handleMenuClose();
+  };
+
+  const menuOpen = Boolean(menuAnchorEl);
+
+  // Show dropdown button on mobile when there are hidden tabs OR remaining tabs to add
+  const showDropdownButton = isMobile && (hiddenTabs.length > 0 || remainingTabs.length > 0);
+
+  // Show original Add Tab button on desktop when there are remaining tabs
+  const showAddTabButton = !isMobile && remainingTabs.length > 0;
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
@@ -566,7 +766,10 @@ export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
 
   return (
     <Box>
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3, display: 'flex', alignItems: 'center' }}>
+      <Box
+        ref={tabsContainerRef}
+        sx={{ borderBottom: 1, borderColor: 'divider', mb: 3, display: 'flex', alignItems: 'center', position: 'relative' }}
+      >
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -601,12 +804,35 @@ export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
                   isDraggable={tabName !== 'overview'}
                   handleTabClick={() => handleTabChange(null, assetTabs.indexOf(tabName))}
                   onRemoveTab={tabName !== 'overview' ? () => handleRemoveTab(tabName) : undefined}
+                  tabRef={(element) => {
+                    if (element) {
+                      tabRefs.current.set(tabName, element);
+                    } else {
+                      tabRefs.current.delete(tabName);
+                    }
+                  }}
                 />
               ))}
             </Tabs>
           </SortableContext>
         </DndContext>
-        {remainingTabs.length > 0 && (
+        {showDropdownButton && (
+          <IconButton
+            ref={dropdownButtonRef}
+            size="small"
+            onClick={handleMenuOpen}
+            sx={{
+              'ml': 1,
+              'color': theme.palette.mode === 'dark' ? 'text.secondary' : 'grey.600',
+              '&:hover': {
+                backgroundColor: 'action.hover',
+              },
+            }}
+          >
+            <MoreHorizIcon sx={{ fontSize: 20 }} />
+          </IconButton>
+        )}
+        {showAddTabButton && (
           <Button
             size="small"
             onClick={() => setAddTabDialogOpen(true)}
@@ -643,6 +869,52 @@ export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
           </Button>
         )}
       </Box>
+
+      {/* Dropdown Menu */}
+      <Menu
+        anchorEl={menuAnchorEl}
+        open={menuOpen}
+        onClose={handleMenuClose}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'right',
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'right',
+        }}
+      >
+        {/* Hidden tabs */}
+        {hiddenTabs.map(tabName => (
+          <MenuItem
+            key={tabName}
+            onClick={() => handleMenuTabClick(tabName)}
+            selected={assetTabs[currentTab] === tabName}
+          >
+            <ListItemIcon sx={{ minWidth: 40 }}>
+              {getTabIcon(tabName, { fontSize: 20 })}
+            </ListItemIcon>
+            <ListItemText primary={t(`tabs_${tabName}` as any)} />
+          </MenuItem>
+        ))}
+
+        {/* Divider if both hidden tabs and remaining tabs exist */}
+        {hiddenTabs.length > 0 && remainingTabs.length > 0 && <Divider />}
+
+        {/* Add Tab option */}
+        {remainingTabs.length > 0 && (
+          <MenuItem onClick={() => {
+            handleMenuClose();
+            setAddTabDialogOpen(true);
+          }}
+          >
+            <ListItemIcon sx={{ minWidth: 40 }}>
+              <AddIcon sx={{ fontSize: 20 }} />
+            </ListItemIcon>
+            <ListItemText primary={t('add_tab')} />
+          </MenuItem>
+        )}
+      </Menu>
 
       <Box>
         {assetTabs.map((tabName, index) => (
