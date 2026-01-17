@@ -1,12 +1,13 @@
 'use client';
 
-import CheckIcon from '@mui/icons-material/CheckCircle';
-import WarningIcon from '@mui/icons-material/Warning';
-import { Box, Chip, Fade, Typography } from '@mui/material';
+import { Box, Fade, Typography } from '@mui/material';
 import { format } from 'date-fns';
 import Link from 'next/link';
 import { TransitionGroup } from 'react-transition-group';
 import { AssetActions } from '@/components/Assets/AssetActions';
+import { MotChip } from '@/components/Assets/MotChip';
+import { TaxChip } from '@/components/Assets/TaxChip';
+import { formatVehicleInfo } from '@/components/Assets/utils';
 import { RegistrationPlate } from '@/components/common/RegistrationPlate';
 import { useHoverSound } from '@/hooks/useHoverSound';
 
@@ -73,88 +74,6 @@ const pluralizeType = (type: string): string => {
     custom: 'customs',
   };
   return pluralMap[type] || `${type}s`;
-};
-
-// Helper function to format vehicle info string (year, color, mileage)
-const formatVehicleInfo = (asset: Asset): string | null => {
-  if (asset.type !== 'vehicle') {
-    return null;
-  }
-
-  const metadata = asset.metadata || {};
-  const specs = metadata.specs || {};
-  const motData = metadata.mot || {};
-
-  const year = specs.year || specs.yearOfManufacture;
-  const color = specs.color || specs.colour;
-
-  // Get mileage from latest MOT test first, fallback to specs.mileage
-  const latestMotTest = motData.motTests?.[0];
-  const mileageFromMot = latestMotTest?.odometerValue;
-  const mileage = mileageFromMot ?? specs.mileage;
-
-  const parts: string[] = [];
-
-  if (year) {
-    parts.push(year.toString());
-  }
-  if (color) {
-    parts.push(color.toString());
-  }
-  if (mileage) {
-    const mileageNum = typeof mileage === 'number' ? mileage : Number.parseFloat(mileage.toString().replace(/[^0-9.]/g, ''));
-    if (!Number.isNaN(mileageNum)) {
-      parts.push(`${mileageNum.toLocaleString('en-US')}mi`);
-    }
-  }
-
-  return parts.length > 0 ? parts.join(', ') : null;
-};
-
-// Helper function to get MOT status and expiry
-const getMotStatus = (asset: Asset): { isValid: boolean; expiryDate: string | null } => {
-  if (asset.type !== 'vehicle') {
-    return { isValid: false, expiryDate: null };
-  }
-
-  const metadata = asset.metadata || {};
-  const maintenance = metadata.maintenance || {};
-  const motData = metadata.mot || {};
-
-  const latestMotTest = motData.motTests?.[0];
-  const motExpires = maintenance.mot?.expires || latestMotTest?.expiryDate || motData.motExpiryDate;
-
-  let isValid = false;
-  if (latestMotTest?.testResult === 'PASS') {
-    isValid = true;
-  } else if (motExpires) {
-    isValid = new Date(motExpires) > new Date();
-  }
-
-  return { isValid, expiryDate: motExpires || null };
-};
-
-// Helper function to get TAX status and expiry
-const getTaxStatus = (asset: Asset): { isValid: boolean; expiryDate: string | null } => {
-  if (asset.type !== 'vehicle') {
-    return { isValid: false, expiryDate: null };
-  }
-
-  const metadata = asset.metadata || {};
-  const maintenance = metadata.maintenance || {};
-  const dvlaData = metadata.dvla || {};
-
-  const taxExpires = maintenance.tax?.expires || dvlaData.taxDueDate;
-  const taxStatus = dvlaData.taxStatus;
-
-  let isValid = false;
-  if (taxStatus === 'Taxed') {
-    isValid = true;
-  } else if (taxExpires) {
-    isValid = new Date(taxExpires) > new Date();
-  }
-
-  return { isValid, expiryDate: taxExpires || null };
 };
 
 export function AssetFolderView({ assets, locale, cardSize, onAssetDeleted }: AssetFolderViewProps) {
@@ -352,87 +271,8 @@ export function AssetFolderView({ assets, locale, cardSize, onAssetDeleted }: As
                     {asset.type === 'vehicle' && (
                       <Fade in={true}>
                         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexGrow: 1 }}>
-                          {(() => {
-                            const motStatus = getMotStatus(asset);
-
-                            return (
-                              <Chip
-                                variant="outlined"
-                                label={(
-                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                    <Typography
-                                      variant="caption"
-                                      sx={{
-                                        fontSize: cardSize === 'small' ? '0.625rem' : '0.75rem',
-                                        color: motStatus.isValid ? 'success.dark' : 'warning.dark',
-                                      }}
-                                    >
-                                      MOT
-                                    </Typography>
-
-                                    {motStatus.isValid && cardSize !== 'small' && (
-                                      <CheckIcon sx={{ color: 'success.main', fontSize: 'medium' }} />
-                                    )}
-                                    {!motStatus.isValid && cardSize !== 'small' && (
-                                      <WarningIcon sx={{ color: 'warning.main', fontSize: 'medium' }} />
-                                    )}
-                                  </Box>
-                                )}
-                                size="small"
-                                sx={{
-                                  'flexGrow': cardSize === 'small' ? 1 : undefined,
-                                  'backgroundColor': motStatus.isValid ? 'rgba(0, 255, 0, 0.1)' : 'rgba(255, 255, 0, 0.1)',
-                                  'borderRadius': '4px',
-                                  'borderColor': motStatus.isValid ? 'success.main' : 'warning.main',
-                                  'height': cardSize === 'small' ? '18px' : '24px',
-                                  '& .MuiChip-label': {
-                                    px: cardSize === 'small' ? 1 : 1.5,
-                                    py: cardSize === 'small' ? 0 : 0.5,
-                                  },
-                                }}
-                              />
-                            );
-                          })()}
-                          {(() => {
-                            const taxStatus = getTaxStatus(asset);
-
-                            return (
-                              <Chip
-                                variant="outlined"
-                                label={(
-                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                    <Typography
-                                      variant="caption"
-                                      sx={{
-                                        fontSize: cardSize === 'small' ? '0.625rem' : '0.75rem',
-                                        color: taxStatus.isValid ? 'success.dark' : 'warning.dark',
-                                      }}
-                                    >
-                                      TAX
-                                    </Typography>
-                                    {taxStatus.isValid && cardSize !== 'small' && (
-                                      <CheckIcon sx={{ color: 'success.main', fontSize: 'medium' }} />
-                                    )}
-                                    {!taxStatus.isValid && cardSize !== 'small' && (
-                                      <WarningIcon sx={{ color: 'warning.main', fontSize: 'medium' }} />
-                                    )}
-                                  </Box>
-                                )}
-                                size="small"
-                                sx={{
-                                  'flexGrow': cardSize === 'small' ? 1 : undefined,
-                                  'backgroundColor': taxStatus.isValid ? 'rgba(0, 255, 0, 0.1)' : 'rgba(255, 255, 0, 0.1)',
-                                  'borderRadius': '4px',
-                                  'borderColor': taxStatus.isValid ? 'success.main' : 'warning.main',
-                                  'height': cardSize === 'small' ? '18px' : '24px',
-                                  '& .MuiChip-label': {
-                                    px: cardSize === 'small' ? 1 : 1.5,
-                                    py: cardSize === 'small' ? 0 : 0.5,
-                                  },
-                                }}
-                              />
-                            );
-                          })()}
+                          <MotChip asset={asset} size={cardSize === 'small' ? 'small' : 'medium'} />
+                          <TaxChip asset={asset} size={cardSize === 'small' ? 'small' : 'medium'} />
                         </Box>
                       </Fade>
                     )}
