@@ -1,59 +1,18 @@
 'use client';
 
+import type { Asset } from '@/components/Assets/utils';
+import { getMotStatus, getStatusColors, getStatusTooltipText } from '@/components/Assets/utils';
+import CancelIcon from '@mui/icons-material/Cancel';
 import CheckIcon from '@mui/icons-material/CheckCircle';
 import WarningIcon from '@mui/icons-material/Warning';
-import { Box, Chip, Typography } from '@mui/material';
-import { getMotStatus } from '@/components/Assets/utils';
+import { Box, Chip, ChipProps, Tooltip, Typography } from '@mui/material';
 
-type Asset = {
-  id: number;
-  name: string | null;
-  description: string;
-  color: string;
-  status: string;
-  type: string;
-  createdAt: Date;
-  updatedAt: Date;
-  registrationNumber?: string | null;
-  metadata?: {
-    specs?: {
-      registration?: string;
-      year?: string;
-      yearOfManufacture?: string;
-      color?: string;
-      colour?: string;
-      mileage?: string | number;
-    };
-    maintenance?: {
-      mot?: {
-        expires?: string;
-      };
-      tax?: {
-        expires?: string;
-      };
-    };
-    mot?: {
-      motTests?: Array<{
-        testResult?: string;
-        expiryDate?: string;
-        odometerValue?: number;
-        odometerUnit?: string;
-      }>;
-      motExpiryDate?: string;
-    };
-    dvla?: {
-      taxStatus?: string;
-      taxDueDate?: string;
-    };
-  } | null;
-};
-
-type MotChipProps = {
+type MotChipProps = ChipProps & {
   asset: Asset;
   size?: 'small' | 'medium' | 'large';
 };
 
-export function MotChip({ asset, size = 'medium' }: MotChipProps) {
+export function MotChip({ asset, size = 'medium', ...props }: MotChipProps) {
   const motStatus = getMotStatus(asset);
 
   const showIcons = size !== 'small';
@@ -62,8 +21,28 @@ export function MotChip({ asset, size = 'medium' }: MotChipProps) {
   const paddingX = size === 'small' ? 1 : 1.5;
   const paddingY = size === 'small' ? 0 : 0.5;
 
-  return (
+  // Determine status and colors
+  const isExpired = motStatus.isExpired;
+  const isExpiringSoon = motStatus.isExpiringSoon;
+  const colors = getStatusColors(isExpired, isExpiringSoon);
+
+  // Determine icon
+  const getIcon = () => {
+    if (!showIcons) {
+      return null;
+    }
+    if (isExpired) {
+      return <CancelIcon sx={{ color: colors.iconColor, fontSize: 'medium' }} />;
+    }
+    if (isExpiringSoon) {
+      return <WarningIcon sx={{ color: colors.iconColor, fontSize: 'medium' }} />;
+    }
+    return <CheckIcon sx={{ color: colors.iconColor, fontSize: 'medium' }} />;
+  };
+
+  const chip = (
     <Chip
+      {...props}
       variant="outlined"
       label={(
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -71,25 +50,19 @@ export function MotChip({ asset, size = 'medium' }: MotChipProps) {
             variant="caption"
             sx={{
               fontSize,
-              color: motStatus.isValid ? 'success.dark' : 'warning.dark',
+              color: colors.textColor,
             }}
           >
             MOT
           </Typography>
-
-          {showIcons && motStatus.isValid && (
-            <CheckIcon sx={{ color: 'success.main', fontSize: 'medium' }} />
-          )}
-          {showIcons && !motStatus.isValid && (
-            <WarningIcon sx={{ color: 'warning.main', fontSize: 'medium' }} />
-          )}
+          {getIcon()}
         </Box>
       )}
       size="small"
       sx={{
-        'backgroundColor': motStatus.isValid ? 'rgba(0, 255, 0, 0.1)' : 'rgba(255, 255, 0, 0.1)',
+        'backgroundColor': colors.backgroundColor,
         'borderRadius': '4px',
-        'borderColor': motStatus.isValid ? 'success.main' : 'warning.main',
+        'borderColor': colors.borderColor,
         height,
         '& .MuiChip-label': {
           px: paddingX,
@@ -98,4 +71,15 @@ export function MotChip({ asset, size = 'medium' }: MotChipProps) {
       }}
     />
   );
+
+  const tooltipText = getStatusTooltipText(motStatus.expiryDate, isExpired);
+  if (tooltipText) {
+    return (
+      <Tooltip title={tooltipText}>
+        {chip}
+      </Tooltip>
+    );
+  }
+
+  return chip;
 }

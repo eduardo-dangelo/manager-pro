@@ -1,4 +1,6 @@
-type Asset = {
+import moment from 'moment';
+
+export type Asset = {
   id: number;
   name: string | null;
   description: string;
@@ -78,9 +80,9 @@ export function formatVehicleInfo(asset: Asset): string | null {
 }
 
 // Helper function to get MOT status and expiry
-export function getMotStatus(asset: Asset): { isValid: boolean; expiryDate: string | null } {
+export function getMotStatus(asset: Asset): { isValid: boolean; expiryDate: string | null; isExpired: boolean; isExpiringSoon: boolean } {
   if (asset.type !== 'vehicle') {
-    return { isValid: false, expiryDate: null };
+    return { isValid: false, expiryDate: null, isExpired: false, isExpiringSoon: false };
   }
 
   const metadata = asset.metadata || {};
@@ -91,19 +93,28 @@ export function getMotStatus(asset: Asset): { isValid: boolean; expiryDate: stri
   const motExpires = maintenance.mot?.expires || latestMotTest?.expiryDate || motData.motExpiryDate;
 
   let isValid = false;
+  let isExpired = false;
+  let isExpiringSoon = false;
+
   if (latestMotTest?.testResult === 'PASS') {
     isValid = true;
   } else if (motExpires) {
-    isValid = new Date(motExpires) > new Date();
+    const expiryDate = new Date(motExpires);
+    const now = new Date();
+    const daysUntilExpiry = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+    isExpired = expiryDate < now;
+    isExpiringSoon = !isExpired && daysUntilExpiry <= 30;
+    isValid = !isExpired && daysUntilExpiry > 30;
   }
 
-  return { isValid, expiryDate: motExpires || null };
+  return { isValid, expiryDate: motExpires || null, isExpired, isExpiringSoon };
 }
 
 // Helper function to get TAX status and expiry
-export function getTaxStatus(asset: Asset): { isValid: boolean; expiryDate: string | null } {
+export function getTaxStatus(asset: Asset): { isValid: boolean; expiryDate: string | null; isExpired: boolean; isExpiringSoon: boolean } {
   if (asset.type !== 'vehicle') {
-    return { isValid: false, expiryDate: null };
+    return { isValid: false, expiryDate: null, isExpired: false, isExpiringSoon: false };
   }
 
   const metadata = asset.metadata || {};
@@ -114,11 +125,65 @@ export function getTaxStatus(asset: Asset): { isValid: boolean; expiryDate: stri
   const taxStatus = dvlaData.taxStatus;
 
   let isValid = false;
-  if (taxStatus === 'Taxed') {
+  let isExpired = false;
+  let isExpiringSoon = false;
+
+  if (taxExpires) {
+    const expiryDate = new Date(taxExpires);
+    const now = new Date();
+    const daysUntilExpiry = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+    isExpired = expiryDate < now;
+    isExpiringSoon = !isExpired && daysUntilExpiry <= 30;
+    isValid = !isExpired && daysUntilExpiry > 30;
+  } else if (taxStatus === 'Taxed') {
+    // If no expiry date but status is 'Taxed', consider it valid
     isValid = true;
-  } else if (taxExpires) {
-    isValid = new Date(taxExpires) > new Date();
   }
 
-  return { isValid, expiryDate: taxExpires || null };
+  return { isValid, expiryDate: taxExpires || null, isExpired, isExpiringSoon };
+}
+
+// Helper function to get status colors based on expiry state
+export function getStatusColors(isExpired: boolean, isExpiringSoon: boolean): {
+  backgroundColor: string;
+  borderColor: string;
+  textColor: string;
+  iconColor: string;
+} {
+  if (isExpired) {
+    return {
+      backgroundColor: 'rgba(255, 0, 0, 0.1)',
+      borderColor: 'error.main',
+      textColor: 'error.dark',
+      iconColor: 'error.main',
+    };
+  }
+  if (isExpiringSoon) {
+    return {
+      backgroundColor: 'rgba(255, 255, 0, 0.1)',
+      borderColor: 'warning.main',
+      textColor: 'warning.dark',
+      iconColor: 'warning.main',
+    };
+  }
+  return {
+    backgroundColor: 'rgba(0, 255, 0, 0.1)',
+    borderColor: 'success.main',
+    textColor: 'success.dark',
+    iconColor: 'success.main',
+  };
+}
+
+// Helper function to get tooltip text for status chips
+export function getStatusTooltipText(expiryDate: string | null, isExpired: boolean): string | null {
+  if (!expiryDate) {
+    return null;
+  }
+
+  const formattedDate = moment(expiryDate).format('D MMM YYYY');
+
+  return isExpired
+    ? `Expired on ${formattedDate}`
+    : `Valid until ${formattedDate}`;
 }

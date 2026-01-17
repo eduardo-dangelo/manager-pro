@@ -1,59 +1,19 @@
 'use client';
 
+import type { ChipProps } from '@mui/material';
+import type { Asset } from '@/components/Assets/utils';
+import CancelIcon from '@mui/icons-material/Cancel';
 import CheckIcon from '@mui/icons-material/CheckCircle';
 import WarningIcon from '@mui/icons-material/Warning';
-import { Box, Chip, Typography } from '@mui/material';
-import { getTaxStatus } from '@/components/Assets/utils';
+import { Box, Chip, Tooltip, Typography } from '@mui/material';
+import { getStatusColors, getStatusTooltipText, getTaxStatus } from '@/components/Assets/utils';
 
-type Asset = {
-  id: number;
-  name: string | null;
-  description: string;
-  color: string;
-  status: string;
-  type: string;
-  createdAt: Date;
-  updatedAt: Date;
-  registrationNumber?: string | null;
-  metadata?: {
-    specs?: {
-      registration?: string;
-      year?: string;
-      yearOfManufacture?: string;
-      color?: string;
-      colour?: string;
-      mileage?: string | number;
-    };
-    maintenance?: {
-      mot?: {
-        expires?: string;
-      };
-      tax?: {
-        expires?: string;
-      };
-    };
-    mot?: {
-      motTests?: Array<{
-        testResult?: string;
-        expiryDate?: string;
-        odometerValue?: number;
-        odometerUnit?: string;
-      }>;
-      motExpiryDate?: string;
-    };
-    dvla?: {
-      taxStatus?: string;
-      taxDueDate?: string;
-    };
-  } | null;
-};
-
-type TaxChipProps = {
+type TaxChipProps = ChipProps & {
   asset: Asset;
   size?: 'small' | 'medium' | 'large';
 };
 
-export function TaxChip({ asset, size = 'medium' }: TaxChipProps) {
+export function TaxChip({ asset, size = 'medium', ...props }: TaxChipProps) {
   const taxStatus = getTaxStatus(asset);
 
   const showIcons = size !== 'small';
@@ -62,8 +22,28 @@ export function TaxChip({ asset, size = 'medium' }: TaxChipProps) {
   const paddingX = size === 'small' ? 1 : 1.5;
   const paddingY = size === 'small' ? 0 : 0.5;
 
-  return (
+  // Determine status and colors
+  const isExpired = taxStatus.isExpired;
+  const isExpiringSoon = taxStatus.isExpiringSoon;
+  const colors = getStatusColors(isExpired, isExpiringSoon);
+
+  // Determine icon
+  const getIcon = () => {
+    if (!showIcons) {
+      return null;
+    }
+    if (isExpired) {
+      return <CancelIcon sx={{ color: colors.iconColor, fontSize: 'medium' }} />;
+    }
+    if (isExpiringSoon) {
+      return <WarningIcon sx={{ color: colors.iconColor, fontSize: 'medium' }} />;
+    }
+    return <CheckIcon sx={{ color: colors.iconColor, fontSize: 'medium' }} />;
+  };
+
+  const chip = (
     <Chip
+      {...props}
       variant="outlined"
       label={(
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -71,24 +51,19 @@ export function TaxChip({ asset, size = 'medium' }: TaxChipProps) {
             variant="caption"
             sx={{
               fontSize,
-              color: taxStatus.isValid ? 'success.dark' : 'warning.dark',
+              color: colors.textColor,
             }}
           >
             TAX
           </Typography>
-          {showIcons && taxStatus.isValid && (
-            <CheckIcon sx={{ color: 'success.main', fontSize: 'medium' }} />
-          )}
-          {showIcons && !taxStatus.isValid && (
-            <WarningIcon sx={{ color: 'warning.main', fontSize: 'medium' }} />
-          )}
+          {getIcon()}
         </Box>
       )}
       size="small"
       sx={{
-        'backgroundColor': taxStatus.isValid ? 'rgba(0, 255, 0, 0.1)' : 'rgba(255, 255, 0, 0.1)',
+        'backgroundColor': colors.backgroundColor,
         'borderRadius': '4px',
-        'borderColor': taxStatus.isValid ? 'success.main' : 'warning.main',
+        'borderColor': colors.borderColor,
         height,
         '& .MuiChip-label': {
           px: paddingX,
@@ -97,4 +72,15 @@ export function TaxChip({ asset, size = 'medium' }: TaxChipProps) {
       }}
     />
   );
+
+  const tooltipText = getStatusTooltipText(taxStatus.expiryDate, isExpired);
+  if (tooltipText) {
+    return (
+      <Tooltip title={tooltipText}>
+        {chip}
+      </Tooltip>
+    );
+  }
+
+  return chip;
 }
