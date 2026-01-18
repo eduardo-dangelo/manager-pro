@@ -1,16 +1,25 @@
 'use client';
 
 import {
+  AccountCircleOutlined as AccountCircleIcon,
+  BadgeOutlined as BadgeIcon,
+  BarChartOutlined as BarChartIcon,
+  BuildOutlined as BuildIcon,
+  CakeOutlined as CakeIcon,
+  CalendarTodayOutlined as CalendarTodayIcon,
+  ColorLensOutlined as ColorLensIcon,
   ContentCopy as ContentCopyIcon,
+  DirectionsCarOutlined as DirectionsCarIcon,
   Edit as EditIcon,
+  LocalGasStationOutlined as LocalGasStationIcon,
   Search as SearchIcon,
+  TimelineOutlined as TimelineIcon,
 } from '@mui/icons-material';
 import {
   Box,
   Button,
   ButtonGroup,
   CircularProgress,
-  Collapse,
   Dialog,
   DialogActions,
   DialogContent,
@@ -22,6 +31,7 @@ import {
 } from '@mui/material';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import { formatEngineSize, formatMileage } from '@/components/Assets/utils';
 import { Card } from '@/components/common/Card';
 import { DropdownButton } from '@/components/common/DropdownButton';
 import { RegistrationPlate } from '@/components/common/RegistrationPlate';
@@ -47,7 +57,6 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
   const t = useTranslations('Assets');
   const { playHoverSound } = useHoverSound();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [showMore, setShowMore] = useState(false);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [copiedItem, setCopiedItem] = useState<string | null>(null);
   const [copiedAll, setCopiedAll] = useState(false);
@@ -342,29 +351,101 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
   const specs = metadata.specs || {};
   const hasData = specs && Object.keys(specs).length > 0 && Object.values(specs).some(v => v !== '' && v !== null && v !== undefined);
 
+  // Get mileage from latest MOT test, fallback to specs.mileage
+  const getMileage = (): number | null => {
+    const latestMotTest = motData?.motTests?.[0];
+    const mileageFromMot = latestMotTest?.odometerValue;
+    if (mileageFromMot !== null && mileageFromMot !== undefined) {
+      return mileageFromMot;
+    }
+
+    // Fallback to specs.mileage
+    const mileage = specs.mileage;
+    if (!mileage) {
+      return null;
+    }
+    const mileageNum = typeof mileage === 'number' ? mileage : Number.parseFloat(mileage.toString().replace(/[^0-9.]/g, ''));
+    if (Number.isNaN(mileageNum)) {
+      return null;
+    }
+    return mileageNum;
+  };
+
+  // Calculate age from year
+  const calculateAge = (): number | null => {
+    if (!specs.year) {
+      return null;
+    }
+    const year = typeof specs.year === 'number' ? specs.year : Number.parseInt(specs.year.toString(), 10);
+    if (Number.isNaN(year)) {
+      return null;
+    }
+    const currentYear = new Date().getFullYear();
+    return Math.max(0, currentYear - year);
+  };
+
+  // Calculate yearly mileage - calculate from total mileage / age
+  const calculateYearMileage = (): number | null => {
+    const totalMileage = getMileage();
+    if (!totalMileage) {
+      return null;
+    }
+
+    const age = calculateAge();
+    if (!age || age === 0) {
+      return null;
+    }
+
+    return Math.round(totalMileage / age);
+  };
+
+  const age = calculateAge();
+  const mileage = getMileage();
+  const yearMileage = calculateYearMileage();
+
+  // Helper function to get icon for each spec item
+  const getSpecIcon = (key: string) => {
+    const iconProps = { sx: { fontSize: 24, color: 'text.secondary' } };
+    switch (key) {
+      case 'registration':
+        return <BadgeIcon {...iconProps} />;
+      case 'make':
+        return <AccountCircleIcon {...iconProps} />;
+      case 'model':
+        return <DirectionsCarIcon {...iconProps} />;
+      case 'year':
+        return <CalendarTodayIcon {...iconProps} />;
+      case 'age':
+        return <CakeIcon {...iconProps} />;
+      case 'color':
+        return <ColorLensIcon {...iconProps} />;
+      case 'fuel':
+        return <LocalGasStationIcon {...iconProps} />;
+      case 'mileage':
+        return <BarChartIcon {...iconProps} />;
+      case 'yearMileage':
+        return <TimelineIcon {...iconProps} />;
+      case 'engineSize':
+        return <BuildIcon {...iconProps} />;
+      default:
+        return null;
+    }
+  };
+
   // Create array of spec items
   const specItems = [
-    { key: 'registration', label: t('vehicle_registration'), value: specs.registration, format: (v: any) => v },
     { key: 'make', label: t('vehicle_make'), value: specs.make, format: (v: any) => v },
     { key: 'model', label: t('vehicle_model'), value: specs.model, format: (v: any) => v },
+    { key: 'age', label: 'Age', value: age, format: (v: any) => v ? `${v} yrs` : v },
     { key: 'year', label: t('vehicle_year'), value: specs.year, format: (v: any) => v },
-    { key: 'color', label: t('vehicle_color'), value: specs.color, format: (v: any) => v },
+    { key: 'registration', label: t('vehicle_registration'), value: specs.registration, format: (v: any) => v },
     { key: 'fuel', label: t('vehicle_fuel'), value: specs.fuel, format: (v: any) => v },
-    { key: 'engineNumber', label: t('vehicle_engine_number'), value: specs.engineNumber, format: (v: any) => v },
-    { key: 'driveTrain', label: t('vehicle_drive_train'), value: specs.driveTrain, format: (v: any) => v },
-    { key: 'transmission', label: t('vehicle_transmission'), value: specs.transmission, format: (v: any) => v },
-    { key: 'weight', label: t('vehicle_weight'), value: specs.weight, format: (v: any) => `${v} ${t('kg')}` },
-    { key: 'seats', label: t('vehicle_seats'), value: specs.seats, format: (v: any) => v },
-    { key: 'mileage', label: t('vehicle_mileage'), value: specs.mileage, format: (v: any) => `${typeof v === 'number' ? v.toLocaleString() : v} ${t('miles')}` },
-    { key: 'vin', label: t('vehicle_vin'), value: specs.vin, format: (v: any) => v },
-    { key: 'engineSize', label: t('vehicle_engine_size'), value: specs.engineSize, format: (v: any) => v },
-    { key: 'cost', label: t('vehicle_cost'), value: specs.cost, format: (v: any) => v },
-  ].filter(item => item.value !== '' && item.value !== null && item.value !== undefined);
-
-  const maxVisible = 10; // 3 items per column * 2 columns
-  const visibleItems = specItems.slice(0, maxVisible);
-  const hiddenItems = specItems.slice(maxVisible);
-  const hasHiddenItems = hiddenItems.length > 0;
+    { key: 'color', label: t('vehicle_color'), value: specs.color, format: (v: any) => v },
+    { key: 'mileage', label: t('vehicle_mileage'), value: mileage, format: (v: any) => formatMileage(v) || v },
+    { key: 'yearMileage', label: 'Yearly Mileage', value: yearMileage, format: (v: any) => formatMileage(v) || v },
+    { key: 'engineSize', label: t('vehicle_engine_size'), value: specs.engineSize, format: (v: any) => formatEngineSize(v) || v },
+  ];
+  // .filter(item => item.value !== '' && item.value !== null && item.value !== undefined);
 
   const handleCopy = async (text: string, itemKey: string) => {
     try {
@@ -380,8 +461,7 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
 
   const handleCopyAll = async () => {
     try {
-      const allItems = [...visibleItems, ...hiddenItems];
-      const formattedText = allItems.map(item => `${item.label}: ${item.format(item.value)}`).join('\n\n');
+      const formattedText = specItems.map(item => `${item.label}: ${item.format(item.value)}`).join('\n\n');
       await navigator.clipboard.writeText(formattedText);
       setCopiedAll(true);
       setTimeout(() => {
@@ -450,13 +530,14 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
                 }}
               >
                 <Typography
-                  variant="subtitle1"
+                  variant="h6"
                   sx={{
-                    fontWeight: 500,
+                    fontWeight: 600,
                     color: 'text.primary',
+                    fontSize: '1.25rem',
                   }}
                 >
-                  {t('vehicle_specs_title')}
+                  Specs
                 </Typography>
                 <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                   <Fade in={copiedAll} mountOnEnter unmountOnExit>
@@ -482,13 +563,16 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
               </Box>
 
               <Box sx={{ display: 'flex', flexWrap: 'wrap' }}>
-                {visibleItems.map(item => (
-                  <Box key={item.key} sx={{ width: { xs: '100%', md: '50%' } }}>
-                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'baseline', mb: 0.5 }}>
-                      <Typography variant="caption" sx={{ color: 'text.secondary', minWidth: 130, flexShrink: 0 }}>
-                        {item.label}
-                        :
-                      </Typography>
+                {specItems.map(item => (
+                  <Box key={item.key} sx={{ width: { xs: '100%', sm: '50%' }, py: 0.5 }}>
+                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 0 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 130, flexShrink: 0 }}>
+                        {getSpecIcon(item.key)}
+                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                          {item.label}
+                          :
+                        </Typography>
+                      </Box>
                       <Box
                         sx={{
                           display: 'flex',
@@ -553,93 +637,6 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
                   </Box>
                 ))}
               </Box>
-
-              {hasHiddenItems && (
-                <>
-                  <Collapse in={showMore}>
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', mt: 1 }}>
-                      {hiddenItems.map(item => (
-                        <Box key={item.key} sx={{ width: { xs: '100%', md: '50%' } }}>
-                          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                            <Typography variant="caption" sx={{ color: 'text.secondary', minWidth: 130, flexShrink: 0 }}>
-                              {item.label}
-                              :
-                            </Typography>
-                            <Box
-                              sx={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 0.5,
-                                minWidth: 240,
-                                flexShrink: 0,
-                                position: 'relative',
-                              }}
-                              onMouseEnter={() => {
-                                setHoveredItem(item.key);
-                                playHoverSound();
-                              }}
-                              onMouseLeave={() => setHoveredItem(null)}
-                              onClick={() => handleCopy(item.format(item.value), item.key)}
-                            >
-                              <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 500, cursor: 'pointer' }}>
-                                {item.format(item.value)}
-                              </Typography>
-                              {hoveredItem === item.key && (
-                                <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                                  <IconButton
-                                    size="small"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleCopy(item.format(item.value), item.key);
-                                    }}
-                                    sx={{
-                                      'padding': 0.25,
-                                      'minWidth': 'auto',
-                                      'width': 20,
-                                      'height': 20,
-                                      'color': 'text.secondary',
-                                      '&:hover': {
-                                        color: 'primary.main',
-                                        backgroundColor: 'action.hover',
-                                      },
-                                    }}
-                                  >
-                                    <ContentCopyIcon sx={{ fontSize: 14 }} />
-                                  </IconButton>
-                                  <Fade in={copiedItem === item.key} mountOnEnter unmountOnExit>
-                                    <Typography
-                                      variant="caption"
-                                      sx={{
-                                        position: 'absolute',
-                                        left: 28,
-                                        whiteSpace: 'nowrap',
-                                        color: 'text.secondary',
-                                        fontSize: '0.75rem',
-                                        fontWeight: 500,
-                                      }}
-                                    >
-                                      Copied
-                                    </Typography>
-                                  </Fade>
-                                </Box>
-                              )}
-                            </Box>
-                          </Box>
-                        </Box>
-                      ))}
-                    </Box>
-                  </Collapse>
-                  <Box sx={{ mt: 1, display: 'flex', justifyContent: 'center' }}>
-                    <Button
-                      size="small"
-                      onClick={() => setShowMore(!showMore)}
-                      sx={{ textTransform: 'none' }}
-                    >
-                      {showMore ? 'View Less' : `View More (${hiddenItems.length})`}
-                    </Button>
-                  </Box>
-                </>
-              )}
 
             </Card>
           )}

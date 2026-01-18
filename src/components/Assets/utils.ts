@@ -144,6 +144,51 @@ export function getTaxStatus(asset: Asset): { isValid: boolean; expiryDate: stri
   return { isValid, expiryDate: taxExpires || null, isExpired, isExpiringSoon };
 }
 
+// Helper function to format engine size
+export function formatEngineSize(value: string | number | null | undefined): string | null {
+  if (!value) {
+    return null;
+  }
+
+  // Parse the value - could be a string or number
+  const num = typeof value === 'number' ? value : Number.parseFloat(value.toString().replace(/[^0-9.]/g, ''));
+  if (Number.isNaN(num)) {
+    return null;
+  }
+
+  // If the value is below 950, assume it's in cc and display as cc
+  if (num < 950) {
+    return `${Math.round(num)}cc`;
+  }
+
+  // For values >= 950, convert to liters (divide by 1000 if it looks like cc)
+  // Check if it's likely cc (>= 950 and whole number or > 100)
+  let liters = num;
+  if (num >= 950 && (num > 100 || (num % 1) === 0)) {
+    liters = num / 1000;
+  }
+
+  // Round to 1 decimal place and add L suffix
+  const rounded = Math.round(liters * 10) / 10;
+  return `${rounded}L`;
+}
+
+// Helper function to format mileage number with commas and "mi" suffix
+export function formatMileage(value: string | number | null | undefined): string | null {
+  if (!value) {
+    return null;
+  }
+  if (typeof value === 'number') {
+    return `${value.toLocaleString('en-US')} mi`;
+  }
+  // For string values, try to parse and format
+  const num = Number.parseFloat(value.toString().replace(/[^0-9.]/g, ''));
+  if (!Number.isNaN(num)) {
+    return `${num.toLocaleString('en-US')} mi`;
+  }
+  return `${value} mi`;
+}
+
 // Helper function to get status colors based on expiry state
 export function getStatusColors(isExpired: boolean, isExpiringSoon: boolean): {
   backgroundColor: string;
