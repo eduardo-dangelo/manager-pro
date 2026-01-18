@@ -25,12 +25,12 @@ import {
   DialogContent,
   DialogTitle,
   Fade,
-  IconButton,
   TextField,
   Typography,
 } from '@mui/material';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import { VehicleSpecItem } from '@/components/Assets/Asset/tabs/overview/VehicleSpecItem';
 import { formatEngineSize, formatMileage } from '@/components/Assets/utils';
 import { Card } from '@/components/common/Card';
 import { DropdownButton } from '@/components/common/DropdownButton';
@@ -57,8 +57,6 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
   const t = useTranslations('Assets');
   const { playHoverSound } = useHoverSound();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
-  const [copiedItem, setCopiedItem] = useState<string | null>(null);
   const [copiedAll, setCopiedAll] = useState(false);
   const [isLookingUp, setIsLookingUp] = useState(false);
   const [hasLookedUp, setHasLookedUp] = useState(false);
@@ -447,15 +445,59 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
   ];
   // .filter(item => item.value !== '' && item.value !== null && item.value !== undefined);
 
-  const handleCopy = async (text: string, itemKey: string) => {
+  // Handle saving individual spec items
+  const handleSaveSpecItem = async (key: string, rawValue: string | number) => {
     try {
-      await navigator.clipboard.writeText(text);
-      setCopiedItem(itemKey);
-      setTimeout(() => {
-        setCopiedItem(null);
-      }, 1000);
+      const metadata = asset.metadata || {};
+      const currentSpecs = metadata.specs || {};
+
+      // Update the specific spec field
+      const updatedSpecs = {
+        ...currentSpecs,
+        [key]: rawValue,
+      };
+
+      // Update metadata with new specs
+      const updatedMetadata = {
+        ...metadata,
+        specs: updatedSpecs,
+      };
+
+      // Prepare update payload
+      const updatePayload: Record<string, any> = { metadata: updatedMetadata };
+
+      // If updating registration, also update registrationNumber field
+      if (key === 'registration' && rawValue) {
+        updatePayload.registrationNumber = rawValue;
+      }
+
+      // If updating make or model, update asset name
+      if (key === 'make' || key === 'model') {
+        const newMake = key === 'make' ? rawValue : (currentSpecs.make || '');
+        const newModel = key === 'model' ? rawValue : (currentSpecs.model || '');
+        const newMakeModel = [newMake, newModel].filter(Boolean).join(' ');
+        if (newMakeModel) {
+          updatePayload.name = newMakeModel;
+        }
+      }
+
+      // Call API to save
+      const response = await fetch(`/${locale}/api/assets/${asset.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatePayload),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update asset');
+      }
+
+      const updated = await response.json();
+      const finalMetadata = updated.asset?.metadata || updatedMetadata;
+      onUpdateAsset({ ...asset, ...(updated.asset || {}), metadata: finalMetadata });
     } catch (error) {
-      console.error('Failed to copy:', error);
+      console.error('Error updating vehicle spec:', error);
+      throw error; // Re-throw to let component handle it
     }
   };
 
@@ -564,77 +606,13 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
 
               <Box sx={{ display: 'flex', flexWrap: 'wrap' }}>
                 {specItems.map(item => (
-                  <Box key={item.key} sx={{ width: { xs: '100%', sm: '50%' }, py: 0.5 }}>
-                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 0 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 130, flexShrink: 0 }}>
-                        {getSpecIcon(item.key)}
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          {item.label}
-                          :
-                        </Typography>
-                      </Box>
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 0.5,
-                          minWidth: 240,
-                          flex: 1,
-                          // flexShrink: 0,
-                          position: 'relative',
-                        }}
-                        onMouseEnter={() => {
-                          setHoveredItem(item.key);
-                          playHoverSound();
-                        }}
-                        onMouseLeave={() => setHoveredItem(null)}
-                        onClick={() => handleCopy(item.format(item.value), item.key)}
-                      >
-                        <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 500, cursor: 'pointer' }}>
-                          {item.format(item.value)}
-                        </Typography>
-                        {hoveredItem === item.key && (
-                          <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                            <IconButton
-                              size="small"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleCopy(item.format(item.value), item.key);
-                              }}
-                              sx={{
-                                'padding': 0.25,
-                                'minWidth': 'auto',
-                                'width': 20,
-                                'height': 20,
-                                'color': 'text.secondary',
-                                '&:hover': {
-                                  color: 'primary.main',
-                                  backgroundColor: 'action.hover',
-                                },
-                              }}
-                            >
-                              <ContentCopyIcon sx={{ fontSize: 14 }} />
-                            </IconButton>
-                            <Fade in={copiedItem === item.key} mountOnEnter unmountOnExit>
-                              <Typography
-                                variant="caption"
-                                sx={{
-                                  position: 'absolute',
-                                  left: 28,
-                                  whiteSpace: 'nowrap',
-                                  color: 'text.secondary',
-                                  fontSize: '0.75rem',
-                                  fontWeight: 500,
-                                }}
-                              >
-                                Copied
-                              </Typography>
-                            </Fade>
-                          </Box>
-                        )}
-                      </Box>
-                    </Box>
-                  </Box>
+                  <VehicleSpecItem
+                    key={item.key}
+                    item={item}
+                    icon={getSpecIcon(item.key)}
+                    onSave={handleSaveSpecItem}
+                    playHoverSound={playHoverSound}
+                  />
                 ))}
               </Box>
 
