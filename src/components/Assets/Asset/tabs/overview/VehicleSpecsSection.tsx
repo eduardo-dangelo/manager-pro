@@ -10,8 +10,8 @@ import {
   ColorLensOutlined as ColorLensIcon,
   ContentCopy as ContentCopyIcon,
   DirectionsCarOutlined as DirectionsCarIcon,
-  Edit as EditIcon,
   LocalGasStationOutlined as LocalGasStationIcon,
+  Refresh as RefreshIcon,
   Search as SearchIcon,
   TimelineOutlined as TimelineIcon,
 } from '@mui/icons-material';
@@ -25,11 +25,12 @@ import {
   DialogContent,
   DialogTitle,
   Fade,
+  LinearProgress,
   TextField,
   Typography,
 } from '@mui/material';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { VehicleSpecItem } from '@/components/Assets/Asset/tabs/overview/VehicleSpecItem';
 import { formatEngineSize, formatMileage } from '@/components/Assets/utils';
 import { Card } from '@/components/common/Card';
@@ -58,9 +59,12 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
   const { playHoverSound } = useHoverSound();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [copiedAll, setCopiedAll] = useState(false);
+  const [refreshed, setRefreshed] = useState(false);
   const [isLookingUp, setIsLookingUp] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [hasLookedUp, setHasLookedUp] = useState(false);
   const [lookupError, setLookupError] = useState<string | null>(null);
+  const [canRefresh, setCanRefresh] = useState(true);
   const [registrationInput, setRegistrationInput] = useState('');
   const [registrationError, setRegistrationError] = useState<string | null>(null);
   const [dvlaData, setDvlaData] = useState<any | null>(asset.metadata?.dvla ?? null);
@@ -401,6 +405,14 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
   const mileage = getMileage();
   const yearMileage = calculateYearMileage();
 
+  // Check if refresh was done today
+  useEffect(() => {
+    const refreshKey = `vehicle_refresh_${asset.id}`;
+    const lastRefreshDate = localStorage.getItem(refreshKey);
+    const today = new Date().toDateString();
+    setCanRefresh(lastRefreshDate !== today);
+  }, [asset.id]);
+
   // Helper function to get icon for each spec item
   const getSpecIcon = (key: string) => {
     const iconProps = { sx: { fontSize: 24, color: 'text.secondary' } };
@@ -501,6 +513,152 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
     }
   };
 
+  const handleRefreshData = async () => {
+    const currentRegistration = asset.metadata?.specs?.registration;
+    if (!currentRegistration) {
+      console.error('No registration number found to refresh');
+      return;
+    }
+
+    setIsRefreshing(true);
+    setIsLookingUp(true);
+    setLookupError(null);
+
+    try {
+      // Call lookup API with current registration
+      const response = await fetch(`/${locale}/api/vehicles/lookup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ registration: currentRegistration.trim().toUpperCase() }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Failed to lookup vehicle' }));
+        throw new Error(errorData.error || 'Failed to lookup vehicle');
+      }
+
+      const data = await response.json();
+
+      if (!data.vehicle) {
+        throw new Error('No vehicle data found');
+      }
+
+      // Process the lookup data
+      const refreshedSpecs = {
+        registration: data.vehicle.registration || currentRegistration.trim().toUpperCase(),
+        make: data.vehicle.make || '',
+        model: data.vehicle.model || '',
+        fuel: data.vehicle.fuel || '',
+        year: data.vehicle.year || '',
+        color: data.vehicle.color || '',
+        mileage: data.vehicle.mileage || '',
+        vin: data.vehicle.vin || '',
+        engineSize: data.vehicle.engineSize || '',
+        transmission: data.vehicle.transmission || '',
+        engineNumber: data.vehicle.engineNumber || '',
+        driveTrain: data.vehicle.driveTrain || '',
+        weight: data.vehicle.weight || '',
+        seats: data.vehicle.seats || '',
+        cost: data.vehicle.cost || '',
+        taxStatus: data.vehicle.taxStatus || '',
+        motStatus: data.vehicle.motStatus || '',
+      };
+
+      const refreshedDvlaData = data.dvla ?? null;
+      const refreshedMotData = data.mot ?? null;
+
+      // Extract tax expiry date from DVLA data
+      let taxExpires: string | undefined;
+      if (refreshedDvlaData) {
+        taxExpires = (refreshedDvlaData as any)?.taxDueDate || undefined;
+      }
+
+      // Extract MOT expiry date from MOT data
+      let motExpires: string | undefined;
+      if (refreshedMotData) {
+        motExpires = (refreshedMotData as any)?.motExpiryDate || undefined;
+
+        if (!motExpires && Array.isArray((refreshedMotData as any)?.motTests) && (refreshedMotData as any).motTests.length > 0) {
+          const latestTest = (refreshedMotData as any).motTests[0];
+          motExpires = latestTest.expiryDate || undefined;
+        }
+      }
+
+      // Update maintenance structure with expiry dates
+      const metadata = asset.metadata || {};
+      const maintenance = metadata.maintenance || {};
+      const updatedMaintenance = {
+        ...maintenance,
+        ...(taxExpires && {
+          tax: {
+            ...maintenance.tax,
+            expires: taxExpires,
+          },
+        }),
+        ...(motExpires && {
+          mot: {
+            ...maintenance.mot,
+            expires: motExpires,
+          },
+        }),
+      };
+
+      // Update metadata with refreshed data (overwrite all fields)
+      const updatedMetadata = {
+        ...metadata,
+        specs: refreshedSpecs,
+        dvla: refreshedDvlaData,
+        mot: refreshedMotData,
+        maintenance: updatedMaintenance,
+      };
+
+      // Update asset name to Make Model
+      const newMake = refreshedSpecs.make;
+      const newModel = refreshedSpecs.model;
+      const newMakeModel = [newMake, newModel].filter(Boolean).join(' ');
+
+      const updatePayload: Record<string, any> = { metadata: updatedMetadata };
+      if (refreshedSpecs.registration) {
+        updatePayload.registrationNumber = refreshedSpecs.registration;
+      }
+      if (newMakeModel) {
+        updatePayload.name = newMakeModel;
+      }
+
+      // Save to asset
+      const saveResponse = await fetch(`/${locale}/api/assets/${asset.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatePayload),
+      });
+
+      if (!saveResponse.ok) {
+        throw new Error('Failed to update asset');
+      }
+
+      const updated = await saveResponse.json();
+      onUpdateAsset({ ...asset, ...(updated.asset || {}), metadata: updatedMetadata });
+
+      // Store last refresh timestamp in localStorage
+      const refreshKey = `vehicle_refresh_${asset.id}`;
+      const today = new Date().toDateString();
+      localStorage.setItem(refreshKey, today);
+      setCanRefresh(false);
+
+      // Show confirmation message
+      setRefreshed(true);
+      setTimeout(() => {
+        setRefreshed(false);
+      }, 2000);
+    } catch (error) {
+      console.error('Error refreshing vehicle data:', error);
+      setLookupError(error instanceof Error ? error.message : 'Failed to refresh vehicle data');
+    } finally {
+      setIsRefreshing(false);
+      setIsLookingUp(false);
+    }
+  };
+
   const handleCopyAll = async () => {
     try {
       const formattedText = specItems.map(item => `${item.label}: ${item.format(item.value)}`).join('\n\n');
@@ -520,19 +678,27 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
 
   const dropdownOptions = [
     {
-      label: 'Copy',
+      label: 'Copy All',
       onClick: handleCopyAll,
       icon: <ContentCopyIcon fontSize="small" />,
     },
     {
-      label: 'Edit',
+      label: 'Lookup',
       onClick: handleEdit,
-      icon: <EditIcon fontSize="small" />,
+      icon: <SearchIcon fontSize="small" />,
+    },
+    {
+      label: 'Refresh',
+      onClick: handleRefreshData,
+      icon: <RefreshIcon fontSize="small" />,
+      disabled: !asset.metadata?.specs?.registration || !canRefresh,
+      tooltip: !canRefresh ? 'You can only refresh data once a day' : undefined,
     },
   ];
 
   return (
-    <Box sx={{ mt: 0 }}>
+    <Box sx={{ mt: 0, position: 'relative' }}>
+      {isRefreshing && <LinearProgress sx={{ mb: 0, position: 'absolute', top: -14, left: 0, right: 0, zIndex: 1 }} />}
       {!hasData
         ? (
             <Box
@@ -587,7 +753,7 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
                       variant="caption"
                       sx={{
                         position: 'absolute',
-                        right: 40,
+                        right: refreshed ? 80 : 40,
                         whiteSpace: 'nowrap',
                         color: 'text.secondary',
                         fontSize: '0.75rem',
@@ -595,6 +761,21 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
                       }}
                     >
                       Copied
+                    </Typography>
+                  </Fade>
+                  <Fade in={refreshed} mountOnEnter unmountOnExit>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        position: 'absolute',
+                        right: 40,
+                        whiteSpace: 'nowrap',
+                        color: 'text.secondary',
+                        fontSize: '0.75rem',
+                        fontWeight: 500,
+                      }}
+                    >
+                      Refreshed
                     </Typography>
                   </Fade>
                   <DropdownButton

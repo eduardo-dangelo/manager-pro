@@ -16,6 +16,7 @@ export type DropdownOption = {
   onClick: () => void;
   icon?: ReactNode;
   disabled?: boolean;
+  tooltip?: string;
   sx?: object;
 };
 
@@ -76,22 +77,31 @@ export function DropdownButton({
         anchorOrigin={anchorOrigin}
       >
         {options.map((option, index) => (
-          <MenuItem
+          <Tooltip
             key={index}
-            onClick={() => handleOptionClick(option)}
-            disabled={option.disabled}
-            sx={{
-              fontSize: '0.875rem',
-              ...option.sx,
-            }}
+            title={option.tooltip || ''}
+            disableHoverListener={!option.tooltip}
+            disableFocusListener={!option.tooltip}
+            disableTouchListener={!option.tooltip}
           >
-            {option.icon && (
-              <ListItemIcon sx={{ minWidth: 36, fontSize: '1rem' }}>
-                {option.icon}
-              </ListItemIcon>
-            )}
-            <ListItemText>{option.label}</ListItemText>
-          </MenuItem>
+            <span>
+              <MenuItem
+                onClick={() => handleOptionClick(option)}
+                disabled={option.disabled}
+                sx={{
+                  fontSize: '0.875rem',
+                  ...option.sx,
+                }}
+              >
+                {option.icon && (
+                  <ListItemIcon sx={{ minWidth: 36, fontSize: '1rem' }}>
+                    {option.icon}
+                  </ListItemIcon>
+                )}
+                <ListItemText>{option.label}</ListItemText>
+              </MenuItem>
+            </span>
+          </Tooltip>
         ))}
       </Menu>
     </>
