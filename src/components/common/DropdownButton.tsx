@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { MoreVert as MoreVertIcon } from '@mui/icons-material';
 import {
   IconButton,
@@ -9,7 +10,7 @@ import {
   MenuItem,
   Tooltip,
 } from '@mui/material';
-import { ReactNode, useState } from 'react';
+import { useState } from 'react';
 
 export type DropdownOption = {
   label: string;
@@ -107,4 +108,3 @@ export function DropdownButton({
     </>
   );
 }
-

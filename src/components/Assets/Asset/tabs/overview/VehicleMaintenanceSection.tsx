@@ -2,6 +2,8 @@
 
 import {
   Add as AddIcon,
+  CalendarTodayOutlined as CalendarIconOutlined,
+  History as HistoryIcon,
   OpenInNew as OpenInNewIcon,
 } from '@mui/icons-material';
 import {
@@ -10,7 +12,10 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
+  Divider,
+  IconButton,
   Link,
+  Tooltip,
   Typography,
 } from '@mui/material';
 import moment from 'moment';
@@ -132,8 +137,8 @@ export function VehicleMaintenanceSection({
   };
 
   const titleSx = {
-    color: 'text.secondary',
-    fontWeight: 600,
+    // color: 'text.secondary',
+    fontWeight: 500,
     mb: 1,
     textTransform: 'uppercase' as const,
   };
@@ -151,29 +156,41 @@ export function VehicleMaintenanceSection({
         {/* MOT Card */}
         {hasMotData
           ? (
-              <Card sx={{ ...cardSx, pl: 2, py: 1.5 }}>
-                <Typography variant="subtitle2" sx={titleSx}>
-                  {t('mot')}
-                  :
-                </Typography>
+              <Card sx={{ ...cardSx, px: 2, py: 1.5 }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    mb: 1,
+                  }}
+                >
+                  <Typography variant="h6" sx={titleSx}>
+                    {t('mot')}
+                  </Typography>
+                  {motTests.length > 1 && (
+                    <Tooltip title={t('view_mot_history')}>
+                      <IconButton
+                        size="small"
+                        onClick={() => setMotHistoryOpen(true)}
+                        sx={{
+                          'color': 'text.secondary',
+                          '&:hover': {
+                            color: 'text.primary',
+                            backgroundColor: 'action.hover',
+                          },
+                        }}
+                      >
+                        <HistoryIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  )}
+                </Box>
                 {latestMotTest
                   ? (
-                      <Box>
-                        <MotTestResultItem test={latestMotTest} isLatest showDetails={false} />
-                        {motTests.length > 1 && (
-                          <Button
-                            size="small"
-                            onClick={() => setMotHistoryOpen(true)}
-                            sx={{ textTransform: 'none', mt: 0.5, p: 0, minWidth: 'auto' }}
-                          >
-                            {t('view_mot_history')}
-                            {' '}
-                            (
-                            {motTests.length}
-                            )
-                          </Button>
-                        )}
-                      </Box>
+                      <Card sx={{ ...cardSx, px: 1, width: '100%' }}>
+                        <MotTestResultItem test={latestMotTest} showDetails={false} variant="vertical" />
+                      </Card>
                     )
                   : (
                       <Typography variant="body2" sx={{ color: 'text.primary', mb: 1 }}>
@@ -206,26 +223,62 @@ export function VehicleMaintenanceSection({
         {/* Tax Card */}
         {hasTaxData
           ? (
-              <Card sx={{ ...cardSx, pl: 2, py: 1.5 }}>
-                <Typography variant="subtitle2" sx={titleSx}>
+              <Card sx={{ ...cardSx, px: 2, py: 1.5 }}>
+                <Typography variant="h6" sx={titleSx}>
                   {t('tax')}
-                  :
+
                 </Typography>
-                {taxStatus && (
-                  <Typography variant="body2" sx={{ color: 'text.primary', mb: 0.5 }}>
-                    {t('status')}
-                    :
-                    {' '}
-                    {taxStatus}
-                  </Typography>
-                )}
                 {taxExpiry && (
-                  <Typography variant="body2" sx={{ color: 'text.primary', mb: 1 }}>
-                    {t('expires')}
-                    :
-                    {' '}
-                    {formatDate(taxExpiry)}
-                  </Typography>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    {taxStatus && (
+                      <Box sx={{
+                        border: '1px solid',
+                        borderColor: taxStatus === 'Taxed' ? 'success.light' : 'error.light',
+                        backgroundColor: taxStatus === 'Taxed' ? 'rgba(0, 255, 0, 0.1)' : 'rgba(255, 0, 0, 0.1)',
+                        borderRadius: 1,
+                        p: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 0.5,
+                        justifyContent: 'space-between',
+                        elevation: 5,
+                      }}
+                      >
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <HistoryIcon sx={{ fontSize: '1.275rem', color: 'text.secondary' }} />
+                          <Typography variant="body2" sx={{ color: 'text.primary', mb: 0 }}>
+                            {t('status')}
+                          </Typography>
+                        </Box>
+                        <Typography variant="body2" sx={{ color: 'text.primary', mb: 0, fontWeight: 600 }}>
+                          {taxStatus}
+                        </Typography>
+
+                      </Box>
+                    )}
+                    <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1, display: 'flex', alignItems: 'center', gap: 0.5, justifyContent: 'space-between' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <CalendarIconOutlined sx={{ fontSize: '1.275rem', color: 'text.secondary' }} />
+                        <Typography variant="body2" sx={{ color: 'text.primary', mb: 0 }}>
+                          {t('expires')}
+                        </Typography>
+                      </Box>
+                      <Typography variant="body2" sx={{ color: 'text.primary', mb: 0, fontWeight: 600 }}>
+                        {formatDate(taxExpiry)}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1, display: 'flex', alignItems: 'center', gap: 0.5, justifyContent: 'space-between' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <CalendarIconOutlined sx={{ fontSize: '1.275rem', color: 'text.secondary' }} />
+                        <Typography variant="body2" sx={{ color: 'text.primary', mb: 0 }}>
+                          Remaining days
+                        </Typography>
+                      </Box>
+                      <Typography variant="body2" sx={{ color: 'text.primary', mb: 0, fontWeight: 600 }}>
+                        {taxExpiry ? Math.max(0, moment(taxExpiry).diff(moment(), 'days')) : '-'}
+                      </Typography>
+                    </Box>
+                  </Box>
                 )}
                 <Link
                   href="https://www.gov.uk/vehicle-tax"
@@ -438,17 +491,57 @@ export function VehicleMaintenanceSection({
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>{t('mot_history')}</DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 1 }}>
-            {motTests.map((test, index) => (
-              <MotTestResultItem
-                key={test.motTestNumber || `mot-test-${index}`}
-                test={test}
-                isLatest={index === 0}
-                showDetails
-              />
-            ))}
+        <DialogTitle>Full MOT History</DialogTitle>
+        <DialogContent sx={{ px: 3, pb: 3 }}>
+          <Box
+            sx={{
+              position: 'relative',
+              pl: 4,
+              pt: 1,
+            }}
+          >
+            {/* Timeline vertical line */}
+            <Box
+              sx={{
+                position: 'absolute',
+                left: 23,
+                top: 0,
+                bottom: 0,
+                width: 2,
+                backgroundColor: 'divider',
+              }}
+            />
+            {motTests.map((test, index) => {
+              const isPassed = test.testResult === 'PASSED' || test.testResult === 'PASS';
+              return (
+                <Box
+                  key={test.motTestNumber || `mot-test-${index}`}
+                  sx={{ position: 'relative' }}
+                >
+                  {/* Timeline dot */}
+                  <Box sx={{}}>
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        left: -30,
+                        top: 16,
+                        width: 12,
+                        height: 12,
+                        borderRadius: '50%',
+                        backgroundColor: isPassed ? 'success.light' : 'error.light',
+                        zIndex: 1,
+                      }}
+                    />
+                    <Divider orientation="vertical" flexItem />
+                  </Box>
+                  <MotTestResultItem
+                    test={test}
+                    isLatest={index === 0}
+                    showDetails
+                  />
+                </Box>
+              );
+            })}
           </Box>
         </DialogContent>
       </Dialog>

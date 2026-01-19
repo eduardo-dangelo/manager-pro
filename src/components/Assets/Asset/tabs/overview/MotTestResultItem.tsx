@@ -1,8 +1,8 @@
 'use client';
 
 import {
+  CalendarToday as CalendarTodayIcon,
   Cancel as CancelIcon,
-  CheckCircle as CheckCircleIcon,
   Warning as WarningIcon,
 } from '@mui/icons-material';
 import {
@@ -14,6 +14,7 @@ import {
 import moment from 'moment';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import { MotChip } from '@/components/Assets/MotChip';
 
 type RfrComment = {
   text?: string;
@@ -36,16 +37,21 @@ type MotTestResultItemProps = {
   test: MotTest;
   isLatest?: boolean;
   showDetails?: boolean;
+  variant?: 'horizontal' | 'vertical';
 };
 
-export function MotTestResultItem({ test, isLatest = false, showDetails = true }: MotTestResultItemProps) {
+export function MotTestResultItem({ test, isLatest = false, showDetails = true, variant: _variant = 'horizontal' }: MotTestResultItemProps) {
   const t = useTranslations('Assets');
   const [expanded, setExpanded] = useState(isLatest);
 
   const isPassed = test.testResult === 'PASSED' || test.testResult === 'PASS';
 
   const testDate = test.completedDate ? moment(test.completedDate).format('D MMM YYYY') : '-';
-  const expiryDate = test.expiryDate ? moment(test.expiryDate).format('D MMM YYYY') : null;
+  const expiryDate = test.expiryDate ? moment(test.expiryDate).format('YYYY.MM.DD') : null;
+
+  const formattedMileage = test.odometerValue
+    ? `${test.odometerValue.toLocaleString()} ${test.odometerUnit || 'mi'}`
+    : null;
 
   const advisories = test.rfrAndComments?.filter(
     item => item.type === 'ADVISORY' || item.type === 'MINOR',
@@ -57,17 +63,18 @@ export function MotTestResultItem({ test, isLatest = false, showDetails = true }
   return (
     <Box
       sx={{
-        'py': 1.5,
-        'borderBottom': '1px solid',
-        'borderColor': 'divider',
-        '&:last-child': { borderBottom: 'none' },
+        py: 2,
+        borderBottom: 'none',
+        position: 'relative',
       }}
     >
       <Box
         sx={{
           display: 'flex',
-          alignItems: 'center',
+          flexDirection: 'row',
+          alignItems: 'flex-start',
           justifyContent: 'space-between',
+          gap: 1.5,
           cursor: showDetails && (advisories.length > 0 || failures.length > 0) ? 'pointer' : 'default',
         }}
         onClick={() => {
@@ -76,37 +83,68 @@ export function MotTestResultItem({ test, isLatest = false, showDetails = true }
           }
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Chip
-            icon={isPassed ? <CheckCircleIcon /> : <CancelIcon />}
-            label={isPassed ? t('mot_passed') : t('mot_failed')}
-            size="small"
-            sx={{
-              'backgroundColor': isPassed ? 'success.light' : 'error.light',
-              'color': isPassed ? 'success.dark' : 'error.dark',
-              'fontWeight': 600,
-              '& .MuiChip-icon': {
-                color: 'inherit',
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-start',
+            gap: 0.5,
+            flex: 1,
+            // border: '1px solid blue',
+          }}
+        >
+          <MotChip asset={{
+            id: 1,
+            name: 'Test',
+            description: 'Test',
+            color: 'red',
+            status: 'test',
+            type: 'test',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            metadata: {
+              mot: {
+                motTests: [test],
               },
-            }}
+            },
+          }}
           />
-          <Typography variant="body2" sx={{ color: 'text.primary' }}>
-            {testDate}
-          </Typography>
-          {test.odometerValue && (
-            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-              {test.odometerValue.toLocaleString()}
-              {' '}
-              {test.odometerUnit || 'mi'}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, justifyContent: 'space-between' }}>
+            <CalendarTodayIcon sx={{ fontSize: '0.875rem', color: 'text.secondary' }} />
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              Test Date:
             </Typography>
+            <Typography variant="body2" sx={{ color: 'text.primary' }}>
+              {testDate}
+            </Typography>
+          </Box>
+          {expiryDate && isPassed && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, justifyContent: 'space-between' }}>
+              <CalendarTodayIcon sx={{ fontSize: '0.875rem', color: 'text.secondary' }} />
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                Expires:
+              </Typography>
+
+              <Typography
+                variant="body2"
+                sx={{
+                  color: 'text.secondary',
+                }}
+              >
+                {expiryDate}
+              </Typography>
+            </Box>
           )}
         </Box>
-        {expiryDate && isPassed && (
-          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-            {t('mot_expires')}
-            :
-            {' '}
-            {expiryDate}
+        {formattedMileage && (
+          <Typography
+            variant="body2"
+            sx={{
+              color: 'text.secondary',
+              alignSelf: 'flex-start',
+            }}
+          >
+            {formattedMileage}
           </Typography>
         )}
       </Box>
