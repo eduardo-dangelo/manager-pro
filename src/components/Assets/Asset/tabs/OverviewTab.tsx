@@ -62,7 +62,7 @@ export function OverviewTab({ asset, locale, onUpdateAsset }: OverviewTabProps) 
         const metadata = asset.metadata || {};
         const specs = metadata.specs || {};
         const hasSpecs = specs && Object.keys(specs).length > 0 && Object.values(specs).some(v => v !== '' && v !== null && v !== undefined);
-        
+
         return (
           <Box>
             <VehicleSpecsSection
@@ -71,7 +71,7 @@ export function OverviewTab({ asset, locale, onUpdateAsset }: OverviewTabProps) 
               onUpdateAsset={onUpdateAsset}
             />
             {hasSpecs && (
-              <Box sx={{ mt: 4 }}>
+              <Box sx={{ mt: 2 }}>
                 <VehicleMaintenanceSection
                   asset={asset}
                   locale={locale}

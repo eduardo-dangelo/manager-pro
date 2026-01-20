@@ -18,7 +18,6 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
-  IconButton,
   Link,
   Tooltip,
   Typography,
@@ -83,17 +82,9 @@ type MaintenanceSectionItem = {
   value: ReactNode;
   customSx?: (value: any) => SxProps<Theme>;
   renderCustom?: () => ReactNode;
-};
-
-type BottomLink = {
-  href: string;
-  labelKey: string;
-};
-
-type HeaderAction = {
-  icon: ReactElement;
-  tooltipKey: string;
-  onClick: () => void;
+  tooltip?: string;
+  onClick?: () => void;
+  valueIcon?: ReactElement;
 };
 
 type MaintenanceCardConfig = {
@@ -101,8 +92,6 @@ type MaintenanceCardConfig = {
   titleKey: string;
   hasData: () => boolean;
   sections: MaintenanceSectionItem[];
-  bottomLink?: BottomLink;
-  headerActions?: HeaderAction[];
 };
 
 type MaintenanceSectionItemProps = {
@@ -111,6 +100,16 @@ type MaintenanceSectionItemProps = {
   value: ReactNode;
   customSx?: SxProps<Theme>;
   valueIcon?: ReactElement;
+  tooltip?: string;
+  onClick?: () => void;
+};
+
+// Helper function to capitalize title (first letter uppercase, rest lowercase)
+const capitalizeTitle = (text: string): string => {
+  if (!text) {
+    return text;
+  }
+  return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
 };
 
 // Reusable component for rendering maintenance section items
@@ -120,6 +119,8 @@ function MaintenanceSectionItemComponent({
   value,
   customSx,
   valueIcon,
+  tooltip,
+  onClick,
 }: MaintenanceSectionItemProps) {
   const defaultSx: SxProps<Theme> = {
     border: '1px solid',
@@ -128,35 +129,52 @@ function MaintenanceSectionItemComponent({
     p: 1,
     display: 'flex',
     alignItems: 'center',
-    // gap: 0.5,
     justifyContent: 'space-between',
+    ...(onClick ? { 'cursor': 'pointer', '&:hover': { backgroundColor: 'action.hover' } } : {}),
   };
 
   const mergedSx: SxProps<Theme> = customSx ? { ...defaultSx, ...customSx } : defaultSx;
 
-  return (
-    <Box sx={mergedSx}>
+  // Extract color from customSx if it exists
+  const getColorFromSx = (sx?: SxProps<Theme>): string | undefined => {
+    if (!sx || typeof sx !== 'object') {
+      return undefined;
+    }
+    if ('color' in sx && typeof sx.color === 'string') {
+      return sx.color as string;
+    }
+    return undefined;
+  };
+
+  const customColor = getColorFromSx(customSx);
+
+  const content = (
+    <Box sx={mergedSx} onClick={onClick}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
         {icon && (
-          <Box sx={{ fontSize: '1.075rem', color: customSx?.color || 'text.secondary' }}>
+          <Box sx={{ fontSize: '1.075rem', color: customColor || 'text.secondary' }}>
             {icon}
           </Box>
         )}
-        <Typography variant="body2" sx={{ color: customSx?.color || 'text.primary', mb: 0 }}>
+        <Typography variant="body2" sx={{ color: customColor || 'text.primary', mb: 0 }}>
           {label}
         </Typography>
       </Box>
 
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-
-        <Typography variant="body2" sx={{ color: customSx?.color || 'text.primary', mb: 0, fontWeight: 600 }}>
+        <Typography variant="body2" sx={{ color: customColor || 'text.primary', mb: 0, fontWeight: 600 }}>
           {value}
         </Typography>
         {valueIcon}
       </Box>
-
     </Box>
   );
+
+  if (tooltip) {
+    return <Tooltip title={tooltip}>{content}</Tooltip>;
+  }
+
+  return content;
 }
 
 // Format date using moment
@@ -207,6 +225,13 @@ const buildMaintenanceCards = (
   };
 
   // MOT Card
+  const motExpiryDate = latestMotTest?.expiryDate;
+  const motRemainingDays = motExpiryDate ? Math.max(0, moment(motExpiryDate).diff(moment(), 'days')) : null;
+  const motIsExpiringSoon = motRemainingDays !== null && motRemainingDays <= 30;
+  const motTestResult = latestMotTest?.testResult;
+  const motIsValid = motTestResult === 'PASSED' || motTestResult === 'PASS';
+  const motIsInvalid = motTestResult === 'FAILED' || motTestResult === 'FAIL';
+
   cards.push({
     id: 'mot',
     titleKey: 'mot',
@@ -216,10 +241,13 @@ const buildMaintenanceCards = (
           {
             label: 'Mot Status',
             icon: <HistoryIcon />,
-            value: latestMotTest?.testResult,
-            valueIcon: getIcon(latestMotTest?.testResult === 'FAILED' || latestMotTest?.testResult === 'FAIL', latestMotTest?.testResult === 'ADVISORY' || latestMotTest?.testResult === 'ADVISORY'),
-            customSx: (value: string) => {
-              const color = getStatusColors(value === 'FAILED' || value === 'FAIL', value === 'ADVISORY' || value === 'ADVISORY');
+            value: motIsValid ? 'Valid' : motIsInvalid ? 'Invalid' : motTestResult || '-',
+            valueIcon: getIcon(motIsInvalid, false),
+            tooltip: motIsExpiringSoon && motRemainingDays !== null
+              ? `Expires in ${motRemainingDays} day${motRemainingDays !== 1 ? 's' : ''}`
+              : undefined,
+            customSx: () => {
+              const color = getStatusColors(motIsInvalid, false);
               return ({
                 border: '1px solid',
                 borderColor: color.borderColor,
@@ -232,28 +260,38 @@ const buildMaintenanceCards = (
           {
             label: 'Expires',
             icon: <CalendarIconOutlined />,
-            value: formatDate(latestMotTest?.expiryDate),
+            value: formatDate(motExpiryDate),
+            tooltip: motIsExpiringSoon && motRemainingDays !== null
+              ? `Expires in ${motRemainingDays} day${motRemainingDays !== 1 ? 's' : ''}`
+              : undefined,
           },
           {
             label: 'Remaining days',
             icon: <CalendarIconOutlined />,
-            value: latestMotTest?.expiryDate ? Math.max(0, moment(latestMotTest?.expiryDate).diff(moment(), 'days')) : '-',
+            value: motRemainingDays !== null ? motRemainingDays : '-',
+            tooltip: motIsExpiringSoon && motRemainingDays !== null
+              ? `Expires in ${motRemainingDays} day${motRemainingDays !== 1 ? 's' : ''}`
+              : undefined,
           },
+          ...(motTests.length > 1
+            ? [
+                {
+                  label: t('view_mot_history'),
+                  icon: <HistoryIcon />,
+                  value: '',
+                  onClick: () => setMotHistoryOpen(true),
+                },
+              ]
+            : []),
         ]
       : [],
-    headerActions:
-      motTests.length > 1
-        ? [
-            {
-              icon: <HistoryIcon fontSize="small" />,
-              tooltipKey: 'view_mot_history',
-              onClick: () => setMotHistoryOpen(true),
-            },
-          ]
-        : undefined,
   });
 
   // Tax Card
+  const taxRemainingDays = taxExpiry ? Math.max(0, moment(taxExpiry).diff(moment(), 'days')) : null;
+  const taxIsExpiringSoon = taxRemainingDays !== null && taxRemainingDays <= 30;
+  const taxIsExpired = taxStatus !== 'Taxed';
+
   cards.push({
     id: 'tax',
     titleKey: 'tax',
@@ -263,12 +301,15 @@ const buildMaintenanceCards = (
           ...(taxStatus
             ? [
                 {
-                  label: t('status'),
+                  label: 'Tax Status',
                   icon: <HistoryIcon />,
                   value: taxStatus,
-                  valueIcon: getIcon(taxStatus !== 'Taxed', taxExpiry ? moment(taxExpiry).diff(moment(), 'days') <= 30 : false),
-                  customSx: (value: string) => {
-                    const color = getStatusColors(value !== 'Taxed', taxExpiry ? moment(taxExpiry).diff(moment(), 'days') <= 30 : false);
+                  valueIcon: getIcon(taxIsExpired, taxIsExpiringSoon),
+                  tooltip: taxIsExpiringSoon && taxRemainingDays !== null
+                    ? `Expires in ${taxRemainingDays} day${taxRemainingDays !== 1 ? 's' : ''}`
+                    : undefined,
+                  customSx: () => {
+                    const color = getStatusColors(taxIsExpired, taxIsExpiringSoon);
                     return ({
                       border: '1px solid',
                       borderColor: color.borderColor,
@@ -284,18 +325,28 @@ const buildMaintenanceCards = (
             label: t('expires'),
             icon: <CalendarIconOutlined />,
             value: formatDate(taxExpiry),
+            tooltip: taxIsExpiringSoon && taxRemainingDays !== null
+              ? `Expires in ${taxRemainingDays} day${taxRemainingDays !== 1 ? 's' : ''}`
+              : undefined,
           },
           {
             label: 'Remaining days',
             icon: <CalendarIconOutlined />,
-            value: taxExpiry ? Math.max(0, moment(taxExpiry).diff(moment(), 'days')) : '-',
+            value: taxRemainingDays !== null ? taxRemainingDays : '-',
+            tooltip: taxIsExpiringSoon && taxRemainingDays !== null
+              ? `Expires in ${taxRemainingDays} day${taxRemainingDays !== 1 ? 's' : ''}`
+              : undefined,
+          },
+          {
+            label: t('tax_your_vehicle'),
+            icon: <OpenInNewIcon />,
+            value: '',
+            onClick: () => {
+              window.open('https://www.gov.uk/vehicle-tax', '_blank', 'noopener,noreferrer');
+            },
           },
         ]
       : [],
-    bottomLink: {
-      href: 'https://www.gov.uk/vehicle-tax',
-      labelKey: 'tax_your_vehicle',
-    },
   });
 
   // Insurance Card
@@ -391,7 +442,7 @@ export function VehicleMaintenanceSection({
   const finance: MaintenanceItem = maintenance.finance || {};
 
   const cardSx = {
-    width: { xs: '100%', sm: 'calc(50% - 12px)', md: 'calc(33.33% - 16px)' },
+    width: { xs: '100%' },
     minHeight: 120,
   };
 
@@ -420,238 +471,198 @@ export function VehicleMaintenanceSection({
   };
 
   return (
-    <Box sx={{ m: -1.5 }}>
+    <Box sx={{ m: -1 }}>
       <Box
         sx={{
           display: 'flex',
           flexWrap: 'wrap',
-          gap: 3,
-          p: 1.5,
         }}
       >
         {maintenanceCards.map((card) => {
           const hasData = card.hasData();
-          const titleVariant = hasData
-            ? 'h6'
-            : 'subtitle2';
+          const titleVariant = 'h6';
 
           return (
-            <Card
-              key={card.id}
-              sx={{
-                ...cardSx,
-                ...(hasData
-                  ? { px: 2, py: 1.5 }
-                  : { display: 'flex', flexDirection: 'column' }),
-                ...(card.id === 'insurance' && hasData ? { pl: 2 } : {}),
-              }}
-            >
-              {/* Header with title and actions */}
-              <Box
+            <Box key={card.id} sx={{ width: { xs: '100%', sm: '50%', md: '33.33%' }, p: 1 }}>
+              <Card
+                key={card.id}
                 sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  mb: hasData ? 1 : 0,
+                  ...cardSx,
+                  ...(hasData
+                    ? { px: 2, py: 1.5 }
+                    : { display: 'flex', flexDirection: 'column' }),
+                  ...(card.id === 'insurance' && hasData ? { pl: 2 } : {}),
                 }}
               >
-                <Typography
-                  variant={titleVariant}
+                {/* Header with title and actions */}
+                <Box
                   sx={{
-                    ...titleSx,
-                    ...(!hasData ? { px: 2, pt: 1.5 } : {}),
-                    ...(card.id !== 'mot' && !hasData ? {} : {}),
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    mb: hasData ? 1 : 0,
                   }}
                 >
-                  {t(card.titleKey as any)}
-                  {!hasData && ':'}
-                </Typography>
-                {hasData && card.headerActions && (
-                  <Box>
-                    {card.headerActions.map(action => (
-                      <Tooltip key={action.tooltipKey} title={t(action.tooltipKey as any)}>
-                        <IconButton
+                  <Typography
+                    variant={titleVariant}
+                    sx={{
+                      ...titleSx,
+                      ...(!hasData ? { px: 2, pt: 1.5 } : {}),
+                      ...(card.id !== 'mot' && !hasData ? {} : {}),
+                    }}
+                  >
+                    {/* {capitalizeTitle(t(card.titleKey as any))} */}
+                    {t(card.titleKey as any)}
+
+                    {!hasData && ':'}
+                  </Typography>
+                </Box>
+
+                {/* Content */}
+                {hasData
+                  ? (
+                      <Box>
+                        {card.sections.length > 0 && (
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                            {card.sections.map((section, sectionIndex) => {
+                              if (section.renderCustom) {
+                                return <Box key={`${card.id}-section-${sectionIndex}`}>{section.renderCustom()}</Box>;
+                              }
+
+                              if (!section.label && !section.value) {
+                                return null;
+                              }
+
+                              const customSx = section.customSx
+                                ? section.customSx(section.value)
+                                : undefined;
+
+                              // For service sections, render without icon boxes
+                              if (card.id === 'service') {
+                                return (
+                                  <Typography
+                                    key={`${card.id}-service-${sectionIndex}`}
+                                    variant="body2"
+                                    sx={{
+                                      color: 'text.primary',
+                                      mb: sectionIndex < card.sections.length - 1 ? 0.5 : 0,
+                                    }}
+                                  >
+                                    {section.label}
+                                    :
+                                    {' '}
+                                    {section.value}
+                                  </Typography>
+                                );
+                              }
+
+                              // For insurance/finance with just text (no icon), render as simple text
+                              if (card.id === 'insurance' && sectionIndex === 0 && !section.icon) {
+                                return (
+                                  <Typography
+                                    key={`${card.id}-insurance-${sectionIndex}`}
+                                    variant="body2"
+                                    sx={{ color: 'text.primary', mb: 1 }}
+                                  >
+                                    {section.label}
+                                    :
+                                    {' '}
+                                    {section.value}
+                                  </Typography>
+                                );
+                              }
+
+                              if (card.id === 'finance' && sectionIndex === 0 && !section.icon) {
+                                return (
+                                  <Typography
+                                    key={`${card.id}-finance-${sectionIndex}`}
+                                    variant="body2"
+                                    sx={{ color: 'text.primary', mb: 1 }}
+                                  >
+                                    {section.label}
+                                    :
+                                    {' '}
+                                    {section.value}
+                                  </Typography>
+                                );
+                              }
+
+                              return (
+                                <MaintenanceSectionItemComponent
+                                  key={`${card.id}-item-${sectionIndex}`}
+                                  label={section.label}
+                                  icon={section.icon}
+                                  value={section.value}
+                                  customSx={customSx}
+                                  valueIcon={section.valueIcon}
+                                  tooltip={section.tooltip}
+                                  onClick={section.onClick}
+                                />
+                              );
+                            })}
+                          </Box>
+                        )}
+
+                        {/* Insurance links */}
+                        {card.id === 'insurance' && insurance.links && insurance.links.length > 0 && (
+                          <Box sx={{ mt: 1 }}>
+                            {insurance.links.map(link => (
+                              <Link
+                                key={`insurance-link-${link.url}`}
+                                href={link.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                sx={{
+                                  'display': 'flex',
+                                  'alignItems': 'center',
+                                  'gap': 0.5,
+                                  'color': 'text.primary',
+                                  'textDecoration': 'underline',
+                                  'mb': 0.5,
+                                  '&:hover': { color: 'primary.main' },
+                                }}
+                              >
+                                {link.icon && <span>{link.icon}</span>}
+                                <Typography variant="body2">{link.label}</Typography>
+                              </Link>
+                            ))}
+                          </Box>
+                        )}
+
+                        {/* Finance link */}
+                        {card.id === 'finance' && finance.links && finance.links.length > 0 && (
+                          <Link
+                            href={finance.links[0]?.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            sx={{
+                              'display': 'inline-flex',
+                              'alignItems': 'center',
+                              'gap': 0.5,
+                              'color': 'primary.main',
+                              'textDecoration': 'none',
+                              '&:hover': { textDecoration: 'underline' },
+                            }}
+                          >
+                            {t('details')}
+                            <OpenInNewIcon sx={{ fontSize: 14 }} />
+                          </Link>
+                        )}
+                      </Box>
+                    )
+                  : (
+                      <Box sx={emptyStateBoxSx}>
+                        <Button
+                          startIcon={<AddIcon />}
                           size="small"
-                          onClick={action.onClick}
-                          sx={{
-                            'color': 'text.secondary',
-                            '&:hover': {
-                              color: 'text.primary',
-                              backgroundColor: 'action.hover',
-                            },
-                          }}
+                          sx={{ textTransform: 'none', color: 'text.secondary' }}
                         >
-                          {action.icon}
-                        </IconButton>
-                      </Tooltip>
-                    ))}
-                  </Box>
-                )}
-              </Box>
-
-              {/* Content */}
-              {hasData
-                ? (
-                    <Box>
-                      {card.sections.length > 0 && (
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                          {card.sections.map((section, sectionIndex) => {
-                            if (section.renderCustom) {
-                              return <Box key={`${card.id}-section-${sectionIndex}`}>{section.renderCustom()}</Box>;
-                            }
-
-                            if (!section.label && !section.value) {
-                              return null;
-                            }
-
-                            const customSx = section.customSx
-                              ? section.customSx(section.value)
-                              : undefined;
-
-                            // For service sections, render without icon boxes
-                            if (card.id === 'service') {
-                              return (
-                                <Typography
-                                  key={`${card.id}-service-${sectionIndex}`}
-                                  variant="body2"
-                                  sx={{
-                                    color: 'text.primary',
-                                    mb: sectionIndex < card.sections.length - 1 ? 0.5 : 0,
-                                  }}
-                                >
-                                  {section.label}
-                                  :
-                                  {' '}
-                                  {section.value}
-                                </Typography>
-                              );
-                            }
-
-                            // For insurance/finance with just text (no icon), render as simple text
-                            if (card.id === 'insurance' && sectionIndex === 0 && !section.icon) {
-                              return (
-                                <Typography
-                                  key={`${card.id}-insurance-${sectionIndex}`}
-                                  variant="body2"
-                                  sx={{ color: 'text.primary', mb: 1 }}
-                                >
-                                  {section.label}
-                                  :
-                                  {' '}
-                                  {section.value}
-                                </Typography>
-                              );
-                            }
-
-                            if (card.id === 'finance' && sectionIndex === 0 && !section.icon) {
-                              return (
-                                <Typography
-                                  key={`${card.id}-finance-${sectionIndex}`}
-                                  variant="body2"
-                                  sx={{ color: 'text.primary', mb: 1 }}
-                                >
-                                  {section.label}
-                                  :
-                                  {' '}
-                                  {section.value}
-                                </Typography>
-                              );
-                            }
-
-                            return (
-                              <MaintenanceSectionItemComponent
-                                key={`${card.id}-item-${sectionIndex}`}
-                                label={section.label}
-                                icon={section.icon}
-                                value={section.value}
-                                customSx={customSx}
-                                valueIcon={section.valueIcon}
-                              />
-                            );
-                          })}
-                        </Box>
-                      )}
-
-                      {/* Insurance links */}
-                      {card.id === 'insurance' && insurance.links && insurance.links.length > 0 && (
-                        <Box sx={{ mt: 1 }}>
-                          {insurance.links.map(link => (
-                            <Link
-                              key={`insurance-link-${link.url}`}
-                              href={link.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              sx={{
-                                'display': 'flex',
-                                'alignItems': 'center',
-                                'gap': 0.5,
-                                'color': 'text.primary',
-                                'textDecoration': 'underline',
-                                'mb': 0.5,
-                                '&:hover': { color: 'primary.main' },
-                              }}
-                            >
-                              {link.icon && <span>{link.icon}</span>}
-                              <Typography variant="body2">{link.label}</Typography>
-                            </Link>
-                          ))}
-                        </Box>
-                      )}
-
-                      {/* Finance link */}
-                      {card.id === 'finance' && finance.links && finance.links.length > 0 && (
-                        <Link
-                          href={finance.links[0]?.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          sx={{
-                            'display': 'inline-flex',
-                            'alignItems': 'center',
-                            'gap': 0.5,
-                            'color': 'primary.main',
-                            'textDecoration': 'none',
-                            '&:hover': { textDecoration: 'underline' },
-                          }}
-                        >
-                          {t('details')}
-                          <OpenInNewIcon sx={{ fontSize: 14 }} />
-                        </Link>
-                      )}
-
-                      {/* Bottom link (e.g., Tax your vehicle) */}
-                      {card.bottomLink && (
-                        <Link
-                          href={card.bottomLink.href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          sx={{
-                            'display': 'inline-flex',
-                            'alignItems': 'center',
-                            'gap': 0.5,
-                            'fontSize': '0.875rem',
-                            'color': 'primary.main',
-                            'textDecoration': 'none',
-                            '&:hover': { textDecoration: 'underline' },
-                          }}
-                        >
-                          {t(card.bottomLink.labelKey as any)}
-                          <OpenInNewIcon sx={{ fontSize: 14 }} />
-                        </Link>
-                      )}
-                    </Box>
-                  )
-                : (
-                    <Box sx={emptyStateBoxSx}>
-                      <Button
-                        startIcon={<AddIcon />}
-                        size="small"
-                        sx={{ textTransform: 'none', color: 'text.secondary' }}
-                      >
-                        {t('add_details')}
-                      </Button>
-                    </Box>
-                  )}
-            </Card>
+                          {t('add_details')}
+                        </Button>
+                      </Box>
+                    )}
+              </Card>
+            </Box>
           );
         })}
       </Box>
