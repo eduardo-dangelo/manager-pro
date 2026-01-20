@@ -1,11 +1,12 @@
 'use client';
 
+import type { ChipProps } from '@mui/material';
 import type { Asset } from '@/components/Assets/utils';
-import { getMotStatus, getStatusColors, getStatusTooltipText } from '@/components/Assets/utils';
 import CancelIcon from '@mui/icons-material/Cancel';
 import CheckIcon from '@mui/icons-material/CheckCircle';
 import WarningIcon from '@mui/icons-material/Warning';
-import { Box, Chip, ChipProps, Tooltip, Typography } from '@mui/material';
+import { Box, Chip, Tooltip, Typography } from '@mui/material';
+import { getMotStatus, getStatusColors, getStatusTooltipText } from '@/components/Assets/utils';
 
 type MotChipProps = ChipProps & {
   asset: Asset;
