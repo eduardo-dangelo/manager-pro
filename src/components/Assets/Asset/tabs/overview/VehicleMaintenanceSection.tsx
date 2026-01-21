@@ -4,6 +4,7 @@ import type { SxProps, Theme } from '@mui/material';
 import type { ReactElement, ReactNode } from 'react';
 import {
   Add as AddIcon,
+  AutorenewOutlined as AutorenewOutlinedIcon,
   CalendarTodayOutlined as CalendarIconOutlined,
   Cancel as CancelIcon,
   Check as CheckIcon,
@@ -27,6 +28,7 @@ import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 import { MotTestResultItem } from '@/components/Assets/Asset/tabs/overview/MotTestResultItem';
+import { VehicleMileageChart } from '@/components/Assets/Asset/tabs/overview/VehicleMileageChart';
 import { getStatusColors } from '@/components/Assets/utils';
 import { Card } from '@/components/common/Card';
 
@@ -64,7 +66,7 @@ type MotTest = {
   completedDate?: string;
   testResult?: string;
   expiryDate?: string;
-  odometerValue?: number;
+  odometerValue?: number | string;
   odometerUnit?: string;
   odometerResultType?: string;
   motTestNumber?: string;
@@ -73,6 +75,139 @@ type MotTest = {
     type?: string;
     dangerous?: boolean;
   }>;
+};
+
+type MileagePoint = {
+  label: string;
+  value: number;
+};
+
+const KM_TO_MILES = 0.621371;
+
+const toMiles = (value?: number | string, unit?: string): number | null => {
+  if (value === undefined || value === null) {
+    return null;
+  }
+
+  const numericValue = typeof value === 'number'
+    ? value
+    : Number.parseFloat(value.toString().replace(/[^0-9.]/g, ''));
+
+  if (Number.isNaN(numericValue)) {
+    return null;
+  }
+
+  const normalizedUnit = unit?.toLowerCase() ?? 'mi';
+
+  if (normalizedUnit.includes('km')) {
+    return numericValue * KM_TO_MILES;
+  }
+
+  return numericValue;
+};
+
+const parseMotTestDate = (test: MotTest): Date | null => {
+  const dateStr = test.completedDate || test.expiryDate;
+  if (!dateStr) {
+    return null;
+  }
+
+  const m = moment(dateStr);
+  return m.isValid() ? m.toDate() : null;
+};
+
+const buildMileageOverTimeSeries = (motTests: MotTest[]): MileagePoint[] => {
+  if (!motTests || motTests.length === 0) {
+    return [];
+  }
+
+  const testsWithMileage = motTests
+    .map((test) => {
+      const miles = toMiles(test.odometerValue, test.odometerUnit);
+      const date = parseMotTestDate(test);
+      return miles !== null && date
+        ? { date, miles }
+        : null;
+    })
+    .filter((item): item is { date: Date; miles: number } => item !== null);
+
+  if (testsWithMileage.length === 0) {
+    return [];
+  }
+
+  // Aggregate by year using the maximum recorded mileage for that year
+  const yearToMiles = new Map<number, number>();
+
+  testsWithMileage.forEach(({ date, miles }) => {
+    const year = date.getFullYear();
+    const existing = yearToMiles.get(year);
+    if (existing === undefined || miles > existing) {
+      yearToMiles.set(year, miles);
+    }
+  });
+
+  const years = Array.from(yearToMiles.keys()).sort((a, b) => a - b);
+
+  return years.map(year => ({
+    label: year.toString(),
+    value: yearToMiles.get(year) ?? 0,
+  }));
+};
+
+const buildMileagePerYearSeries = (motTests: MotTest[]): MileagePoint[] => {
+  if (!motTests || motTests.length < 2) {
+    return [];
+  }
+
+  const testsWithMileage = motTests
+    .map((test) => {
+      const miles = toMiles(test.odometerValue, test.odometerUnit);
+      const date = parseMotTestDate(test);
+      return miles !== null && date
+        ? { date, miles }
+        : null;
+    })
+    .filter((item): item is { date: Date; miles: number } => item !== null);
+
+  if (testsWithMileage.length < 2) {
+    return [];
+  }
+
+  // Reuse the yearly aggregation so we compare year-to-year mileage
+  const yearToMiles = new Map<number, number>();
+
+  testsWithMileage.forEach(({ date, miles }) => {
+    const year = date.getFullYear();
+    const existing = yearToMiles.get(year);
+    if (existing === undefined || miles > existing) {
+      yearToMiles.set(year, miles);
+    }
+  });
+
+  const years = Array.from(yearToMiles.keys()).sort((a, b) => a - b);
+
+  if (years.length < 2) {
+    return [];
+  }
+
+  const perYear: MileagePoint[] = [];
+
+  for (let i = 1; i < years.length; i += 1) {
+    const prevYear = years[i - 1];
+    const currentYear = years[i];
+    const prevMiles = yearToMiles.get(prevYear) ?? 0;
+    const currentMiles = yearToMiles.get(currentYear) ?? 0;
+    const delta = currentMiles - prevMiles;
+
+    if (delta > 0) {
+      perYear.push({
+        label: currentYear.toString(),
+        value: delta,
+      });
+    }
+  }
+
+  return perYear;
 };
 
 // Type definitions for array-based structure
@@ -102,14 +237,6 @@ type MaintenanceSectionItemProps = {
   valueIcon?: ReactElement;
   tooltip?: string;
   onClick?: () => void;
-};
-
-// Helper function to capitalize title (first letter uppercase, rest lowercase)
-const capitalizeTitle = (text: string): string => {
-  if (!text) {
-    return text;
-  }
-  return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
 };
 
 // Reusable component for rendering maintenance section items
@@ -214,6 +341,10 @@ const buildMaintenanceCards = (
 
   const cards: MaintenanceCardConfig[] = [];
 
+  const mileageOverTimeSeries = buildMileageOverTimeSeries(motTests);
+  const mileagePerYearSeries = buildMileagePerYearSeries(motTests);
+  const hasMileageData = mileageOverTimeSeries.length > 0;
+
   const getIcon = (isExpired: boolean, isExpiringSoon: boolean): ReactElement => {
     if (isExpired) {
       return <CancelIcon fontSize="small" sx={{ color: 'error.main' }} />;
@@ -240,11 +371,11 @@ const buildMaintenanceCards = (
       ? [
           {
             label: 'Mot Status',
-            icon: <HistoryIcon />,
+            icon: <AutorenewOutlinedIcon />,
             value: motIsValid ? 'Valid' : motIsInvalid ? 'Invalid' : motTestResult || '-',
             valueIcon: getIcon(motIsInvalid, false),
             tooltip: motIsExpiringSoon && motRemainingDays !== null
-              ? `Expires in ${motRemainingDays} day${motRemainingDays !== 1 ? 's' : ''}`
+              ? `Expiring soon`
               : undefined,
             customSx: () => {
               const color = getStatusColors(motIsInvalid, false);
@@ -261,17 +392,11 @@ const buildMaintenanceCards = (
             label: 'Expires',
             icon: <CalendarIconOutlined />,
             value: formatDate(motExpiryDate),
-            tooltip: motIsExpiringSoon && motRemainingDays !== null
-              ? `Expires in ${motRemainingDays} day${motRemainingDays !== 1 ? 's' : ''}`
-              : undefined,
           },
           {
             label: 'Remaining days',
-            icon: <CalendarIconOutlined />,
+            icon: <HistoryIcon />,
             value: motRemainingDays !== null ? motRemainingDays : '-',
-            tooltip: motIsExpiringSoon && motRemainingDays !== null
-              ? `Expires in ${motRemainingDays} day${motRemainingDays !== 1 ? 's' : ''}`
-              : undefined,
           },
           ...(motTests.length > 1
             ? [
@@ -302,11 +427,11 @@ const buildMaintenanceCards = (
             ? [
                 {
                   label: 'Tax Status',
-                  icon: <HistoryIcon />,
+                  icon: <AutorenewOutlinedIcon />,
                   value: taxStatus,
                   valueIcon: getIcon(taxIsExpired, taxIsExpiringSoon),
                   tooltip: taxIsExpiringSoon && taxRemainingDays !== null
-                    ? `Expires in ${taxRemainingDays} day${taxRemainingDays !== 1 ? 's' : ''}`
+                    ? `Expiring soon`
                     : undefined,
                   customSx: () => {
                     const color = getStatusColors(taxIsExpired, taxIsExpiringSoon);
@@ -325,17 +450,11 @@ const buildMaintenanceCards = (
             label: t('expires'),
             icon: <CalendarIconOutlined />,
             value: formatDate(taxExpiry),
-            tooltip: taxIsExpiringSoon && taxRemainingDays !== null
-              ? `Expires in ${taxRemainingDays} day${taxRemainingDays !== 1 ? 's' : ''}`
-              : undefined,
           },
           {
             label: 'Remaining days',
-            icon: <CalendarIconOutlined />,
+            icon: <HistoryIcon />,
             value: taxRemainingDays !== null ? taxRemainingDays : '-',
-            tooltip: taxIsExpiringSoon && taxRemainingDays !== null
-              ? `Expires in ${taxRemainingDays} day${taxRemainingDays !== 1 ? 's' : ''}`
-              : undefined,
           },
           {
             label: t('tax_your_vehicle'),
@@ -349,63 +468,84 @@ const buildMaintenanceCards = (
       : [],
   });
 
-  // Insurance Card
+  // Mileage Card (between Tax and Insurance)
   cards.push({
-    id: 'insurance',
-    titleKey: 'insurance',
-    hasData: () => Boolean(hasMaintenanceData(insurance)),
-    sections: insurance.expires
+    id: 'mileage',
+    titleKey: 'mileage',
+    hasData: () => hasMileageData,
+    sections: hasMileageData
       ? [
           {
-            label: t('expires'),
-            icon: <CalendarIconOutlined />,
-            value: formatDate(insurance.expires),
-          },
-        ]
-      : [],
-    // Insurance links will be handled separately in render
-  });
-
-  // Finance Card
-  cards.push({
-    id: 'finance',
-    titleKey: 'finance_agreement',
-    hasData: () => Boolean(hasMaintenanceData(finance)),
-    sections: finance.endsOn || finance.expires
-      ? [
-          {
-            label: t('ends_on'),
-            icon: <CalendarIconOutlined />,
-            value: formatDate(finance.endsOn || finance.expires),
+            label: '',
+            value: '',
+            renderCustom: () => (
+              <VehicleMileageChart
+                overTimeData={mileageOverTimeSeries}
+                perYearData={mileagePerYearSeries}
+              />
+            ),
           },
         ]
       : [],
   });
 
-  // Service Card
-  cards.push({
-    id: 'service',
-    titleKey: 'service',
-    hasData: () => Boolean(hasMaintenanceData(service)),
-    sections: [
-      ...(service.lastService
-        ? [
-            {
-              label: t('last_service'),
-              value: `${formatDate(service.lastService.date)} - ${service.lastService.mileage.toLocaleString()} ${t('miles')}`,
-            },
-          ]
-        : []),
-      ...(service.nextService
-        ? [
-            {
-              label: t('next_service'),
-              value: `${formatDate(service.nextService.date)} - ${service.nextService.mileage.toLocaleString()} ${t('miles')}`,
-            },
-          ]
-        : []),
-    ],
-  });
+  // // Insurance Card
+  // cards.push({
+  //   id: 'insurance',
+  //   titleKey: 'insurance',
+  //   hasData: () => Boolean(hasMaintenanceData(insurance)),
+  //   sections: insurance.expires
+  //     ? [
+  //         {
+  //           label: t('expires'),
+  //           icon: <CalendarIconOutlined />,
+  //           value: formatDate(insurance.expires),
+  //         },
+  //       ]
+  //     : [],
+  //   // Insurance links will be handled separately in render
+  // });
+
+  // // Finance Card
+  // cards.push({
+  //   id: 'finance',
+  //   titleKey: 'finance_agreement',
+  //   hasData: () => Boolean(hasMaintenanceData(finance)),
+  //   sections: finance.endsOn || finance.expires
+  //     ? [
+  //         {
+  //           label: t('ends_on'),
+  //           icon: <CalendarIconOutlined />,
+  //           value: formatDate(finance.endsOn || finance.expires),
+  //         },
+  //       ]
+  //     : [],
+  // });
+
+  // // Service Card
+  // cards.push({
+  //   id: 'service',
+  //   titleKey: 'service',
+  //   hasData: () => Boolean(hasMaintenanceData(service)),
+  //   sections: [
+  //     ...(service.lastService
+  //       ? [
+  //           {
+  //             label: t('last_service'),
+  //             value: `${formatDate(service.lastService.date)} - ${service.lastService.mileage.toLocaleString()} ${t('miles')}`,
+  //           },
+  //         ]
+  //       : []),
+  //     ...(service.nextService
+  //       ? [
+  //           {
+  //             label: t('next_service'),
+  //             value: `${formatDate(service.nextService.date)} - ${service.nextService.mileage.toLocaleString()} ${t('miles')}`,
+  //           },
+  //         ]
+  //       : []),
+  // ],
+  // });
 
   return cards;
 };
@@ -444,6 +584,7 @@ export function VehicleMaintenanceSection({
   const cardSx = {
     width: { xs: '100%' },
     minHeight: 120,
+    position: 'relative',
   };
 
   const emptyStateBoxSx = {
@@ -584,6 +725,30 @@ export function VehicleMaintenanceSection({
                                     {' '}
                                     {section.value}
                                   </Typography>
+                                );
+                              }
+
+                              // Render action buttons (sections with onClick and empty/no value) as primary buttons
+                              if (section.onClick && (!section.value || section.value === '')) {
+                                return (
+                                  <Button
+                                    key={`${card.id}-action-${sectionIndex}`}
+                                    variant="outlined"
+                                    color="primary"
+                                    onClick={section.onClick}
+                                    startIcon={section.icon}
+                                    fullWidth
+                                    sx={{
+                                      // mt: 1,
+                                      // boxShadow: 4,
+                                      // elevation: 4,
+                                      // py: 1.5,
+                                      textTransform: 'none',
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    {section.label}
+                                  </Button>
                                 );
                               }
 

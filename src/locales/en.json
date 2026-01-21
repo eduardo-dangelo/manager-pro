@@ -282,6 +282,10 @@
     "view_mot_history": "View MOT History",
     "add_details": "Add Details",
     "status": "Status",
-    "tax_your_vehicle": "Tax your vehicle"
+    "tax_your_vehicle": "Tax your vehicle",
+    "mileage": "MILEAGE",
+    "mileage_over_time": "Mileage Over Time",
+    "mileage_per_year": "Miles Added Per Year",
+    "mileage_not_enough_data": "Not enough MOT history yet to show yearly mileage trends."
   }
 }
