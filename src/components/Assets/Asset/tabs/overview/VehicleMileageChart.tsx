@@ -39,7 +39,7 @@ export const VehicleMileageChart: FC<VehicleMileageChartProps> = ({
   };
 
   const sharedChartProps = {
-    height: 160,
+    height: 154,
     margin: { top: -20, right: 0, bottom: -5, left: -15 },
     grid: { horizontal: true, vertical: false },
     slotProps: {
@@ -56,6 +56,7 @@ export const VehicleMileageChart: FC<VehicleMileageChartProps> = ({
               data: overTimeData.map(point => point.label),
               scaleType: 'band',
             }]}
+            borderRadius={4}
             yAxis={[{
               valueFormatter: yTickFormatter,
             }]}
@@ -76,6 +77,7 @@ export const VehicleMileageChart: FC<VehicleMileageChartProps> = ({
               yAxis={[{
                 valueFormatter: yTickFormatter,
               }]}
+              borderRadius={4}
               series={[{
                 data: perYearData.map(point => point.value),
                 color: theme.palette.primary.main,
