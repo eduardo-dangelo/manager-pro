@@ -278,6 +278,7 @@
     "mot_expires": "Expires",
     "mot_failures": "Failures",
     "mot_advisories": "Advisories",
+    "mot_no_details": "No additional details available for this test.",
     "mot_history": "MOT History",
     "view_mot_history": "View MOT History",
     "add_details": "Add Details",

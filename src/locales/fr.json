@@ -277,6 +277,7 @@
     "mot_expires": "Expire",
     "mot_failures": "Défaillances",
     "mot_advisories": "Avertissements",
+    "mot_no_details": "Aucun détail supplémentaire disponible pour ce test.",
     "mot_history": "Historique CT",
     "view_mot_history": "Voir l'historique CT",
     "add_details": "Ajouter des détails",

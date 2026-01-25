@@ -7,6 +7,7 @@ import {
   AutorenewOutlined as AutorenewOutlinedIcon,
   CalendarTodayOutlined as CalendarIconOutlined,
   Cancel as CancelIcon,
+  CheckCircle as CheckCircleIconOutlinedIcon,
   Check as CheckIcon,
   History as HistoryIcon,
   OpenInNew as OpenInNewIcon,
@@ -18,7 +19,6 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
-  Divider,
   Link,
   Tooltip,
   Typography,
@@ -70,7 +70,7 @@ type MotTest = {
   odometerUnit?: string;
   odometerResultType?: string;
   motTestNumber?: string;
-  rfrAndComments?: Array<{
+  defects?: Array<{
     text?: string;
     type?: string;
     dangerous?: boolean;
@@ -398,7 +398,7 @@ const buildMaintenanceCards = (
             icon: <HistoryIcon />,
             value: motRemainingDays !== null ? motRemainingDays : '-',
           },
-          ...(motTests.length > 1
+          ...(latestMotTest
             ? [
                 {
                   label: t('view_mot_history'),
@@ -844,49 +844,67 @@ export function VehicleMaintenanceSection({
           <Box
             sx={{
               position: 'relative',
-              pl: 4,
-              pt: 1,
+              // pl: 4,
+              // pt: 1,
             }}
           >
             {/* Timeline vertical line */}
-            <Box
-              sx={{
-                position: 'absolute',
-                left: 23,
-                top: 0,
-                bottom: 0,
-                width: 2,
-                backgroundColor: 'divider',
-              }}
-            />
+
             {motTests.map((test, index) => {
               const isPassed = test.testResult === 'PASSED' || test.testResult === 'PASS';
+              const isLastTest = index === motTests.length - 1;
               return (
                 <Box
                   key={test.motTestNumber || `mot-test-${index}`}
-                  sx={{ position: 'relative' }}
+                  sx={{
+                    position: 'relative',
+                    display: 'flex',
+                    alignItems: 'stretch',
+                    justifyContent: 'space-between',
+                    // flexDirection: 'column',
+                    gap: 1,
+                    // border: '1px solid blue',
+                    pb: 0.5,
+                    // mb: 0.5,
+                  }}
                 >
                   {/* Timeline dot */}
-                  <Box sx={{}}>
+                  <Box sx={{
+                    // border: '1px solid red',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexDirection: 'column',
+                    gap: 0.5,
+                  }}
+                  >
                     <Box
                       sx={{
-                        position: 'absolute',
-                        left: -30,
-                        top: 16,
-                        width: 12,
-                        height: 12,
                         borderRadius: '50%',
-                        backgroundColor: isPassed ? 'success.light' : 'error.light',
+                        color: isPassed ? 'success.light' : 'error.light',
                         zIndex: 1,
+                        position: 'sticky',
+                        top: 0,
+                        border: '1px solid',
+                        borderColor: isPassed ? 'success.light' : 'error.light',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                       }}
-                    />
-                    <Divider orientation="vertical" flexItem />
+                    >
+                      {isPassed ? <CheckCircleIconOutlinedIcon fontSize="small" /> : <CancelIcon fontSize="small" />}
+                    </Box>
+
+                    <Box sx={{ width: '1px', height: '100%', backgroundColor: isLastTest ? 'transparent' : 'divider', borderRadius: 2 }} />
                   </Box>
-                  <MotTestResultItem
-                    test={test}
-                    isLatest={index === 0}
-                    showDetails
-                  />
+                  <Card sx={{ py: 1, px: 2, flex: 1, mb: 1 }}>
+                    <MotTestResultItem
+                      test={test}
+                      isLatest={index === 0}
+                      showDetails
+                      showExpiryDate={index === 0}
+                    />
+                  </Card>
                 </Box>
               );
             })}
