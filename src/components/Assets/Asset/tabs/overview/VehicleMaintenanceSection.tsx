@@ -9,6 +9,7 @@ import {
   Cancel as CancelIcon,
   CheckCircle as CheckCircleIconOutlinedIcon,
   Check as CheckIcon,
+  Close as CloseIcon,
   History as HistoryIcon,
   OpenInNew as OpenInNewIcon,
   WarningAmberOutlined as WarningIcon,
@@ -16,12 +17,12 @@ import {
 import {
   Box,
   Button,
-  Dialog,
-  DialogContent,
-  DialogTitle,
+  Drawer,
+  IconButton,
   Link,
   Tooltip,
   Typography,
+  useTheme,
 } from '@mui/material';
 import moment from 'moment';
 import { useTranslations } from 'next-intl';
@@ -220,6 +221,7 @@ type MaintenanceSectionItem = {
   tooltip?: string;
   onClick?: () => void;
   valueIcon?: ReactElement;
+  valueSx?: SxProps<Theme>;
 };
 
 type MaintenanceCardConfig = {
@@ -237,6 +239,7 @@ type MaintenanceSectionItemProps = {
   valueIcon?: ReactElement;
   tooltip?: string;
   onClick?: () => void;
+  valueSx?: SxProps<Theme>;
 };
 
 // Reusable component for rendering maintenance section items
@@ -248,6 +251,7 @@ function MaintenanceSectionItemComponent({
   valueIcon,
   tooltip,
   onClick,
+  valueSx,
 }: MaintenanceSectionItemProps) {
   const defaultSx: SxProps<Theme> = {
     border: '1px solid',
@@ -289,7 +293,15 @@ function MaintenanceSectionItemComponent({
       </Box>
 
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-        <Typography variant="body2" sx={{ color: customColor || 'text.primary', mb: 0, fontWeight: 600 }}>
+        <Typography
+          variant="body2"
+          sx={{
+            color: customColor || 'text.primary',
+            mb: 0,
+            fontWeight: 600,
+            ...(valueSx ?? {}),
+          }}
+        >
           {value}
         </Typography>
         {valueIcon}
@@ -397,6 +409,7 @@ const buildMaintenanceCards = (
             label: 'Remaining days',
             icon: <HistoryIcon />,
             value: motRemainingDays !== null ? motRemainingDays : '-',
+            valueSx: { fontSize: '1.25rem', fontWeight: 700 },
           },
           ...(latestMotTest
             ? [
@@ -455,6 +468,7 @@ const buildMaintenanceCards = (
             label: 'Remaining days',
             icon: <HistoryIcon />,
             value: taxRemainingDays !== null ? taxRemainingDays : '-',
+            valueSx: { fontSize: '1.25rem', fontWeight: 700 },
           },
           {
             label: t('tax_your_vehicle'),
@@ -557,7 +571,7 @@ export function VehicleMaintenanceSection({
 }: VehicleMaintenanceSectionProps) {
   const t = useTranslations('Assets');
   const [motHistoryOpen, setMotHistoryOpen] = useState(false);
-
+  const theme = useTheme();
   const metadata = asset.metadata || {};
   const maintenance = metadata.maintenance || {};
   const motData = metadata.mot || {};
@@ -762,6 +776,7 @@ export function VehicleMaintenanceSection({
                                   valueIcon={section.valueIcon}
                                   tooltip={section.tooltip}
                                   onClick={section.onClick}
+                                  valueSx={section.valueSx}
                                 />
                               );
                             })}
@@ -832,20 +847,65 @@ export function VehicleMaintenanceSection({
         })}
       </Box>
 
-      {/* MOT History Modal */}
-      <Dialog
+      {/* MOT History Side Panel */}
+      <Drawer
+        anchor="right"
         open={motHistoryOpen}
         onClose={() => setMotHistoryOpen(false)}
-        maxWidth="sm"
-        fullWidth
+        variant="temporary"
+        sx={{
+          '& .MuiDrawer-paper': {
+            width: { xs: '100%', sm: 480, md: 600 },
+            boxSizing: 'border-box',
+            zIndex: 1000,
+          },
+          'zIndex': 2000,
+        }}
       >
-        <DialogTitle>Full MOT History</DialogTitle>
-        <DialogContent sx={{ px: 3, pb: 3 }}>
+        {/* Drawer Header */}
+
+        {/* Drawer Content */}
+        <Box
+          sx={{
+            flex: 1,
+            overflow: 'auto',
+            px: 3,
+            pb: 3,
+            // pt: 2,
+          }}
+        >
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              // px: 3,
+              py: 1,
+              position: 'sticky',
+              top: 0,
+              my: 2,
+              // opacity: 0.1,
+              backdropFilter: 'blur(2px)',
+              backgroundColor: theme.palette.mode === 'light' ? 'rgba(255, 255, 255, 0.8)' : 'rgba(62, 62, 62, 0.8)',
+              zIndex: 100,
+            // borderBottom: '1px solid',
+            // borderColor: 'divider',
+            }}
+          >
+            <Typography variant="h6" component="h2">
+              Full MOT History
+            </Typography>
+            <IconButton
+              onClick={() => setMotHistoryOpen(false)}
+              size="small"
+              sx={{ ml: 2 }}
+            >
+              <CloseIcon />
+            </IconButton>
+          </Box>
           <Box
             sx={{
               position: 'relative',
-              // pl: 4,
-              // pt: 1,
             }}
           >
             {/* Timeline vertical line */}
@@ -861,16 +921,12 @@ export function VehicleMaintenanceSection({
                     display: 'flex',
                     alignItems: 'stretch',
                     justifyContent: 'space-between',
-                    // flexDirection: 'column',
                     gap: 1,
-                    // border: '1px solid blue',
                     pb: 0.5,
-                    // mb: 0.5,
                   }}
                 >
                   {/* Timeline dot */}
                   <Box sx={{
-                    // border: '1px solid red',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -909,8 +965,8 @@ export function VehicleMaintenanceSection({
               );
             })}
           </Box>
-        </DialogContent>
-      </Dialog>
+        </Box>
+      </Drawer>
     </Box>
   );
 }
