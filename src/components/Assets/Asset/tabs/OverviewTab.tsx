@@ -4,8 +4,8 @@ import { Box } from '@mui/material';
 import { GenericOverviewSection } from '@/components/Assets/Asset/tabs/overview/GenericOverviewSection';
 import { PropertyInfoSection } from '@/components/Assets/Asset/tabs/overview/PropertyInfoSection';
 import { PropertyQuickLinksSection } from '@/components/Assets/Asset/tabs/overview/PropertyQuickLinksSection';
-import { VehicleMaintenanceSection } from '@/components/Assets/Asset/tabs/overview/VehicleMaintenanceSection';
-import { VehicleSpecsSection } from '@/components/Assets/Asset/tabs/overview/VehicleSpecsSection';
+import { VehicleMaintenanceSection } from '@/components/Assets/Asset/tabs/overview/vehicle/VehicleMaintenanceSection';
+import { VehicleSpecsSection } from '@/components/Assets/Asset/tabs/overview/vehicle/VehicleSpecsSection';
 
 type Objective = {
   id: number;

@@ -500,10 +500,13 @@ export function AssetsTopBar({
         justifyContent: 'flex-end',
         mb: 3,
         position: 'sticky',
-        top: 56, // Position directly below GlobalTopbar
+        top: 68, // Position directly below GlobalTopbar
         zIndex: 100,
-        borderRadius: 2,
-        bgcolor: theme.palette.background.default,
+        backdropFilter: 'blur(2px)',
+        // border: '1px solid',
+        bgcolor: theme.palette.mode === 'light'
+          ? 'rgba(248, 249, 250, 0.8)'
+          : 'rgba(37, 37, 38, 0.8)',
         pb: 0,
       }}
     >

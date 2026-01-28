@@ -7,9 +7,7 @@ import {
   AutorenewOutlined as AutorenewOutlinedIcon,
   CalendarTodayOutlined as CalendarIconOutlined,
   Cancel as CancelIcon,
-  CheckCircle as CheckCircleIconOutlinedIcon,
   Check as CheckIcon,
-  Close as CloseIcon,
   History as HistoryIcon,
   OpenInNew as OpenInNewIcon,
   WarningAmberOutlined as WarningIcon,
@@ -17,20 +15,28 @@ import {
 import {
   Box,
   Button,
-  Drawer,
-  IconButton,
   Link,
   Tooltip,
   Typography,
-  useTheme,
 } from '@mui/material';
 import moment from 'moment';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
-import { MotTestResultItem } from '@/components/Assets/Asset/tabs/overview/MotTestResultItem';
-import { VehicleMileageChart } from '@/components/Assets/Asset/tabs/overview/VehicleMileageChart';
-import { getStatusColors } from '@/components/Assets/utils';
+import { VehicleMileageChart } from './VehicleMileageChart';
+import { MotHistorySidePanel } from './MotHistorySidePanel';
+import { getStatusColors, formatDate } from '@/components/Assets/utils';
+import {
+  type MotTest,
+  type MaintenanceItem,
+  type MaintenanceLink,
+  type MileagePoint,
+  type MaintenanceSectionItem,
+  type MaintenanceCardConfig,
+  buildMileageOverTimeSeries,
+  buildMileagePerYearSeries,
+  hasMaintenanceData,
+} from '@/components/Assets/vehicle/utils';
 import { Card } from '@/components/common/Card';
 
 type Asset = {
@@ -49,187 +55,6 @@ type VehicleMaintenanceSectionProps = {
   onUpdateAsset: (asset: Asset) => void;
 };
 
-type MaintenanceLink = {
-  url: string;
-  label: string;
-  icon?: string;
-};
-
-type MaintenanceItem = {
-  expires?: string;
-  endsOn?: string;
-  links?: MaintenanceLink[];
-  lastService?: { date: string; mileage: number };
-  nextService?: { date: string; mileage: number };
-};
-
-type MotTest = {
-  completedDate?: string;
-  testResult?: string;
-  expiryDate?: string;
-  odometerValue?: number | string;
-  odometerUnit?: string;
-  odometerResultType?: string;
-  motTestNumber?: string;
-  defects?: Array<{
-    text?: string;
-    type?: string;
-    dangerous?: boolean;
-  }>;
-};
-
-type MileagePoint = {
-  label: string;
-  value: number;
-};
-
-const KM_TO_MILES = 0.621371;
-
-const toMiles = (value?: number | string, unit?: string): number | null => {
-  if (value === undefined || value === null) {
-    return null;
-  }
-
-  const numericValue = typeof value === 'number'
-    ? value
-    : Number.parseFloat(value.toString().replace(/[^0-9.]/g, ''));
-
-  if (Number.isNaN(numericValue)) {
-    return null;
-  }
-
-  const normalizedUnit = unit?.toLowerCase() ?? 'mi';
-
-  if (normalizedUnit.includes('km')) {
-    return numericValue * KM_TO_MILES;
-  }
-
-  return numericValue;
-};
-
-const parseMotTestDate = (test: MotTest): Date | null => {
-  const dateStr = test.completedDate || test.expiryDate;
-  if (!dateStr) {
-    return null;
-  }
-
-  const m = moment(dateStr);
-  return m.isValid() ? m.toDate() : null;
-};
-
-const buildMileageOverTimeSeries = (motTests: MotTest[]): MileagePoint[] => {
-  if (!motTests || motTests.length === 0) {
-    return [];
-  }
-
-  const testsWithMileage = motTests
-    .map((test) => {
-      const miles = toMiles(test.odometerValue, test.odometerUnit);
-      const date = parseMotTestDate(test);
-      return miles !== null && date
-        ? { date, miles }
-        : null;
-    })
-    .filter((item): item is { date: Date; miles: number } => item !== null);
-
-  if (testsWithMileage.length === 0) {
-    return [];
-  }
-
-  // Aggregate by year using the maximum recorded mileage for that year
-  const yearToMiles = new Map<number, number>();
-
-  testsWithMileage.forEach(({ date, miles }) => {
-    const year = date.getFullYear();
-    const existing = yearToMiles.get(year);
-    if (existing === undefined || miles > existing) {
-      yearToMiles.set(year, miles);
-    }
-  });
-
-  const years = Array.from(yearToMiles.keys()).sort((a, b) => a - b);
-
-  return years.map(year => ({
-    label: year.toString(),
-    value: yearToMiles.get(year) ?? 0,
-  }));
-};
-
-const buildMileagePerYearSeries = (motTests: MotTest[]): MileagePoint[] => {
-  if (!motTests || motTests.length < 2) {
-    return [];
-  }
-
-  const testsWithMileage = motTests
-    .map((test) => {
-      const miles = toMiles(test.odometerValue, test.odometerUnit);
-      const date = parseMotTestDate(test);
-      return miles !== null && date
-        ? { date, miles }
-        : null;
-    })
-    .filter((item): item is { date: Date; miles: number } => item !== null);
-
-  if (testsWithMileage.length < 2) {
-    return [];
-  }
-
-  // Reuse the yearly aggregation so we compare year-to-year mileage
-  const yearToMiles = new Map<number, number>();
-
-  testsWithMileage.forEach(({ date, miles }) => {
-    const year = date.getFullYear();
-    const existing = yearToMiles.get(year);
-    if (existing === undefined || miles > existing) {
-      yearToMiles.set(year, miles);
-    }
-  });
-
-  const years = Array.from(yearToMiles.keys()).sort((a, b) => a - b);
-
-  if (years.length < 2) {
-    return [];
-  }
-
-  const perYear: MileagePoint[] = [];
-
-  for (let i = 1; i < years.length; i += 1) {
-    const prevYear = years[i - 1];
-    const currentYear = years[i];
-    const prevMiles = yearToMiles.get(prevYear) ?? 0;
-    const currentMiles = yearToMiles.get(currentYear) ?? 0;
-    const delta = currentMiles - prevMiles;
-
-    if (delta > 0) {
-      perYear.push({
-        label: currentYear.toString(),
-        value: delta,
-      });
-    }
-  }
-
-  return perYear;
-};
-
-// Type definitions for array-based structure
-type MaintenanceSectionItem = {
-  label: string;
-  icon?: ReactElement;
-  value: ReactNode;
-  customSx?: (value: any) => SxProps<Theme>;
-  renderCustom?: () => ReactNode;
-  tooltip?: string;
-  onClick?: () => void;
-  valueIcon?: ReactElement;
-  valueSx?: SxProps<Theme>;
-};
-
-type MaintenanceCardConfig = {
-  id: string;
-  titleKey: string;
-  hasData: () => boolean;
-  sections: MaintenanceSectionItem[];
-};
 
 type MaintenanceSectionItemProps = {
   label: string;
@@ -315,19 +140,6 @@ function MaintenanceSectionItemComponent({
 
   return content;
 }
-
-// Format date using moment
-const formatDate = (dateStr: string | undefined) => {
-  if (!dateStr) {
-    return '-';
-  }
-  return moment(dateStr).format('D MMM YYYY');
-};
-
-// Check if a maintenance item has data
-const hasMaintenanceData = (item: MaintenanceItem) => {
-  return item.expires || item.endsOn || item.lastService || item.nextService || (item.links && item.links.length > 0);
-};
 
 // Build maintenance cards array based on asset data
 const buildMaintenanceCards = (
@@ -571,7 +383,6 @@ export function VehicleMaintenanceSection({
 }: VehicleMaintenanceSectionProps) {
   const t = useTranslations('Assets');
   const [motHistoryOpen, setMotHistoryOpen] = useState(false);
-  const theme = useTheme();
   const metadata = asset.metadata || {};
   const maintenance = metadata.maintenance || {};
   const motData = metadata.mot || {};
@@ -848,125 +659,11 @@ export function VehicleMaintenanceSection({
       </Box>
 
       {/* MOT History Side Panel */}
-      <Drawer
-        anchor="right"
+      <MotHistorySidePanel
         open={motHistoryOpen}
         onClose={() => setMotHistoryOpen(false)}
-        variant="temporary"
-        sx={{
-          '& .MuiDrawer-paper': {
-            width: { xs: '100%', sm: 480, md: 600 },
-            boxSizing: 'border-box',
-            zIndex: 1000,
-          },
-          'zIndex': 2000,
-        }}
-      >
-        {/* Drawer Header */}
-
-        {/* Drawer Content */}
-        <Box
-          sx={{
-            flex: 1,
-            overflow: 'auto',
-            px: 3,
-            pb: 3,
-            // pt: 2,
-          }}
-        >
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              // px: 3,
-              py: 1,
-              position: 'sticky',
-              top: 0,
-              my: 2,
-              // opacity: 0.1,
-              backdropFilter: 'blur(2px)',
-              backgroundColor: theme.palette.mode === 'light' ? 'rgba(255, 255, 255, 0.8)' : 'rgba(62, 62, 62, 0.8)',
-              zIndex: 100,
-            // borderBottom: '1px solid',
-            // borderColor: 'divider',
-            }}
-          >
-            <Typography variant="h6" component="h2">
-              Full MOT History
-            </Typography>
-            <IconButton
-              onClick={() => setMotHistoryOpen(false)}
-              size="small"
-              sx={{ ml: 2 }}
-            >
-              <CloseIcon />
-            </IconButton>
-          </Box>
-          <Box
-            sx={{
-              position: 'relative',
-            }}
-          >
-            {/* Timeline vertical line */}
-
-            {motTests.map((test, index) => {
-              const isPassed = test.testResult === 'PASSED' || test.testResult === 'PASS';
-              const isLastTest = index === motTests.length - 1;
-              return (
-                <Box
-                  key={test.motTestNumber || `mot-test-${index}`}
-                  sx={{
-                    position: 'relative',
-                    display: 'flex',
-                    alignItems: 'stretch',
-                    justifyContent: 'space-between',
-                    gap: 1,
-                    pb: 0.5,
-                  }}
-                >
-                  {/* Timeline dot */}
-                  <Box sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexDirection: 'column',
-                    gap: 0.5,
-                  }}
-                  >
-                    <Box
-                      sx={{
-                        borderRadius: '50%',
-                        color: isPassed ? 'success.light' : 'error.light',
-                        zIndex: 1,
-                        position: 'sticky',
-                        top: 0,
-                        border: '1px solid',
-                        borderColor: isPassed ? 'success.light' : 'error.light',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      {isPassed ? <CheckCircleIconOutlinedIcon fontSize="small" /> : <CancelIcon fontSize="small" />}
-                    </Box>
-
-                    <Box sx={{ width: '1px', height: '100%', backgroundColor: isLastTest ? 'transparent' : 'divider', borderRadius: 2 }} />
-                  </Box>
-                  <Card sx={{ py: 1, px: 2, flex: 1, mb: 1 }}>
-                    <MotTestResultItem
-                      test={test}
-                      isLatest={index === 0}
-                      showDetails
-                      showExpiryDate={index === 0}
-                    />
-                  </Card>
-                </Box>
-              );
-            })}
-          </Box>
-        </Box>
-      </Drawer>
+        motTests={motTests}
+      />
     </Box>
   );
 }

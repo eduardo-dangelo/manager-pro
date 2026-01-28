@@ -507,10 +507,17 @@ export function Sidebar({
           position="fixed"
           elevation={0}
           sx={{
-            bgcolor: mobileOpen ? 'transparent' : 'background.default',
+            bgcolor: mobileOpen
+              ? 'transparent'
+              : theme.palette.mode === 'light'
+                ? 'rgba(248, 249, 250, 0.8)'
+                : 'rgba(37, 37, 38, 0.8)',
             display: { xs: 'block', lg: 'none' },
             zIndex: theme => theme.zIndex.drawer + 1,
             transition: 'background-color 0.3s ease',
+            // border: '1px solid red',
+            backdropFilter: mobileOpen ? 'none' : 'blur(2px)',
+
           }}
         >
           <Toolbar

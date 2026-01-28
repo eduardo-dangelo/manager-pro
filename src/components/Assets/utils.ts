@@ -232,3 +232,63 @@ export function getStatusTooltipText(expiryDate: string | null, isExpired: boole
     ? `Expired on ${formattedDate}`
     : `Valid until ${formattedDate}`;
 }
+
+// Type for MOT test (used by utility functions)
+export type MotTest = {
+  completedDate?: string;
+  testResult?: string;
+  expiryDate?: string;
+  odometerValue?: number | string;
+  odometerUnit?: string;
+  odometerResultType?: string;
+  motTestNumber?: string;
+  defects?: Array<{
+    text?: string;
+    type?: string;
+    dangerous?: boolean;
+  }>;
+};
+
+// Convert value to miles (handles km to miles conversion)
+const KM_TO_MILES = 0.621371;
+
+export function toMiles(value?: number | string, unit?: string): number | null {
+  if (value === undefined || value === null) {
+    return null;
+  }
+
+  const numericValue = typeof value === 'number'
+    ? value
+    : Number.parseFloat(value.toString().replace(/[^0-9.]/g, ''));
+
+  if (Number.isNaN(numericValue)) {
+    return null;
+  }
+
+  const normalizedUnit = unit?.toLowerCase() ?? 'mi';
+
+  if (normalizedUnit.includes('km')) {
+    return numericValue * KM_TO_MILES;
+  }
+
+  return numericValue;
+}
+
+// Parse MOT test date from test object
+export function parseMotTestDate(test: MotTest): Date | null {
+  const dateStr = test.completedDate || test.expiryDate;
+  if (!dateStr) {
+    return null;
+  }
+
+  const m = moment(dateStr);
+  return m.isValid() ? m.toDate() : null;
+}
+
+// Format date using moment
+export function formatDate(dateStr: string | undefined): string {
+  if (!dateStr) {
+    return '-';
+  }
+  return moment(dateStr).format('D MMM YYYY');
+}

@@ -32,9 +32,13 @@ export function GlobalTopbar() {
         alignItems: 'center',
         justifyContent: 'space-between',
         py: { xs: 0, lg: 2 },
-        bgcolor: theme.palette.background.default,
+        backdropFilter: 'blur(2px)',
+        bgcolor: theme.palette.mode === 'light'
+          ? 'rgba(248, 249, 250, 0.8)'
+          : 'rgba(37, 37, 38, 0.8)',
         zIndex: theme.zIndex.appBar - 1,
         gap: 1,
+        // border: '1px solid',
       }}
     >
       {/* Breadcrumb - left side, can wrap below on small screens */}

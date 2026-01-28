@@ -31,7 +31,7 @@ import {
 } from '@mui/material';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
-import { VehicleSpecItem } from '@/components/Assets/Asset/tabs/overview/VehicleSpecItem';
+import { VehicleSpecItem } from './VehicleSpecItem';
 import { formatEngineSize, formatMileage } from '@/components/Assets/utils';
 import { Card } from '@/components/common/Card';
 import { DropdownButton } from '@/components/common/DropdownButton';
