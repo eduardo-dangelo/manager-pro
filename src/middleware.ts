@@ -21,12 +21,14 @@ const isProtectedRoute = createRouteMatcher([
 
 const isProtectedApiRoute = createRouteMatcher([
   '/api/assets(.*)',
+  '/api/calendar-events(.*)',
   '/api/objectives(.*)',
   '/api/todos(.*)',
   '/api/sprints(.*)',
   '/api/users(.*)',
   '/api/vehicles(.*)',
   '/:locale/api/assets(.*)',
+  '/:locale/api/calendar-events(.*)',
   '/:locale/api/objectives(.*)',
   '/:locale/api/todos(.*)',
   '/:locale/api/sprints(.*)',

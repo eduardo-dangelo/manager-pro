@@ -742,7 +742,7 @@ export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
           />
         );
       case 'calendar':
-        return <CalendarTab asset={asset} />;
+        return <CalendarTab asset={asset} locale={locale} />;
       case 'timeline':
         return <TimelineTab asset={asset} />;
       case 'insights':

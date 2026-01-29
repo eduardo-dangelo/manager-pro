@@ -30,6 +30,7 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import { useSetBreadcrumb } from '@/components/BreadcrumbContext';
 import { useGlobalTopbarContent } from '@/components/GlobalTopbarContentContext';
+import { getButtonGroupSx } from '@/utils/buttonGroupStyles';
 import { NewAssetButton } from './NewAssetButton';
 
 type ViewMode = 'folder' | 'list';
@@ -175,36 +176,7 @@ export function AssetsTopBar({
     }
   };
 
-  // Button group styling
-  const buttonGroupSx = {
-    'color': theme.palette.text.secondary,
-    '&:hover': {
-      bgcolor: theme.palette.action.hover,
-    },
-    '& .MuiToggleButtonGroup-root': {
-      border: 'none',
-    },
-    '& .MuiToggleButton-root': {
-      'color': theme.palette.text.secondary,
-      'height': 30,
-      'width': 30,
-      'border': 'none',
-      'bgcolor': 'transparent',
-      'borderRadius': '6px',
-      'transition': 'all 0.2s ease',
-      '&:hover': {
-        bgcolor: theme.palette.action.hover,
-      },
-      '&.Mui-selected': {
-        'color': theme.palette.text.primary,
-        'bgcolor': theme.palette.action.selected,
-        'borderRadius': '6px',
-        '&:hover': {
-          bgcolor: theme.palette.action.hover,
-        },
-      },
-    },
-  };
+  const buttonGroupSx = getButtonGroupSx(theme);
 
   // Icon button styling matching button group
   const iconButtonSx = {

@@ -1,6 +1,12 @@
 import { and, eq } from 'drizzle-orm';
 import { db } from '@/libs/DB';
-import { assetsSchema, objectivesSchema, sprintsSchema, todosSchema } from '@/models/Schema';
+import {
+  assetsSchema,
+  calendarEventsSchema,
+  objectivesSchema,
+  sprintsSchema,
+  todosSchema,
+} from '@/models/Schema';
 
 export type AssetData = {
   name?: string;
@@ -241,6 +247,7 @@ export class AssetService {
         db.delete(objectivesSchema).where(eq(objectivesSchema.assetId, assetId)),
         db.delete(todosSchema).where(eq(todosSchema.assetId, assetId)),
         db.delete(sprintsSchema).where(eq(sprintsSchema.assetId, assetId)),
+        db.delete(calendarEventsSchema).where(eq(calendarEventsSchema.assetId, assetId)),
       ]);
 
       // Delete the asset

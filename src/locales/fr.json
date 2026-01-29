@@ -287,5 +287,23 @@
     "mileage_over_time": "Kilométrage au fil du temps",
     "mileage_per_year": "Kilomètres ajoutés par an",
     "mileage_not_enough_data": "Pas encore assez d'historique CT pour afficher les tendances annuelles de kilométrage."
+  },
+  "Calendar": {
+    "view_day": "Jour",
+    "view_week": "Semaine",
+    "view_month": "Mois",
+    "view_year": "Année",
+    "view_schedule": "Agenda",
+    "create_event": "Créer un événement",
+    "event_name": "Nom de l'événement",
+    "event_date": "Date",
+    "event_start_time": "Heure de début",
+    "event_end_time": "Heure de fin",
+    "event_location": "Lieu",
+    "event_color": "Couleur",
+    "event_description": "Description",
+    "event_asset": "Actif",
+    "select_asset": "Sélectionner un actif",
+    "no_events": "Aucun événement"
   }
 }

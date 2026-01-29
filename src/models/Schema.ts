@@ -132,6 +132,23 @@ export const sprintsSchema = pgTable('sprints', {
   status: text('status').notNull().default('planned'),
 });
 
+export const calendarEventsSchema = pgTable('calendar_events', {
+  id: serial('id').primaryKey(),
+  assetId: integer('asset_id').references(() => assetsSchema.id).notNull(),
+  userId: text('user_id').references(() => usersSchema.id).notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  location: text('location'),
+  color: text('color'),
+  start: timestamp('start', { mode: 'date' }).notNull(),
+  end: timestamp('end', { mode: 'date' }).notNull(),
+  createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { mode: 'date' })
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+});
+
 // Define relationships
 export const userRelations = relations(usersSchema, ({ many }) => ({
   assets: many(assetsSchema),
@@ -140,6 +157,7 @@ export const userRelations = relations(usersSchema, ({ many }) => ({
   assignedTodos: many(todosSchema, { relationName: 'assignedTodos' }),
   sprints: many(sprintsSchema),
   workSpaces: many(workSpacesSchema),
+  calendarEvents: many(calendarEventsSchema),
 }));
 
 export const workSpacesRelations = relations(workSpacesSchema, ({ many }) => ({
@@ -152,6 +170,7 @@ export const assetsRelations = relations(assetsSchema, ({ many, one }) => ({
   objectives: many(objectivesSchema),
   todos: many(todosSchema),
   sprints: many(sprintsSchema),
+  calendarEvents: many(calendarEventsSchema),
   user: one(usersSchema, {
     fields: [assetsSchema.userId],
     references: [usersSchema.id],
@@ -212,6 +231,17 @@ export const sprintsRelations = relations(sprintsSchema, ({ many, one }) => ({
   }),
   user: one(usersSchema, {
     fields: [sprintsSchema.userId],
+    references: [usersSchema.id],
+  }),
+}));
+
+export const calendarEventsRelations = relations(calendarEventsSchema, ({ one }) => ({
+  asset: one(assetsSchema, {
+    fields: [calendarEventsSchema.assetId],
+    references: [assetsSchema.id],
+  }),
+  user: one(usersSchema, {
+    fields: [calendarEventsSchema.userId],
     references: [usersSchema.id],
   }),
 }));
