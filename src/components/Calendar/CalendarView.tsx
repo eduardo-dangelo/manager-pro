@@ -70,6 +70,7 @@ export function CalendarView({
           display: 'flex',
           flexWrap: 'wrap',
           alignItems: 'center',
+          justifyContent: 'space-between',
           gap: 2,
           mb: 2,
         }}

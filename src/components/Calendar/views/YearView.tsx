@@ -2,17 +2,13 @@
 
 import type { CalendarEvent } from '../types';
 import { ChevronLeft, ChevronRight } from '@mui/icons-material';
-import { Box, IconButton, Paper, Typography } from '@mui/material';
-import {
-  addYears,
-  eachDayOfInterval,
-  endOfMonth,
-  endOfWeek,
-  format,
-  isSameMonth,
-  startOfMonth,
-  startOfWeek,
-} from 'date-fns';
+import { Box, IconButton, Typography } from '@mui/material';
+import { addYears } from 'date-fns';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { YearBlock } from './YearBlock';
+
+const SLOT_HEIGHT_PX = 700;
+const TRANSITION_MS = 300;
 
 type YearViewProps = {
   currentDate: Date;
@@ -22,26 +18,106 @@ type YearViewProps = {
   locale: string;
 };
 
-function getEventsForDate(events: CalendarEvent[], date: Date): CalendarEvent[] {
-  const dateStr = format(date, 'yyyy-MM-dd');
-  return events.filter((e) => {
-    const start = format(new Date(e.start), 'yyyy-MM-dd');
-    const end = format(new Date(e.end), 'yyyy-MM-dd');
-    return (dateStr >= start && dateStr <= end) || start === dateStr;
-  });
-}
+type Direction = 'next' | 'prev' | null;
 
 export function YearView({
   currentDate,
   onCurrentDateChange,
   events,
   onDayClick,
+  locale,
 }: YearViewProps) {
   const year = currentDate.getFullYear();
-  const prev = () => onCurrentDateChange(addYears(currentDate, -1));
-  const next = () => onCurrentDateChange(addYears(currentDate, 1));
+  const [direction, setDirection] = useState<Direction>(null);
+  const [slideOffset, setSlideOffset] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
 
-  const months = Array.from({ length: 12 }, (_, i) => new Date(year, i, 1));
+  const [enableTransition, setEnableTransition] = useState(false);
+
+  const prev = useCallback(() => {
+    if (isAnimating) {
+      return;
+    }
+    setDirection('prev');
+    setIsAnimating(true);
+    setSlideOffset(-SLOT_HEIGHT_PX);
+    setEnableTransition(false);
+  }, [isAnimating]);
+
+  const next = useCallback(() => {
+    if (isAnimating) {
+      return;
+    }
+    setDirection('next');
+    setIsAnimating(true);
+    setSlideOffset(0);
+    setEnableTransition(false);
+  }, [isAnimating]);
+
+  useEffect(() => {
+    if (!isAnimating || direction === null) {
+      return;
+    }
+    const enable = () => setEnableTransition(true);
+    const raf = requestAnimationFrame(() => {
+      requestAnimationFrame(enable);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [isAnimating, direction]);
+
+  /* Trigger slide to target offset after transition is enabled; intentional setState in effect */
+  /* eslint-disable react-hooks-extra/no-direct-set-state-in-use-effect */
+  useEffect(() => {
+    if (!isAnimating || direction === null || !enableTransition) {
+      return;
+    }
+    if (direction === 'next') {
+      setSlideOffset(-SLOT_HEIGHT_PX);
+    } else {
+      setSlideOffset(0);
+    }
+  }, [isAnimating, direction, enableTransition]);
+  /* eslint-enable react-hooks-extra/no-direct-set-state-in-use-effect */
+
+  const handleTransitionEnd = useCallback(() => {
+    if (!isAnimating || direction === null) {
+      return;
+    }
+    setEnableTransition(false);
+    if (direction === 'next') {
+      onCurrentDateChange(addYears(currentDate, 1));
+    } else {
+      onCurrentDateChange(addYears(currentDate, -1));
+    }
+    setDirection(null);
+    setIsAnimating(false);
+    setSlideOffset(0);
+  }, [isAnimating, direction, currentDate, onCurrentDateChange]);
+
+  const showTwoSlots = isAnimating && direction !== null;
+  const trackHeight = showTwoSlots ? SLOT_HEIGHT_PX * 2 : SLOT_HEIGHT_PX;
+  const viewportRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el) {
+      return;
+    }
+    const handleWheel = (e: WheelEvent) => {
+      if (isAnimating) {
+        return;
+      }
+      if (e.deltaY > 0) {
+        e.preventDefault();
+        next();
+      } else if (e.deltaY < 0) {
+        e.preventDefault();
+        prev();
+      }
+    };
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => el.removeEventListener('wheel', handleWheel);
+  }, [isAnimating, prev, next]);
 
   return (
     <Box>
@@ -50,83 +126,58 @@ export function YearView({
           {year}
         </Typography>
         <Box>
-          <IconButton onClick={prev} size="small" aria-label="previous year">
+          <IconButton onClick={prev} size="small" aria-label="previous year" disabled={isAnimating}>
             <ChevronLeft />
           </IconButton>
-          <IconButton onClick={next} size="small" aria-label="next year">
+          <IconButton onClick={next} size="small" aria-label="next year" disabled={isAnimating}>
             <ChevronRight />
           </IconButton>
         </Box>
       </Box>
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4, 1fr)' }, gap: 2 }}>
-        {months.map((month) => {
-          const start = startOfWeek(startOfMonth(month), { weekStartsOn: 0 });
-          const end = endOfWeek(endOfMonth(month), { weekStartsOn: 0 });
-          const days = eachDayOfInterval({ start, end });
-          return (
-            <Paper key={month.toISOString()} sx={{ p: 1.5 }} elevation={1}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, fontSize: '0.875rem' }}>
-                {format(month, 'MMMM')}
-              </Typography>
-              <Box
-                sx={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(7, 1fr)',
-                  gap: 0.5,
-                }}
-              >
-                {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
-                  <Box
-                    key={d}
-                    sx={{
-                      textAlign: 'center',
-                      fontSize: '0.625rem',
-                      fontWeight: 600,
-                      color: 'grey.500',
-                    }}
-                  >
-                    {d}
-                  </Box>
-                ))}
-                {days.map((day) => {
-                  const dayEvents = getEventsForDate(events, day);
-                  const inMonth = isSameMonth(day, month);
-                  const hasEvents = dayEvents.length > 0;
-                  return (
-                    <Paper
-                      key={day.toISOString()}
-                      component="button"
-                      type="button"
-                      onClick={() => onDayClick(day)}
-                      sx={{
-                        'minWidth': 24,
-                        'height': 24,
-                        'p': 0,
-                        'cursor': 'pointer',
-                        'fontSize': '0.7rem',
-                        'display': 'flex',
-                        'alignItems': 'center',
-                        'justifyContent': 'center',
-                        'border': 'none',
-                        'bgcolor': inMonth
-                          ? hasEvents
-                            ? 'primary.100'
-                            : 'grey.100'
-                          : 'transparent',
-                        'color': inMonth ? 'text.primary' : 'grey.400',
-                        '&:hover': inMonth ? { bgcolor: hasEvents ? 'primary.200' : 'grey.200' } : {},
-                        'transition': 'background-color 0.15s',
-                      }}
-                      elevation={0}
-                    >
-                      {format(day, 'd')}
-                    </Paper>
-                  );
-                })}
-              </Box>
-            </Paper>
-          );
-        })}
+      <Box
+        ref={viewportRef}
+        sx={{
+          height: SLOT_HEIGHT_PX,
+          overflow: 'hidden',
+          position: 'relative',
+        }}
+      >
+        <Box
+          sx={{
+            height: trackHeight,
+            transform: `translateY(${slideOffset}px)`,
+            transition: enableTransition ? `transform ${TRANSITION_MS}ms ease-in-out` : 'none',
+          }}
+          onTransitionEnd={handleTransitionEnd}
+        >
+          {showTwoSlots
+            ? direction === 'next'
+              ? (
+                  <>
+                    <Box sx={{ height: SLOT_HEIGHT_PX }}>
+                      <YearBlock year={year} events={events} onDayClick={onDayClick} locale={locale} showYearLabel={false} />
+                    </Box>
+                    <Box sx={{ height: SLOT_HEIGHT_PX }}>
+                      <YearBlock year={year + 1} events={events} onDayClick={onDayClick} locale={locale} showYearLabel={false} />
+                    </Box>
+                  </>
+                )
+              : (
+                  <>
+                    <Box sx={{ height: SLOT_HEIGHT_PX }}>
+                      <YearBlock year={year - 1} events={events} onDayClick={onDayClick} locale={locale} showYearLabel={false} />
+                    </Box>
+                    <Box sx={{ height: SLOT_HEIGHT_PX }}>
+                      <YearBlock year={year} events={events} onDayClick={onDayClick} locale={locale} showYearLabel={false} />
+                    </Box>
+                  </>
+                )
+            : (
+                <Box sx={{ height: SLOT_HEIGHT_PX }}>
+                  <YearBlock year={year} events={events} onDayClick={onDayClick} locale={locale} showYearLabel={false} />
+                </Box>
+              )}
+        </Box>
       </Box>
     </Box>
   );
