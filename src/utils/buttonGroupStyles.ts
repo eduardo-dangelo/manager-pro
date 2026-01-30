@@ -12,11 +12,12 @@ export function getButtonGroupSx(theme: Theme) {
     '& .MuiToggleButton-root': {
       'color': theme.palette.text.secondary,
       'height': 30,
-      'width': 30,
+      // 'width': 30,
       'border': 'none',
       'bgcolor': 'transparent',
       'borderRadius': '6px',
       'transition': 'all 0.2s ease',
+      'textTransform': 'none',
       '&:hover': {
         bgcolor: theme.palette.action.hover,
       },

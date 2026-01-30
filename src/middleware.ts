@@ -11,11 +11,11 @@ const handleI18nRouting = createMiddleware(routing);
 const isProtectedRoute = createRouteMatcher([
   '/dashboard(.*)',
   '/assets(.*)',
-  '/year-planner(.*)',
+  '/calendar(.*)',
   '/settings(.*)',
   '/:locale/dashboard(.*)',
   '/:locale/assets(.*)',
-  '/:locale/year-planner(.*)',
+  '/:locale/calendar(.*)',
   '/:locale/settings(.*)',
 ]);
 

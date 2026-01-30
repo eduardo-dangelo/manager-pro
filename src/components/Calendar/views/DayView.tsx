@@ -1,9 +1,8 @@
 'use client';
 
 import type { CalendarEvent } from '../types';
-import { ChevronLeft, ChevronRight } from '@mui/icons-material';
-import { Box, IconButton, Paper, Typography } from '@mui/material';
-import { addDays, format } from 'date-fns';
+import { Box, Paper, Typography } from '@mui/material';
+import { format } from 'date-fns';
 import { COLOR_MAP } from '../constants';
 
 type DayViewProps = {
@@ -34,30 +33,13 @@ function eventColor(color: string | null): string {
 
 export function DayView({
   currentDate,
-  onCurrentDateChange,
   events,
   onDayClick,
 }: DayViewProps) {
   const dayEvents = getEventsForDate(events, currentDate);
 
-  const prev = () => onCurrentDateChange(addDays(currentDate, -1));
-  const next = () => onCurrentDateChange(addDays(currentDate, 1));
-
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.25rem' }}>
-          {format(currentDate, 'EEEE, MMMM d, yyyy')}
-        </Typography>
-        <Box>
-          <IconButton onClick={prev} size="small" aria-label="previous day">
-            <ChevronLeft />
-          </IconButton>
-          <IconButton onClick={next} size="small" aria-label="next day">
-            <ChevronRight />
-          </IconButton>
-        </Box>
-      </Box>
       <Paper
         component="button"
         type="button"

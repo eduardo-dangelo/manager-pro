@@ -89,8 +89,8 @@ export default async function AuthLayout(props: {
     },
     {
       icon: CalendarMonth,
-      label: t('menu_year_planner'),
-      href: `/${locale}/year-planner`,
+      label: t('menu_calendar'),
+      href: `/${locale}/calendar`,
     },
     {
       icon: Storage,

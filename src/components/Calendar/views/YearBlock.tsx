@@ -7,6 +7,7 @@ import {
   endOfMonth,
   endOfWeek,
   format,
+  isSameDay,
   isSameMonth,
   startOfMonth,
   startOfWeek,
@@ -31,6 +32,7 @@ function getEventsForDate(events: CalendarEvent[], date: Date): CalendarEvent[] 
 
 export function YearBlock({ year, events, onDayClick, showYearLabel = true }: YearBlockProps) {
   const months = Array.from({ length: 12 }, (_, i) => new Date(year, i, 1));
+  const today = new Date();
 
   return (
     <Box sx={{ p: 0.5 }}>
@@ -74,6 +76,7 @@ export function YearBlock({ year, events, onDayClick, showYearLabel = true }: Ye
                   if (!inMonth) {
                     return <Box key={day.toISOString()} sx={{ minWidth: 24, height: 24 }} />;
                   }
+                  const isToday = isSameDay(day, today);
                   const dayEvents = getEventsForDate(events, day);
                   const hasEvents = dayEvents.length > 0;
                   return (
@@ -92,9 +95,9 @@ export function YearBlock({ year, events, onDayClick, showYearLabel = true }: Ye
                         'alignItems': 'center',
                         'justifyContent': 'center',
                         'border': 'none',
-                        'bgcolor': hasEvents ? 'primary.100' : 'grey.100',
+                        'bgcolor': isToday ? '#fecaca' : (hasEvents ? 'primary.100' : 'grey.100'),
                         'color': 'text.primary',
-                        '&:hover': { bgcolor: hasEvents ? 'primary.200' : 'grey.200' },
+                        '&:hover': { bgcolor: isToday ? '#fca5a5' : (hasEvents ? 'primary.200' : 'grey.200') },
                         'transition': 'background-color 0.15s',
                       }}
                       elevation={0}

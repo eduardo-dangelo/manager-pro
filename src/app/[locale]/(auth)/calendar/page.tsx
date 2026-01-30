@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { currentUser } from '@clerk/nextjs/server';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { redirect } from 'next/navigation';
-import { YearPlannerClient } from './YearPlannerClient';
+import { CalendarClient } from './CalendarClient';
 
 export async function generateMetadata(props: {
   params: Promise<{ locale: string }>;
@@ -14,11 +14,11 @@ export async function generateMetadata(props: {
   });
 
   return {
-    title: t('menu_year_planner'),
+    title: t('menu_calendar'),
   };
 }
 
-export default async function YearPlannerPage(props: {
+export default async function CalendarPage(props: {
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await props.params;
@@ -30,5 +30,5 @@ export default async function YearPlannerPage(props: {
     redirect(`/${locale}/sign-in`);
   }
 
-  return <YearPlannerClient locale={locale} />;
+  return <CalendarClient locale={locale} />;
 }

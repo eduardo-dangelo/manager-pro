@@ -1,8 +1,7 @@
 'use client';
 
 import type { CalendarEvent } from '../types';
-import { ChevronLeft, ChevronRight } from '@mui/icons-material';
-import { Box, IconButton, Typography } from '@mui/material';
+import { Box } from '@mui/material';
 import { addYears } from 'date-fns';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { YearBlock } from './YearBlock';
@@ -121,19 +120,6 @@ export function YearView({
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.25rem' }}>
-          {year}
-        </Typography>
-        <Box>
-          <IconButton onClick={prev} size="small" aria-label="previous year" disabled={isAnimating}>
-            <ChevronLeft />
-          </IconButton>
-          <IconButton onClick={next} size="small" aria-label="next year" disabled={isAnimating}>
-            <ChevronRight />
-          </IconButton>
-        </Box>
-      </Box>
       <Box
         ref={viewportRef}
         sx={{

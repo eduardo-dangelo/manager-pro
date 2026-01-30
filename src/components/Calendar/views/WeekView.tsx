@@ -1,10 +1,8 @@
 'use client';
 
 import type { CalendarEvent } from '../types';
-import { ChevronLeft, ChevronRight } from '@mui/icons-material';
-import { Box, IconButton, Paper, Typography } from '@mui/material';
+import { Box, Paper, Typography } from '@mui/material';
 import {
-  addWeeks,
   eachDayOfInterval,
   endOfWeek,
   format,
@@ -39,7 +37,7 @@ function eventColor(color: string | null): string {
 
 export function WeekView({
   currentDate,
-  onCurrentDateChange,
+  onCurrentDateChange: _onCurrentDateChange,
   events,
   onDayClick,
 }: WeekViewProps) {
@@ -48,26 +46,8 @@ export function WeekView({
   const days = eachDayOfInterval({ start: weekStart, end: weekEnd });
   const today = new Date();
 
-  const prev = () => onCurrentDateChange(addWeeks(currentDate, -1));
-  const next = () => onCurrentDateChange(addWeeks(currentDate, 1));
-
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.25rem' }}>
-          {format(weekStart, 'MMM d')}
-          –
-          {format(weekEnd, 'MMM d, yyyy')}
-        </Typography>
-        <Box>
-          <IconButton onClick={prev} size="small" aria-label="previous week">
-            <ChevronLeft />
-          </IconButton>
-          <IconButton onClick={next} size="small" aria-label="next week">
-            <ChevronRight />
-          </IconButton>
-        </Box>
-      </Box>
       <Paper sx={{ p: 2 }} elevation={1}>
         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 1 }}>
           {days.map((day) => {

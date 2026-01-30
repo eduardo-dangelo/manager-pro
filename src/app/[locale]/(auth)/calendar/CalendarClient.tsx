@@ -9,11 +9,11 @@ import { CalendarView } from '@/components/Calendar';
 
 type AssetOption = { id: number; name: string | null };
 
-type YearPlannerClientProps = {
+type CalendarClientProps = {
   locale: string;
 };
 
-export function YearPlannerClient({ locale }: YearPlannerClientProps) {
+export function CalendarClient({ locale }: CalendarClientProps) {
   const dashboardT = useTranslations('DashboardLayout');
 
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -23,7 +23,7 @@ export function YearPlannerClient({ locale }: YearPlannerClientProps) {
 
   useSetBreadcrumb([
     { label: dashboardT('menu_dashboard'), href: `/${locale}/dashboard` },
-    { label: dashboardT('menu_year_planner'), href: `/${locale}/year-planner` },
+    { label: dashboardT('menu_calendar'), href: `/${locale}/calendar` },
   ]);
 
   const fetchData = useCallback(async () => {
@@ -76,7 +76,7 @@ export function YearPlannerClient({ locale }: YearPlannerClientProps) {
   return (
     <Box>
       <Typography variant="h5" component="h1" sx={{ fontWeight: 600, mb: 3 }}>
-        {dashboardT('menu_year_planner')}
+        {dashboardT('menu_calendar')}
       </Typography>
       <CalendarView
         events={events}
