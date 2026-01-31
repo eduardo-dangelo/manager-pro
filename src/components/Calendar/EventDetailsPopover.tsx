@@ -1,9 +1,13 @@
 'use client';
 
 import type { CalendarEvent } from './types';
+import type { Asset } from '@/components/Assets/utils';
+import { pluralizeType } from '@/components/Assets/utils';
+import { AssetCard } from '@/components/Assets/AssetCard';
 import { Close as CloseIcon } from '@mui/icons-material';
 import { Box, IconButton, Popover, Typography } from '@mui/material';
 import { format } from 'date-fns';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import { COLOR_MAP } from './constants';
@@ -15,7 +19,8 @@ type EventDetailsPopoverProps = {
   open: boolean;
   anchorEl: HTMLElement | null;
   event: CalendarEvent | null;
-  assets?: { id: number; name: string | null }[];
+  assets?: Asset[];
+  showAssetCard?: boolean;
   onClose: () => void;
   locale: string;
 };
@@ -56,7 +61,9 @@ export function EventDetailsPopover({
   anchorEl,
   event,
   assets,
+  showAssetCard = false,
   onClose,
+  locale,
 }: EventDetailsPopoverProps) {
   const t = useTranslations('Calendar');
 
@@ -77,7 +84,8 @@ export function EventDetailsPopover({
   const startDate = new Date(event.start);
   const endDate = new Date(event.end);
   const isSameDay = format(startDate, 'yyyy-MM-dd') === format(endDate, 'yyyy-MM-dd');
-  const assetName = assets?.find(a => a.id === event.assetId)?.name ?? null;
+  const asset = assets?.find(a => a.id === event.assetId) ?? null;
+  const assetName = asset?.name ?? null;
 
   return (
     <Popover
@@ -124,6 +132,23 @@ export function EventDetailsPopover({
           </IconButton>
         </Box>
 
+        {showAssetCard && asset && (
+          <Box
+            component={Link}
+            href={`/${locale}/assets/${pluralizeType(asset.type)}/${asset.id}`}
+            sx={{
+              display: 'block',
+              textDecoration: 'none',
+              mb: 2,
+              '&:hover .folder-body': {
+                boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.1)',
+              },
+            }}
+          >
+            <AssetCard asset={asset} locale={locale} cardSize="small" compact />
+          </Box>
+        )}
+
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
           <Box>
             <Typography variant="caption" color="text.secondary" display="block">
@@ -167,7 +192,7 @@ export function EventDetailsPopover({
             </Box>
           )}
 
-          {assetName && (
+          {assetName && !showAssetCard && (
             <Box>
               <Typography variant="caption" color="text.secondary" display="block">
                 {t('event_asset')}

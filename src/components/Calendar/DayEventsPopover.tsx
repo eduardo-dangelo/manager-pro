@@ -18,6 +18,7 @@ type DayEventsPopoverProps = {
   events: CalendarEvent[];
   onClose: () => void;
   onCreateEvent: (date: Date) => void;
+  onDayTitleClick?: (date: Date) => void;
   onEventClick?: (event: CalendarEvent, anchorEl: HTMLElement) => void;
   locale?: string;
 };
@@ -50,6 +51,7 @@ export function DayEventsPopover({
   events,
   onClose,
   onCreateEvent,
+  onDayTitleClick,
   onEventClick,
 }: DayEventsPopoverProps) {
   const t = useTranslations('Calendar');
@@ -72,20 +74,61 @@ export function DayEventsPopover({
       transformOrigin={transformOrigin}
       slotProps={{
         paper: {
-          sx: {
-            minWidth: POPOVER_WIDTH,
-            maxWidth: POPOVER_WIDTH,
-            borderRadius: 2,
-            marginLeft: anchorOrigin.horizontal === 'right' ? `${POPOVER_GAP}px` : undefined,
-            marginRight: anchorOrigin.horizontal === 'left' ? `${POPOVER_GAP}px` : undefined,
-          },
+          sx: theme => ({
+            'position': 'relative',
+            'overflow': 'visible',
+            'minWidth': POPOVER_WIDTH,
+            'maxWidth': POPOVER_WIDTH,
+            'borderRadius': 2,
+            'marginLeft': anchorOrigin.horizontal === 'right' ? `${POPOVER_GAP}px` : undefined,
+            'marginRight': anchorOrigin.horizontal === 'left' ? `${POPOVER_GAP}px` : undefined,
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              width: 0,
+              height: 0,
+              ...(anchorOrigin.horizontal === 'right'
+                ? {
+                    left: -8,
+                    borderTop: '8px solid transparent',
+                    borderBottom: '8px solid transparent',
+                    borderRight: `8px solid ${theme.palette.background.paper}`,
+                  }
+                : {
+                    right: -8,
+                    borderTop: '8px solid transparent',
+                    borderBottom: '8px solid transparent',
+                    borderLeft: `8px solid ${theme.palette.background.paper}`,
+                  }),
+            },
+          }),
         },
       }}
       disableRestoreFocus
     >
       <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
         <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1 }}>
-          <Box sx={{ textAlign: 'center', flex: 1 }}>
+          <Box
+            component={onDayTitleClick ? 'button' : 'div'}
+            type={onDayTitleClick ? 'button' : undefined}
+            onClick={onDayTitleClick ? () => onDayTitleClick(date) : undefined}
+            aria-label={onDayTitleClick ? `View ${format(date, 'EEEE, MMMM d, yyyy')}` : undefined}
+            sx={{
+              textAlign: 'center',
+              flex: 1,
+              ...(onDayTitleClick
+                ? {
+                    'border': 'none',
+                    'background': 'none',
+                    'padding': 0,
+                    'cursor': 'pointer',
+                    '&:hover': { opacity: 0.8 },
+                  }
+                : {}),
+            }}
+          >
             <Typography variant="caption" color="text.secondary" display="block">
               {format(date, 'EEE')}
             </Typography>
@@ -113,7 +156,7 @@ export function DayEventsPopover({
                     key={ev.id}
                     component="button"
                     type="button"
-                    onClick={(e) => onEventClick?.(ev, e.currentTarget)}
+                    onClick={e => onEventClick?.(ev, e.currentTarget)}
                     sx={{
                       'width': '100%',
                       'p': 0,

@@ -13,6 +13,7 @@ import {
 } from 'date-fns';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import type { Asset } from '@/components/Assets/utils';
 import { getButtonGroupSx } from '@/utils/buttonGroupStyles';
 import { CreateEventModal } from './CreateEventModal';
 import { CreateEventPopover } from './CreateEventPopover';
@@ -38,7 +39,7 @@ type CalendarViewProps = {
   locale: string;
   defaultView?: CalendarViewMode;
   assetId?: number;
-  assets?: { id: number; name: string | null }[];
+  assets?: Asset[];
   onEventsChange?: (events: CalendarEvent[]) => void;
 };
 
@@ -304,6 +305,12 @@ export function CalendarView({
           onCurrentDateChange={setCurrentDate}
           events={events}
           onDayClick={handleDayClick}
+          onMonthClick={(date) => {
+            setYearDayPopoverAnchor(null);
+            setYearDayPopoverDate(null);
+            setCurrentDate(date);
+            setViewMode('month');
+          }}
           locale={locale}
           slideDirection={yearSlideDirection}
           onSlideDirectionComplete={() => setYearSlideDirection(null)}
@@ -338,6 +345,12 @@ export function CalendarView({
             setYearDayPopoverAnchor(null);
             setYearDayPopoverDate(null);
           }}
+          onDayTitleClick={(date) => {
+            setYearDayPopoverAnchor(null);
+            setYearDayPopoverDate(null);
+            setCurrentDate(date);
+            setViewMode('day');
+          }}
           onEventClick={(ev, anchorEl) => {
             handleEventClick(ev, anchorEl);
           }}
@@ -371,6 +384,7 @@ export function CalendarView({
           anchorEl={eventDetailsAnchor}
           event={eventDetailsEvent}
           assets={assets}
+          showAssetCard={!assetId}
           onClose={() => {
             setEventDetailsAnchor(null);
             setEventDetailsEvent(null);

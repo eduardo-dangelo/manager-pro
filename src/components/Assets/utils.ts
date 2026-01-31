@@ -1,5 +1,18 @@
 import moment from 'moment';
 
+// Helper function to pluralize asset types for routes
+export function pluralizeType(type: string): string {
+  const pluralMap: Record<string, string> = {
+    vehicle: 'vehicles',
+    property: 'properties',
+    person: 'persons',
+    project: 'projects',
+    trip: 'trips',
+    custom: 'customs',
+  };
+  return pluralMap[type] || `${type}s`;
+}
+
 export type Asset = {
   id: number;
   name: string | null;

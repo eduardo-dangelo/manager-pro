@@ -1,13 +1,12 @@
 'use client';
 
 import type { CalendarEvent } from '@/components/Calendar/types';
+import type { Asset } from '@/components/Assets/utils';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
 import { useSetBreadcrumb } from '@/components/BreadcrumbContext';
 import { CalendarView } from '@/components/Calendar';
-
-type AssetOption = { id: number; name: string | null };
 
 type CalendarClientProps = {
   locale: string;
@@ -17,7 +16,7 @@ export function CalendarClient({ locale }: CalendarClientProps) {
   const dashboardT = useTranslations('DashboardLayout');
 
   const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [assets, setAssets] = useState<AssetOption[]>([]);
+  const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,9 +40,9 @@ export function CalendarClient({ locale }: CalendarClientProps) {
         throw new Error('Failed to fetch assets');
       }
       const eventsData = (await eventsRes.json()) as { events: CalendarEvent[] };
-      const assetsData = (await assetsRes.json()) as { assets: { id: number; name: string | null }[] };
+      const assetsData = (await assetsRes.json()) as { assets: Asset[] };
       setEvents(eventsData.events ?? []);
-      setAssets((assetsData.assets ?? []).map(a => ({ id: a.id, name: a.name })));
+      setAssets(assetsData.assets ?? []);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load');
       setEvents([]);

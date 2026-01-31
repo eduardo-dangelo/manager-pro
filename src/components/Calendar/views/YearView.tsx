@@ -14,6 +14,7 @@ type YearViewProps = {
   onCurrentDateChange: (d: Date) => void;
   events: CalendarEvent[];
   onDayClick: (date: Date, anchorEl?: HTMLElement) => void;
+  onMonthClick?: (date: Date) => void;
   locale: string;
   /** When set from parent (e.g. toolbar), triggers the same slide animation as wheel */
   slideDirection?: 'prev' | 'next' | null;
@@ -30,6 +31,7 @@ export function YearView({
   onCurrentDateChange,
   events,
   onDayClick,
+  onMonthClick,
   locale,
   slideDirection: slideDirectionProp,
   onSlideDirectionComplete,
@@ -178,26 +180,26 @@ export function YearView({
               ? (
                   <>
                     <Box sx={{ height: SLOT_HEIGHT_PX }}>
-                      <YearBlock year={year} events={events} onDayClick={onDayClick} locale={locale} showYearLabel={false} />
+                      <YearBlock year={year} events={events} onDayClick={onDayClick} onMonthClick={onMonthClick} locale={locale} showYearLabel={false} />
                     </Box>
                     <Box sx={{ height: SLOT_HEIGHT_PX }}>
-                      <YearBlock year={targetYearForSlide ?? year + 1} events={events} onDayClick={onDayClick} locale={locale} showYearLabel={false} />
+                      <YearBlock year={targetYearForSlide ?? year + 1} events={events} onDayClick={onDayClick} onMonthClick={onMonthClick} locale={locale} showYearLabel={false} />
                     </Box>
                   </>
                 )
               : (
                   <>
                     <Box sx={{ height: SLOT_HEIGHT_PX }}>
-                      <YearBlock year={targetYearForSlide ?? year - 1} events={events} onDayClick={onDayClick} locale={locale} showYearLabel={false} />
+                      <YearBlock year={targetYearForSlide ?? year - 1} events={events} onDayClick={onDayClick} onMonthClick={onMonthClick} locale={locale} showYearLabel={false} />
                     </Box>
                     <Box sx={{ height: SLOT_HEIGHT_PX }}>
-                      <YearBlock year={year} events={events} onDayClick={onDayClick} locale={locale} showYearLabel={false} />
+                      <YearBlock year={year} events={events} onDayClick={onDayClick} onMonthClick={onMonthClick} locale={locale} showYearLabel={false} />
                     </Box>
                   </>
                 )
             : (
                 <Box sx={{ height: SLOT_HEIGHT_PX }}>
-                  <YearBlock year={year} events={events} onDayClick={onDayClick} locale={locale} showYearLabel={false} />
+                  <YearBlock year={year} events={events} onDayClick={onDayClick} onMonthClick={onMonthClick} locale={locale} showYearLabel={false} />
                 </Box>
               )}
         </Box>

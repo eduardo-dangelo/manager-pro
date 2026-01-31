@@ -1,7 +1,7 @@
 'use client';
 
 import type { CalendarEvent } from '../types';
-import { Box, Paper, Typography } from '@mui/material';
+import { Box, Paper, Typography, useTheme } from '@mui/material';
 import {
   eachDayOfInterval,
   endOfMonth,
@@ -19,6 +19,7 @@ type YearBlockProps = {
   year: number;
   events: CalendarEvent[];
   onDayClick: (date: Date, anchorEl?: HTMLElement) => void;
+  onMonthClick?: (date: Date) => void;
   locale: string;
   showYearLabel?: boolean;
 };
@@ -39,7 +40,8 @@ function eventColor(color: string | null): string {
   return COLOR_MAP[color] ?? color;
 }
 
-export function YearBlock({ year, events, onDayClick, showYearLabel = true }: YearBlockProps) {
+export function YearBlock({ year, events, onDayClick, onMonthClick, showYearLabel = true }: YearBlockProps) {
+  const theme = useTheme();
   const { playHoverSound } = useHoverSound();
   const months = Array.from({ length: 12 }, (_, i) => new Date(year, i, 1));
   const today = new Date();
@@ -58,7 +60,29 @@ export function YearBlock({ year, events, onDayClick, showYearLabel = true }: Ye
           const days = eachDayOfInterval({ start, end });
           return (
             <Box key={month.toISOString()} sx={{ p: 0.5 }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, fontSize: '0.875rem' }}>
+              <Typography
+                variant="subtitle2"
+                component={onMonthClick ? 'button' : 'p'}
+                type={onMonthClick ? 'button' : undefined}
+                aria-label={onMonthClick ? `Go to ${format(month, 'MMMM yyyy')}` : undefined}
+                onClick={onMonthClick ? () => onMonthClick(month) : undefined}
+                sx={{
+                  fontWeight: 600,
+                  mb: 1,
+                  fontSize: '0.875rem',
+                  ...(onMonthClick
+                    ? {
+                        'border': 'none',
+                        'background': 'none',
+                        'padding': 0,
+                        'cursor': 'pointer',
+                        'textAlign': 'left',
+                        'color': 'text.primary',
+                        '&:hover': { color: 'primary.dark' },
+                      }
+                    : {}),
+                }}
+              >
                 {format(month, 'MMMM')}
               </Typography>
               <Box
@@ -111,8 +135,8 @@ export function YearBlock({ year, events, onDayClick, showYearLabel = true }: Ye
                         'justifyContent': 'center',
                         'border': 'none',
                         'bgcolor': showBg ? 'action.selected' : 'transparent',
-                        'color': showBg ? 'primary.contrastText' : 'text.secondary',
-                        '&:hover': { bgcolor: showBg ? 'action.hover' : 'grey.200' },
+                        'color': showBg ? (theme.palette.mode === 'dark' ? 'white' : 'black') : 'text.secondary',
+                        '&:hover': { bgcolor: showBg ? 'action.hover' : 'action.selected' },
                       }}
                       elevation={0}
                     >
