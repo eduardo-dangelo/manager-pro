@@ -1,7 +1,7 @@
 'use client';
 
 import type { CalendarEvent } from '../types';
-import { Box, Chip, Paper, Typography } from '@mui/material';
+import { Box, Paper, Typography } from '@mui/material';
 import {
   addMonths,
   eachDayOfInterval,
@@ -14,7 +14,7 @@ import {
   startOfWeek,
 } from 'date-fns';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { COLOR_MAP } from '../constants';
+import { CalendarEvent as CalendarEventItem } from '../CalendarEvent';
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const SLOT_HEIGHT_PX = 700;
@@ -37,13 +37,6 @@ function getEventsForDate(events: CalendarEvent[], date: Date): CalendarEvent[] 
     const end = format(new Date(e.end), 'yyyy-MM-dd');
     return (dateStr >= start && dateStr <= end) || start === dateStr;
   });
-}
-
-function eventColor(color: string | null): string {
-  if (!color) {
-    return '#6b7280';
-  }
-  return COLOR_MAP[color] ?? color;
 }
 
 type MonthGridProps = {
@@ -136,27 +129,7 @@ function MonthGrid({ monthDate, events, onDayClick }: MonthGridProps) {
               </Typography>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, flex: 1, overflow: 'hidden' }}>
                 {dayEvents.slice(0, 3).map(ev => (
-                  <Chip
-                    key={ev.id}
-                    label={ev.name}
-                    size="small"
-                    sx={{
-                      'height': 'auto',
-                      'py': 0.25,
-                      'fontSize': '0.688rem',
-                      'backgroundColor': 'white',
-                      'borderLeft': '3px solid',
-                      'borderLeftColor': eventColor(ev.color),
-                      'borderRadius': 1,
-                      'justifyContent': 'flex-start',
-                      '& .MuiChip-label': {
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        padding: '2px 4px',
-                      },
-                    }}
-                  />
+                  <CalendarEventItem key={ev.id} event={ev} variant="chip" />
                 ))}
                 {dayEvents.length > 3 && (
                   <Typography variant="caption" sx={{ fontSize: '0.688rem', color: 'grey.600' }}>

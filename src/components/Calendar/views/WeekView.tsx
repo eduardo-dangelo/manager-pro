@@ -1,6 +1,7 @@
 'use client';
 
 import type { CalendarEvent } from '../types';
+import { CalendarEvent as CalendarEventItem } from '../CalendarEvent';
 import { Box, Paper, Typography } from '@mui/material';
 import {
   eachDayOfInterval,
@@ -9,7 +10,6 @@ import {
   isSameDay,
   startOfWeek,
 } from 'date-fns';
-import { COLOR_MAP } from '../constants';
 
 type WeekViewProps = {
   currentDate: Date;
@@ -26,13 +26,6 @@ function getEventsForDate(events: CalendarEvent[], date: Date): CalendarEvent[] 
     const end = format(new Date(e.end), 'yyyy-MM-dd');
     return (dateStr >= start && dateStr <= end) || start === dateStr;
   });
-}
-
-function eventColor(color: string | null): string {
-  if (!color) {
-    return '#6b7280';
-  }
-  return COLOR_MAP[color] ?? color;
 }
 
 export function WeekView({
@@ -87,23 +80,7 @@ export function WeekView({
                 </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, flex: 1, overflow: 'auto' }}>
                   {dayEvents.slice(0, 4).map(ev => (
-                    <Box
-                      key={ev.id}
-                      sx={{
-                        fontSize: '0.75rem',
-                        py: 0.25,
-                        px: 0.5,
-                        borderRadius: 0.5,
-                        bgcolor: `${eventColor(ev.color)}20`,
-                        borderLeft: '2px solid',
-                        borderLeftColor: eventColor(ev.color),
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {ev.name}
-                    </Box>
+                    <CalendarEventItem key={ev.id} event={ev} variant="compact" />
                   ))}
                   {dayEvents.length > 4 && (
                     <Typography variant="caption" sx={{ fontSize: '0.688rem', color: 'grey.600' }}>

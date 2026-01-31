@@ -297,6 +297,7 @@
     "view_schedule": "Schedule",
     "today": "Today",
     "create_event": "Create Event",
+    "new_event": "New Event",
     "event_name": "Event Name",
     "event_date": "Date",
     "event_start_time": "Start Time",
@@ -306,6 +307,7 @@
     "event_description": "Description",
     "event_asset": "Asset",
     "select_asset": "Select asset",
-    "no_events": "No events"
+    "no_events": "No events",
+    "no_events_for_today": "No events for today"
   }
 }

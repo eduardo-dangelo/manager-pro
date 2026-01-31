@@ -18,15 +18,25 @@ import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { getButtonGroupSx } from '@/utils/buttonGroupStyles';
 import { CreateEventModal } from './CreateEventModal';
+import { DayEventsPopover } from './DayEventsPopover';
 import { DayView } from './views/DayView';
 import { MonthView } from './views/MonthView';
 import { ScheduleView } from './views/ScheduleView';
 import { WeekView } from './views/WeekView';
 import { YearView } from './views/YearView';
 
+function getEventsForDate(events: CalendarEvent[], date: Date): CalendarEvent[] {
+  const dateStr = format(date, 'yyyy-MM-dd');
+  return events.filter((e) => {
+    const start = format(new Date(e.start), 'yyyy-MM-dd');
+    const end = format(new Date(e.end), 'yyyy-MM-dd');
+    return (dateStr >= start && dateStr <= end) || start === dateStr;
+  });
+}
+
 type CalendarViewProps = {
   events: CalendarEvent[];
-  onDayClick?: (date: Date) => void;
+  onDayClick?: (date: Date, anchorEl?: HTMLElement) => void;
   locale: string;
   defaultView?: CalendarViewMode;
   assetId?: number;
@@ -125,8 +135,16 @@ export function CalendarView({
   const [createModalDate, setCreateModalDate] = useState<Date | undefined>(undefined);
   const [yearSlideDirection, setYearSlideDirection] = useState<'prev' | 'next' | null>(null);
   const [yearSlideToYear, setYearSlideToYear] = useState<number | null>(null);
+  const [yearDayPopoverAnchor, setYearDayPopoverAnchor] = useState<HTMLElement | null>(null);
+  const [yearDayPopoverDate, setYearDayPopoverDate] = useState<Date | null>(null);
 
-  const handleDayClick = (date: Date) => {
+  const handleDayClick = (date: Date, anchorEl?: HTMLElement) => {
+    if (anchorEl != null) {
+      setYearDayPopoverAnchor(anchorEl);
+      setYearDayPopoverDate(date);
+      onDayClickProp?.(date, anchorEl);
+      return;
+    }
     setCreateModalDate(date);
     setCreateModalOpen(true);
     onDayClickProp?.(date);
@@ -139,6 +157,10 @@ export function CalendarView({
   const handleViewChange = (_e: React.MouseEvent<HTMLElement>, value: CalendarViewMode | null) => {
     if (value !== null) {
       setViewMode(value);
+      if (value !== 'year') {
+        setYearDayPopoverAnchor(null);
+        setYearDayPopoverDate(null);
+      }
     }
   };
 
@@ -311,6 +333,26 @@ export function CalendarView({
           onCurrentDateChange={setCurrentDate}
           events={events}
           onDayClick={handleDayClick}
+          locale={locale}
+        />
+      )}
+
+      {yearDayPopoverAnchor != null && yearDayPopoverDate != null && (
+        <DayEventsPopover
+          open
+          anchorEl={yearDayPopoverAnchor}
+          date={yearDayPopoverDate}
+          events={getEventsForDate(events, yearDayPopoverDate)}
+          onClose={() => {
+            setYearDayPopoverAnchor(null);
+            setYearDayPopoverDate(null);
+          }}
+          onCreateEvent={(date) => {
+            setCreateModalDate(date);
+            setCreateModalOpen(true);
+            setYearDayPopoverAnchor(null);
+            setYearDayPopoverDate(null);
+          }}
           locale={locale}
         />
       )}

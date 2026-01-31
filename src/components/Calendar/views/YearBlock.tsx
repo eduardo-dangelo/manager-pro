@@ -2,7 +2,6 @@
 
 import type { CalendarEvent } from '../types';
 import { Box, Paper, Typography } from '@mui/material';
-import { useHoverSound } from '@/hooks/useHoverSound';
 import {
   eachDayOfInterval,
   endOfMonth,
@@ -13,11 +12,12 @@ import {
   startOfMonth,
   startOfWeek,
 } from 'date-fns';
+import { useHoverSound } from '@/hooks/useHoverSound';
 
 type YearBlockProps = {
   year: number;
   events: CalendarEvent[];
-  onDayClick: (date: Date) => void;
+  onDayClick: (date: Date, anchorEl?: HTMLElement) => void;
   locale: string;
   showYearLabel?: boolean;
 };
@@ -87,7 +87,7 @@ export function YearBlock({ year, events, onDayClick, showYearLabel = true }: Ye
                       key={day.toISOString()}
                       component="button"
                       type="button"
-                      onClick={() => onDayClick(day)}
+                      onClick={e => onDayClick(day, e.currentTarget as HTMLElement)}
                       onMouseEnter={playHoverSound}
                       sx={{
                         'minWidth': 24,
@@ -99,10 +99,9 @@ export function YearBlock({ year, events, onDayClick, showYearLabel = true }: Ye
                         'alignItems': 'center',
                         'justifyContent': 'center',
                         'border': 'none',
-                        'bgcolor': showBg ? (isToday ? '#fecaca' : 'primary.100') : 'transparent',
-                        'color': 'text.primary',
-                        '&:hover': { bgcolor: showBg ? (isToday ? '#fca5a5' : 'primary.200') : 'grey.200' },
-                        'transition': 'background-color 0.15s',
+                        'bgcolor': showBg ? (isToday ? 'action.selected' : 'primary.light') : 'transparent',
+                        'color': hasEvents ? 'primary.contrastText' : 'text.secondary',
+                        '&:hover': { bgcolor: showBg ? (isToday ? 'action.hover' : 'primary.main') : 'grey.200' },
                       }}
                       elevation={0}
                     >

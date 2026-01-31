@@ -1,6 +1,6 @@
 'use client';
 
-import type { CalendarEvent } from '@/components/Calendar';
+import type { CalendarEvent } from '@/components/Calendar/types';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';

@@ -1,9 +1,9 @@
 'use client';
 
 import type { CalendarEvent } from '../types';
+import { CalendarEvent as CalendarEventItem } from '../CalendarEvent';
 import { Box, Paper, Typography } from '@mui/material';
 import { format } from 'date-fns';
-import { COLOR_MAP } from '../constants';
 
 type DayViewProps = {
   currentDate: Date;
@@ -22,13 +22,6 @@ function getEventsForDate(events: CalendarEvent[], date: Date): CalendarEvent[] 
     const end = format(new Date(e.end), 'yyyy-MM-dd');
     return (dateStr >= start && dateStr <= end) || start === dateStr;
   });
-}
-
-function eventColor(color: string | null): string {
-  if (!color) {
-    return '#6b7280';
-  }
-  return COLOR_MAP[color] ?? color;
 }
 
 export function DayView({
@@ -82,27 +75,7 @@ export function DayView({
                 {dayEvents
                   .filter(e => new Date(e.start).getHours() === h)
                   .map(ev => (
-                    <Box
-                      key={ev.id}
-                      sx={{
-                        p: 1,
-                        borderRadius: 1,
-                        bgcolor: `${eventColor(ev.color)}20`,
-                        borderLeft: '3px solid',
-                        borderLeftColor: eventColor(ev.color),
-                        mb: 0.5,
-                      }}
-                    >
-                      <Typography variant="body2" fontWeight={500}>
-                        {ev.name}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {format(new Date(ev.start), 'HH:mm')}
-                        –
-                        {format(new Date(ev.end), 'HH:mm')}
-                        {ev.location ? ` · ${ev.location}` : ''}
-                      </Typography>
-                    </Box>
+                    <CalendarEventItem key={ev.id} event={ev} variant="inline" />
                   ))}
               </Box>
             </Box>

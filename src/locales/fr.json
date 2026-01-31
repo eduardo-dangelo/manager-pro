@@ -296,6 +296,7 @@
     "view_schedule": "agenda",
     "today": "Aujourd'hui",
     "create_event": "Créer un événement",
+    "new_event": "Nouvel événement",
     "event_name": "Nom de l'événement",
     "event_date": "Date",
     "event_start_time": "Heure de début",
@@ -305,6 +306,7 @@
     "event_description": "Description",
     "event_asset": "Actif",
     "select_asset": "Sélectionner un actif",
-    "no_events": "Aucun événement"
+    "no_events": "Aucun événement",
+    "no_events_for_today": "Aucun événement pour aujourd'hui"
   }
 }

@@ -13,7 +13,7 @@ type YearViewProps = {
   currentDate: Date;
   onCurrentDateChange: (d: Date) => void;
   events: CalendarEvent[];
-  onDayClick: (date: Date) => void;
+  onDayClick: (date: Date, anchorEl?: HTMLElement) => void;
   locale: string;
   /** When set from parent (e.g. toolbar), triggers the same slide animation as wheel */
   slideDirection?: 'prev' | 'next' | null;

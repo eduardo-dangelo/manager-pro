@@ -37,6 +37,7 @@ import {
   buildMileagePerYearSeries,
   hasMaintenanceData,
 } from '@/components/Assets/vehicle/utils';
+import { useHoverSound } from '@/hooks/useHoverSound';
 import { Card } from '@/components/common/Card';
 
 type Asset = {
@@ -181,7 +182,7 @@ const buildMaintenanceCards = (
 
   // MOT Card
   const motExpiryDate = latestMotTest?.expiryDate;
-  const motRemainingDays = motExpiryDate ? Math.max(0, moment(motExpiryDate).diff(moment(), 'days')) : null;
+  const motRemainingDays = motExpiryDate ? Math.max(0, moment(motExpiryDate).startOf('day').diff(moment().startOf('day'), 'days')) : null;
   const motIsExpiringSoon = motRemainingDays !== null && motRemainingDays <= 30;
   const motTestResult = latestMotTest?.testResult;
   const motIsValid = motTestResult === 'PASSED' || motTestResult === 'PASS';
@@ -238,7 +239,7 @@ const buildMaintenanceCards = (
   });
 
   // Tax Card
-  const taxRemainingDays = taxExpiry ? Math.max(0, moment(taxExpiry).diff(moment(), 'days')) : null;
+  const taxRemainingDays = taxExpiry ? Math.max(0, moment(taxExpiry).startOf('day').diff(moment().startOf('day'), 'days')) : null;
   const taxIsExpiringSoon = taxRemainingDays !== null && taxRemainingDays <= 30;
   const taxIsExpired = taxStatus !== 'Taxed';
 
@@ -382,6 +383,7 @@ export function VehicleMaintenanceSection({
   onUpdateAsset: _onUpdateAsset,
 }: VehicleMaintenanceSectionProps) {
   const t = useTranslations('Assets');
+  const { playHoverSound } = useHoverSound();
   const [motHistoryOpen, setMotHistoryOpen] = useState(false);
   const metadata = asset.metadata || {};
   const maintenance = metadata.maintenance || {};
@@ -561,6 +563,7 @@ export function VehicleMaintenanceSection({
                                     variant="outlined"
                                     color="primary"
                                     onClick={section.onClick}
+                                    onMouseEnter={playHoverSound}
                                     startIcon={section.icon}
                                     fullWidth
                                     sx={{

@@ -6,6 +6,8 @@ import { BarChart } from '@mui/x-charts';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
+import { useHoverSound } from '@/hooks/useHoverSound';
+
 type MileagePoint = {
   label: string;
   value: number;
@@ -24,6 +26,7 @@ export const VehicleMileageChart: FC<VehicleMileageChartProps> = ({
 }) => {
   const t = useTranslations('Assets');
   const theme = useTheme();
+  const { playHoverSound } = useHoverSound();
   const [view, setView] = useState<View>('over_time');
 
   const hasPerYearData = perYearData.length > 0;
@@ -64,6 +67,9 @@ export const VehicleMileageChart: FC<VehicleMileageChartProps> = ({
               data: overTimeData.map(point => point.value),
               color: theme.palette.primary.main,
             }]}
+            onHighlightChange={(highlightedItem) => {
+              if (highlightedItem) playHoverSound();
+            }}
           />
         )
       : hasPerYearData
@@ -82,6 +88,9 @@ export const VehicleMileageChart: FC<VehicleMileageChartProps> = ({
                 data: perYearData.map(point => point.value),
                 color: theme.palette.primary.main,
               }]}
+              onHighlightChange={(highlightedItem) => {
+                if (highlightedItem) playHoverSound();
+              }}
             />
           )
         : (

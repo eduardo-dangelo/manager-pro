@@ -1,10 +1,10 @@
 'use client';
 
 import type { CalendarEvent } from '../types';
+import { CalendarEvent as CalendarEventItem } from '../CalendarEvent';
 import { Box, Paper, Typography } from '@mui/material';
 import { format, parseISO } from 'date-fns';
 import { useTranslations } from 'next-intl';
-import { COLOR_MAP } from '../constants';
 
 type ScheduleViewProps = {
   currentDate: Date;
@@ -13,13 +13,6 @@ type ScheduleViewProps = {
   onDayClick: (date: Date) => void;
   locale: string;
 };
-
-function eventColor(color: string | null): string {
-  if (!color) {
-    return '#6b7280';
-  }
-  return COLOR_MAP[color] ?? color;
-}
 
 function groupEventsByDay(events: CalendarEvent[]): { date: string; events: CalendarEvent[] }[] {
   const map = new Map<string, CalendarEvent[]>();
@@ -79,35 +72,7 @@ export function ScheduleView({
             </Box>
             <Box sx={{ p: 1.5, display: 'flex', flexDirection: 'column', gap: 1 }}>
               {dayEvents.map(ev => (
-                <Box
-                  key={ev.id}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: 1.5,
-                    p: 1,
-                    borderRadius: 1,
-                    bgcolor: `${eventColor(ev.color)}12`,
-                    borderLeft: '3px solid',
-                    borderLeftColor: eventColor(ev.color),
-                  }}
-                >
-                  <Typography variant="caption" sx={{ flexShrink: 0, color: 'text.secondary' }}>
-                    {format(parseISO(ev.start), 'HH:mm')}
-                    –
-                    {format(parseISO(ev.end), 'HH:mm')}
-                  </Typography>
-                  <Box sx={{ minWidth: 0 }}>
-                    <Typography variant="body2" fontWeight={500}>
-                      {ev.name}
-                    </Typography>
-                    {ev.location && (
-                      <Typography variant="caption" color="text.secondary">
-                        {ev.location}
-                      </Typography>
-                    )}
-                  </Box>
-                </Box>
+                <CalendarEventItem key={ev.id} event={ev} variant="inline" />
               ))}
             </Box>
           </Paper>
