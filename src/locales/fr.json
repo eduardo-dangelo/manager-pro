@@ -290,7 +290,6 @@
   },
   "Calendar": {
     "view_day": "jour",
-    "view_week": "semaine",
     "view_month": "mois",
     "view_year": "année",
     "view_schedule": "agenda",
@@ -307,6 +306,8 @@
     "event_asset": "Actif",
     "select_asset": "Sélectionner un actif",
     "no_events": "Aucun événement",
-    "no_events_for_today": "Aucun événement pour aujourd'hui"
+    "no_events_for_today": "Aucun événement pour aujourd'hui",
+    "no_events_today": "Aucun événement aujourd'hui",
+    "no_events_for_the_day": "Aucun événement pour ce jour"
   }
 }

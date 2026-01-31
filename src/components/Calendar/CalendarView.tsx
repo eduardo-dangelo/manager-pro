@@ -7,12 +7,9 @@ import { useTheme } from '@mui/material/styles';
 import {
   addDays,
   addMonths,
-  addWeeks,
   addYears,
-  endOfWeek,
   format,
   startOfMonth,
-  startOfWeek,
 } from 'date-fns';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -22,7 +19,6 @@ import { DayEventsPopover } from './DayEventsPopover';
 import { DayView } from './views/DayView';
 import { MonthView } from './views/MonthView';
 import { ScheduleView } from './views/ScheduleView';
-import { WeekView } from './views/WeekView';
 import { YearView } from './views/YearView';
 
 function getEventsForDate(events: CalendarEvent[], date: Date): CalendarEvent[] {
@@ -48,11 +44,6 @@ function getHeaderText(viewMode: CalendarViewMode, currentDate: Date, t: (key: s
   switch (viewMode) {
     case 'day':
       return format(currentDate, 'EEEE, MMMM d, yyyy');
-    case 'week': {
-      const weekStart = startOfWeek(currentDate, { weekStartsOn: 0 });
-      const weekEnd = endOfWeek(currentDate, { weekStartsOn: 0 });
-      return `${format(weekStart, 'MMM d')} – ${format(weekEnd, 'MMM d, yyyy')}`;
-    }
     case 'month':
       return format(currentDate, 'MMMM yyyy');
     case 'year':
@@ -68,8 +59,6 @@ function getPrevDate(viewMode: CalendarViewMode, currentDate: Date): Date {
   switch (viewMode) {
     case 'day':
       return addDays(currentDate, -1);
-    case 'week':
-      return addWeeks(currentDate, -1);
     case 'month':
       return addMonths(currentDate, -1);
     case 'year':
@@ -85,8 +74,6 @@ function getNextDate(viewMode: CalendarViewMode, currentDate: Date): Date {
   switch (viewMode) {
     case 'day':
       return addDays(currentDate, 1);
-    case 'week':
-      return addWeeks(currentDate, 1);
     case 'month':
       return addMonths(currentDate, 1);
     case 'year':
@@ -103,8 +90,6 @@ function getTodayDate(viewMode: CalendarViewMode): Date {
   switch (viewMode) {
     case 'day':
       return now;
-    case 'week':
-      return startOfWeek(now, { weekStartsOn: 0 });
     case 'month':
       return startOfMonth(now);
     case 'year':
@@ -235,11 +220,6 @@ export function CalendarView({
                 {t('view_day')}
               </Typography>
             </ToggleButton>
-            {/* <ToggleButton value="week" aria-label={t('view_week')}>
-              <Typography variant="caption">
-                {t('view_week')}
-              </Typography>
-            </ToggleButton> */}
             <ToggleButton value="month" aria-label={t('view_month')}>
               <Typography variant="caption">
                 {t('view_month')}
@@ -298,15 +278,6 @@ export function CalendarView({
       )}
       {viewMode === 'day' && (
         <DayView
-          currentDate={currentDate}
-          onCurrentDateChange={setCurrentDate}
-          events={events}
-          onDayClick={handleDayClick}
-          locale={locale}
-        />
-      )}
-      {viewMode === 'week' && (
-        <WeekView
           currentDate={currentDate}
           onCurrentDateChange={setCurrentDate}
           events={events}

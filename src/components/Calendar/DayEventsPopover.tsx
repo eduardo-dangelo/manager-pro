@@ -3,12 +3,12 @@
 import type { CalendarEvent } from './types';
 import { Add as AddIcon } from '@mui/icons-material';
 import { Box, Button, Popover, Typography } from '@mui/material';
-import { format } from 'date-fns';
+import { format, isSameDay } from 'date-fns';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import { CalendarEvent as CalendarEventItem } from './CalendarEvent';
 
-const POPOVER_WIDTH = 280;
+const POPOVER_WIDTH = 230;
 const POPOVER_GAP = 8;
 
 type DayEventsPopoverProps = {
@@ -91,15 +91,17 @@ export function DayEventsPopover({
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, maxHeight: 240, overflow: 'auto' }}>
-          {events.length === 0 ? (
-            <Typography variant="body2" color="text.secondary">
-              {t('no_events_for_today')}
-            </Typography>
-          ) : (
-            events.map((ev) => (
-              <CalendarEventItem key={ev.id} event={ev} variant="compact" />
-            ))
-          )}
+          {events.length === 0
+            ? (
+                <Typography variant="body2" color="text.secondary">
+                  {isSameDay(date, new Date()) ? t('no_events_today') : t('no_events_for_the_day')}
+                </Typography>
+              )
+            : (
+                events.map(ev => (
+                  <CalendarEventItem key={ev.id} event={ev} variant="compact" />
+                ))
+              )}
         </Box>
         <Button
           variant="contained"
