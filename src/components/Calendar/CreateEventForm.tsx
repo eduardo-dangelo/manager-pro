@@ -1,11 +1,12 @@
 'use client';
 
 import type { CalendarEvent } from './types';
-import { Palette as PaletteIcon } from '@mui/icons-material';
+import { Close as CloseIcon, Palette as PaletteIcon } from '@mui/icons-material';
 import {
   Box,
   Button,
   FormControl,
+  IconButton,
   InputAdornment,
   InputLabel,
   MenuItem,
@@ -159,14 +160,26 @@ export function CreateEventForm({
     <form onSubmit={handleSubmit}>
       <Box sx={{ p: isPopover ? 2 : 0, display: 'flex', flexDirection: 'column', gap: contentGap }}>
         {isPopover && (
-          <Typography variant="h6" component="div" sx={{ fontWeight: 600, fontSize: '1rem' }}>
-            {t('new_event')}
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Typography variant="h6" component="div" sx={{ fontWeight: 600, fontSize: '1rem' }}>
+              {t('new_event')}
+            </Typography>
+            <IconButton
+              edge="end"
+              onClick={handleCancel}
+              aria-label="Close"
+              size="small"
+            >
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </Box>
         )}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: contentGap }}>
           {isGlobal && assets && assets.length > 0 && (
             <FormControl fullWidth required size="small">
-              <InputLabel>{t('event_asset')}</InputLabel>
+              <InputLabel sx={{ '& .MuiFormLabel-asterisk': { color: 'error.main' } }}>
+                {t('event_asset')}
+              </InputLabel>
               <Select
                 value={selectedAssetId}
                 label={t('event_asset')}
@@ -188,6 +201,9 @@ export function CreateEventForm({
             value={name}
             onChange={e => setName(e.target.value)}
             slotProps={{
+              inputLabel: {
+                sx: { '& .MuiFormLabel-asterisk': { color: 'error.main' } },
+              },
               input: {
                 endAdornment: (
                   <InputAdornment position="end">
@@ -302,7 +318,12 @@ export function CreateEventForm({
               type="date"
               value={date}
               onChange={e => setDate(e.target.value)}
-              InputLabelProps={{ shrink: true }}
+              slotProps={{
+                inputLabel: {
+                  shrink: true,
+                  sx: { '& .MuiFormLabel-asterisk': { color: 'error.main' } },
+                },
+              }}
               sx={{ flex: '2 1 0', minWidth: 0 }}
             />
             <TextField
