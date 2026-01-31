@@ -1,8 +1,8 @@
 'use client';
 
 import type { CalendarEvent } from './types';
-import { Add as AddIcon } from '@mui/icons-material';
-import { Box, Button, Popover, Typography } from '@mui/material';
+import { Add as AddIcon, Close as CloseIcon } from '@mui/icons-material';
+import { Box, Button, IconButton, Popover, Typography } from '@mui/material';
 import { format, isSameDay } from 'date-fns';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
@@ -82,13 +82,23 @@ export function DayEventsPopover({
       disableRestoreFocus
     >
       <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-        <Box sx={{ textAlign: 'center' }}>
-          <Typography variant="caption" color="text.secondary" display="block">
-            {format(date, 'EEE')}
-          </Typography>
-          <Typography variant="h6" component="span" fontWeight={600} sx={{ fontSize: '1.25rem' }}>
-            {format(date, 'd')}
-          </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1 }}>
+          <Box sx={{ textAlign: 'center', flex: 1 }}>
+            <Typography variant="caption" color="text.secondary" display="block">
+              {format(date, 'EEE')}
+            </Typography>
+            <Typography variant="h6" component="span" fontWeight={600} sx={{ fontSize: '1.25rem' }}>
+              {format(date, 'd')}
+            </Typography>
+          </Box>
+          <IconButton
+            size="small"
+            onClick={onClose}
+            aria-label="close"
+            sx={{ mt: -0.5, mr: -0.5, position: 'absolute', right: 15, top: 15 }}
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
         </Box>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, maxHeight: 240, overflow: 'auto' }}>
           {events.length === 0

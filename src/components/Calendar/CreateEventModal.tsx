@@ -50,7 +50,7 @@ export function CreateEventModal({
       <DialogTitle sx={{ pb: 1 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
-            {t('create_event')}
+            {t('new_event')}
           </Typography>
           <IconButton
             edge="end"

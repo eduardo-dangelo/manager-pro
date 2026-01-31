@@ -1,19 +1,26 @@
 'use client';
 
 import type { CalendarEvent } from './types';
+import { Palette as PaletteIcon } from '@mui/icons-material';
 import {
   Box,
   Button,
   FormControl,
+  InputAdornment,
   InputLabel,
   MenuItem,
+  Popover,
   Select,
   TextField,
   Typography,
 } from '@mui/material';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { DEFAULT_EVENT_COLOR, EVENT_COLORS } from './constants';
+
+function isCustomColor(color: string): boolean {
+  return color?.startsWith('#') ?? false;
+}
 
 export type AssetOption = { id: number; name: string | null };
 
@@ -64,6 +71,8 @@ export function CreateEventForm({
   const [color, setColor] = useState(DEFAULT_EVENT_COLOR);
   const [description, setDescription] = useState('');
   const [selectedAssetId, setSelectedAssetId] = useState<number | ''>('');
+  const [colorPickerAnchor, setColorPickerAnchor] = useState<HTMLElement | null>(null);
+  const colorInputRef = useRef<HTMLInputElement>(null);
 
   const isGlobal = !fixedAssetId && (assets?.length ?? 0) > 0;
   const effectiveAssetId = fixedAssetId ?? (typeof selectedAssetId === 'number' ? selectedAssetId : null);
@@ -151,7 +160,7 @@ export function CreateEventForm({
       <Box sx={{ p: isPopover ? 2 : 0, display: 'flex', flexDirection: 'column', gap: contentGap }}>
         {isPopover && (
           <Typography variant="h6" component="div" sx={{ fontWeight: 600, fontSize: '1rem' }}>
-            {t('create_event')}
+            {t('new_event')}
           </Typography>
         )}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: contentGap }}>
@@ -175,13 +184,118 @@ export function CreateEventForm({
             fullWidth
             required
             size="small"
-            label={t('event_name')}
+            label={t('event_name_label')}
             value={name}
             onChange={e => setName(e.target.value)}
+            slotProps={{
+              input: {
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <Box
+                      component="button"
+                      type="button"
+                      onClick={e => setColorPickerAnchor(e.currentTarget)}
+                      aria-label={t('event_color')}
+                      sx={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: '50%',
+                        bgcolor: EVENT_COLORS.find(c => c.value === color)?.hex ?? color,
+                        cursor: 'pointer',
+                        p: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 0 2px',
+                      }}
+                    />
+                  </InputAdornment>
+                ),
+              },
+            }}
           />
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+          <Popover
+            open={Boolean(colorPickerAnchor)}
+            anchorEl={colorPickerAnchor}
+            onClose={() => setColorPickerAnchor(null)}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+          >
+            <Box sx={{ position: 'relative', p: 2 }}>
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(5, 24px)',
+                  gap: 1,
+                }}
+              >
+                {EVENT_COLORS.map(c => (
+                  <Box
+                    key={c.value}
+                    component="button"
+                    type="button"
+                    onClick={() => {
+                      setColor(c.value);
+                      setColorPickerAnchor(null);
+                    }}
+                    aria-label={c.label}
+                    sx={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: '50%',
+                      bgcolor: c.hex,
+                      border: color === c.value ? '2px solid' : '2px solid transparent',
+                      borderColor: color === c.value ? 'primary.main' : 'transparent',
+                      cursor: 'pointer',
+                      p: 0,
+                    }}
+                  />
+                ))}
+                <Box
+                  component="button"
+                  type="button"
+                  onClick={() => colorInputRef.current?.click()}
+                  aria-label={t('event_color_custom')}
+                  sx={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: '50%',
+                    bgcolor: isCustomColor(color) ? color : 'grey.300',
+                    border: isCustomColor(color) ? '2px solid' : '2px solid transparent',
+                    borderColor: isCustomColor(color) ? 'primary.main' : 'transparent',
+                    cursor: 'pointer',
+                    p: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {!isCustomColor(color) && (
+                    <PaletteIcon sx={{ fontSize: 14, color: 'grey.600' }} />
+                  )}
+                </Box>
+              </Box>
+              <input
+                ref={colorInputRef}
+                type="color"
+                value={isCustomColor(color) ? color : '#3b82f6'}
+                onChange={(e) => {
+                  setColor(e.target.value);
+                  setColorPickerAnchor(null);
+                }}
+                style={{
+                  position: 'absolute',
+                  opacity: 0,
+                  width: 0,
+                  height: 0,
+                  pointerEvents: 'none',
+                }}
+                aria-hidden
+              />
+            </Box>
+          </Popover>
+          <Box sx={{ display: 'flex', gap: 2 }}>
             <TextField
-              fullWidth
               required
               size="small"
               label={t('event_date')}
@@ -189,7 +303,7 @@ export function CreateEventForm({
               value={date}
               onChange={e => setDate(e.target.value)}
               InputLabelProps={{ shrink: true }}
-              sx={{ flex: '1 1 140px' }}
+              sx={{ flex: '2 1 0', minWidth: 0 }}
             />
             <TextField
               size="small"
@@ -199,7 +313,14 @@ export function CreateEventForm({
               onChange={e => setStartTime(e.target.value)}
               InputLabelProps={{ shrink: true }}
               inputProps={{ step: 300 }}
-              sx={{ flex: '1 1 100px' }}
+              slotProps={{
+                input: {
+                  sx: {
+                    '& input::-webkit-calendar-picker-indicator': { display: 'none' },
+                  },
+                },
+              }}
+              sx={{ flex: '1 1 0', minWidth: 0 }}
             />
             <TextField
               size="small"
@@ -209,53 +330,23 @@ export function CreateEventForm({
               onChange={e => setEndTime(e.target.value)}
               InputLabelProps={{ shrink: true }}
               inputProps={{ step: 300 }}
-              sx={{ flex: '1 1 100px' }}
+              slotProps={{
+                input: {
+                  sx: {
+                    '& input::-webkit-calendar-picker-indicator': { display: 'none' },
+                  },
+                },
+              }}
+              sx={{ flex: '1 1 0', minWidth: 0 }}
             />
           </Box>
-          <TextField
+          {/* <TextField
             fullWidth
             size="small"
             label={t('event_location')}
             value={location}
             onChange={e => setLocation(e.target.value)}
-          />
-          <FormControl fullWidth size="small">
-            <InputLabel>{t('event_color')}</InputLabel>
-            <Select
-              value={color}
-              label={t('event_color')}
-              onChange={e => setColor(e.target.value)}
-              renderValue={v => (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Box
-                    sx={{
-                      width: 16,
-                      height: 16,
-                      borderRadius: 0.5,
-                      bgcolor: EVENT_COLORS.find(c => c.value === v)?.hex ?? v,
-                    }}
-                  />
-                  {EVENT_COLORS.find(c => c.value === v)?.label ?? v}
-                </Box>
-              )}
-            >
-              {EVENT_COLORS.map(c => (
-                <MenuItem key={c.value} value={c.value}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Box
-                      sx={{
-                        width: 16,
-                        height: 16,
-                        borderRadius: 0.5,
-                        bgcolor: c.hex,
-                      }}
-                    />
-                    {c.label}
-                  </Box>
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          /> */}
           <TextField
             fullWidth
             size="small"
@@ -272,10 +363,10 @@ export function CreateEventForm({
           )}
         </Box>
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, pt: isPopover ? 0 : 1 }}>
-          <Button type="button" onClick={handleCancel} disabled={loading}>
+          <Button type="button" onClick={handleCancel} disabled={loading} size="small">
             {tAssets('cancel')}
           </Button>
-          <Button type="submit" variant="contained" disabled={loading}>
+          <Button type="submit" variant="contained" disabled={loading} size="small">
             {tAssets('save')}
           </Button>
         </Box>
