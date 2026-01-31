@@ -1,8 +1,9 @@
 'use client';
 
 import type { CalendarEvent, CalendarViewMode } from './types';
+import type { Asset } from '@/components/Assets/utils';
 import { ChevronLeft, ChevronRight } from '@mui/icons-material';
-import { Box, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
+import { Box, ButtonBase, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import {
   addDays,
@@ -13,16 +14,18 @@ import {
 } from 'date-fns';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
-import type { Asset } from '@/components/Assets/utils';
 import { getButtonGroupSx } from '@/utils/buttonGroupStyles';
 import { CreateEventModal } from './CreateEventModal';
 import { CreateEventPopover } from './CreateEventPopover';
 import { DayEventsPopover } from './DayEventsPopover';
+import { DayPickerPopover } from './DayPickerPopover';
 import { EventDetailsPopover } from './EventDetailsPopover';
+import { MonthPickerPopover } from './MonthPickerPopover';
 import { DayView } from './views/DayView';
 import { MonthView } from './views/MonthView';
 import { ScheduleView } from './views/ScheduleView';
 import { YearView } from './views/YearView';
+import { YearPickerPopover } from './YearPickerPopover';
 
 function getEventsForDate(events: CalendarEvent[], date: Date): CalendarEvent[] {
   const dateStr = format(date, 'yyyy-MM-dd');
@@ -129,6 +132,10 @@ export function CalendarView({
   const [createPopoverDate, setCreatePopoverDate] = useState<Date | undefined>(undefined);
   const [eventDetailsAnchor, setEventDetailsAnchor] = useState<HTMLElement | null>(null);
   const [eventDetailsEvent, setEventDetailsEvent] = useState<CalendarEvent | null>(null);
+  const [headerPickerAnchor, setHeaderPickerAnchor] = useState<HTMLElement | null>(null);
+  const [headerPickerType, setHeaderPickerType] = useState<'year' | 'month' | 'day' | null>(null);
+  const [monthSlideDirection, setMonthSlideDirection] = useState<'prev' | 'next' | null>(null);
+  const [monthSlideToDate, setMonthSlideToDate] = useState<Date | null>(null);
 
   const handleEventClick = (event: CalendarEvent, anchorEl: HTMLElement) => {
     setEventDetailsAnchor(anchorEl);
@@ -164,6 +171,8 @@ export function CalendarView({
   const handlePrev = () => {
     if (viewMode === 'year') {
       setYearSlideDirection('prev');
+    } else if (viewMode === 'month') {
+      setMonthSlideDirection('prev');
     } else {
       setCurrentDate(getPrevDate(viewMode, currentDate));
     }
@@ -171,6 +180,8 @@ export function CalendarView({
   const handleNext = () => {
     if (viewMode === 'year') {
       setYearSlideDirection('next');
+    } else if (viewMode === 'month') {
+      setMonthSlideDirection('next');
     } else {
       setCurrentDate(getNextDate(viewMode, currentDate));
     }
@@ -190,7 +201,8 @@ export function CalendarView({
     }
   };
 
-  const headerText = getHeaderText(viewMode, currentDate, t);
+  const tHeader = t as (key: string) => string;
+  const headerText = getHeaderText(viewMode, currentDate, tHeader);
 
   return (
     <Box>
@@ -204,21 +216,184 @@ export function CalendarView({
           mb: 2,
         }}
       >
-        <Typography
-          variant="h6"
+        <Box
           sx={{
-            fontWeight: 600,
-            fontSize: '1.25rem',
+            display: 'flex',
+            alignItems: 'center',
             flex: 1,
-
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            minWidth: 100,
+            minWidth: 0,
+            justifyContent: 'flex-start',
           }}
         >
-          {headerText}
-        </Typography>
+          {(viewMode === 'year' || viewMode === 'month' || viewMode === 'day')
+            ? viewMode === 'year'
+              ? (
+                  <ButtonBase
+                    component="button"
+                    type="button"
+                    onClick={(e) => {
+                      setHeaderPickerAnchor(e.currentTarget);
+                      setHeaderPickerType('year');
+                    }}
+                    aria-haspopup="dialog"
+                    aria-expanded={headerPickerAnchor != null && headerPickerType === 'year'}
+                    aria-label={tHeader('select_year')}
+                    sx={{
+                      'borderRadius': 1,
+                      'textAlign': 'left',
+                      'px': 0.5,
+                      '&:hover': { bgcolor: 'action.hover' },
+                      '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 },
+                    }}
+                  >
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        fontWeight: 600,
+                        fontSize: '1.25rem',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {headerText}
+                    </Typography>
+                  </ButtonBase>
+                )
+              : viewMode === 'month'
+                ? (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0, flexWrap: 'wrap' }}>
+                      <ButtonBase
+                        component="button"
+                        type="button"
+                        onClick={(e) => {
+                          setHeaderPickerAnchor(e.currentTarget);
+                          setHeaderPickerType('month');
+                        }}
+                        aria-haspopup="dialog"
+                        aria-expanded={headerPickerAnchor != null && headerPickerType === 'month'}
+                        aria-label={tHeader('select_month')}
+                        sx={{
+                          'borderRadius': 1,
+                          'textAlign': 'left',
+                          '&:hover': { bgcolor: 'action.hover' },
+                          'px': 0.5,
+                          '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 },
+                        }}
+                      >
+                        <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.25rem', whiteSpace: 'nowrap' }}>
+                          {format(currentDate, 'MMMM')}
+                        </Typography>
+                      </ButtonBase>
+                      <ButtonBase
+                        component="button"
+                        type="button"
+                        onClick={(e) => {
+                          setHeaderPickerAnchor(e.currentTarget);
+                          setHeaderPickerType('year');
+                        }}
+                        aria-haspopup="dialog"
+                        aria-expanded={headerPickerAnchor != null && headerPickerType === 'year'}
+                        aria-label={tHeader('select_year')}
+                        sx={{
+                          'borderRadius': 1,
+                          'textAlign': 'left',
+                          'px': 0.5,
+                          '&:hover': { bgcolor: 'action.hover' },
+                          '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 },
+                        }}
+                      >
+                        <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.25rem', whiteSpace: 'nowrap' }}>
+                          {format(currentDate, 'yyyy')}
+                        </Typography>
+                      </ButtonBase>
+                    </Box>
+                  )
+                : (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0, flexWrap: 'wrap' }}>
+                      <ButtonBase
+                        component="button"
+                        type="button"
+                        onClick={(e) => {
+                          setHeaderPickerAnchor(e.currentTarget);
+                          setHeaderPickerType('day');
+                        }}
+                        aria-haspopup="dialog"
+                        aria-expanded={headerPickerAnchor != null && headerPickerType === 'day'}
+                        aria-label={tHeader('select_date')}
+                        sx={{
+                          'borderRadius': 1,
+                          'textAlign': 'left',
+                          '&:hover': { bgcolor: 'action.hover' },
+                          'px': 0.5,
+                          '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 },
+                        }}
+                      >
+                        <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.25rem', whiteSpace: 'nowrap' }}>
+                          {format(currentDate, 'd')}
+                        </Typography>
+                      </ButtonBase>
+                      <ButtonBase
+                        component="button"
+                        type="button"
+                        onClick={(e) => {
+                          setHeaderPickerAnchor(e.currentTarget);
+                          setHeaderPickerType('month');
+                        }}
+                        aria-haspopup="dialog"
+                        aria-expanded={headerPickerAnchor != null && headerPickerType === 'month'}
+                        aria-label={tHeader('select_month')}
+                        sx={{
+                          'borderRadius': 1,
+                          'textAlign': 'left',
+                          '&:hover': { bgcolor: 'action.hover' },
+                          'px': 0.5,
+                          '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 },
+                        }}
+                      >
+                        <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.25rem', whiteSpace: 'nowrap' }}>
+                          {format(currentDate, 'MMMM')}
+                        </Typography>
+                      </ButtonBase>
+                      <ButtonBase
+                        component="button"
+                        type="button"
+                        onClick={(e) => {
+                          setHeaderPickerAnchor(e.currentTarget);
+                          setHeaderPickerType('year');
+                        }}
+                        aria-haspopup="dialog"
+                        aria-expanded={headerPickerAnchor != null && headerPickerType === 'year'}
+                        aria-label={tHeader('select_year')}
+                        sx={{
+                          'borderRadius': 1,
+                          'textAlign': 'left',
+                          '&:hover': { bgcolor: 'action.hover' },
+                          'px': 0.5,
+                          '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 },
+                        }}
+                      >
+                        <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.25rem', whiteSpace: 'nowrap' }}>
+                          {format(currentDate, 'yyyy')}
+                        </Typography>
+                      </ButtonBase>
+                    </Box>
+                  )
+            : (
+                <Typography
+                  variant="h6"
+                  sx={{
+                    fontWeight: 600,
+                    fontSize: '1.25rem',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  {headerText}
+                </Typography>
+              )}
+        </Box>
         <Box sx={{ justifyContent: 'center' }}>
           <ToggleButtonGroup
             value={viewMode}
@@ -287,6 +462,10 @@ export function CalendarView({
           onDayClick={handleDayClick}
           onEventClick={handleEventClick}
           locale={locale}
+          slideDirection={monthSlideDirection}
+          onSlideDirectionComplete={() => setMonthSlideDirection(null)}
+          slideToDate={monthSlideToDate}
+          onSlideToMonthComplete={() => setMonthSlideToDate(null)}
         />
       )}
       {viewMode === 'day' && (
@@ -388,6 +567,72 @@ export function CalendarView({
           onClose={() => {
             setEventDetailsAnchor(null);
             setEventDetailsEvent(null);
+          }}
+          locale={locale}
+        />
+      )}
+
+      {headerPickerAnchor != null && headerPickerType === 'year' && (
+        <YearPickerPopover
+          open
+          anchorEl={headerPickerAnchor}
+          onClose={() => {
+            setHeaderPickerAnchor(null);
+            setHeaderPickerType(null);
+          }}
+          currentYear={currentDate.getFullYear()}
+          onSelect={(year) => {
+            if (viewMode === 'year') {
+              setYearSlideToYear(year);
+            } else if (viewMode === 'month') {
+              setCurrentDate(new Date(year, currentDate.getMonth(), 1));
+            } else {
+              setCurrentDate(new Date(year, currentDate.getMonth(), currentDate.getDate()));
+            }
+            setHeaderPickerAnchor(null);
+            setHeaderPickerType(null);
+          }}
+          locale={locale}
+        />
+      )}
+
+      {headerPickerAnchor != null && headerPickerType === 'month' && (
+        <MonthPickerPopover
+          open
+          anchorEl={headerPickerAnchor}
+          onClose={() => {
+            setHeaderPickerAnchor(null);
+            setHeaderPickerType(null);
+          }}
+          currentDate={currentDate}
+          onSelect={(monthIndex) => {
+            const year = currentDate.getFullYear();
+            if (viewMode === 'month') {
+              setMonthSlideToDate(new Date(year, monthIndex, 1));
+            } else {
+              const day = viewMode === 'day' ? Math.min(currentDate.getDate(), new Date(year, monthIndex + 1, 0).getDate()) : 1;
+              setCurrentDate(new Date(year, monthIndex, day));
+            }
+            setHeaderPickerAnchor(null);
+            setHeaderPickerType(null);
+          }}
+          locale={locale}
+        />
+      )}
+
+      {headerPickerAnchor != null && headerPickerType === 'day' && (
+        <DayPickerPopover
+          open
+          anchorEl={headerPickerAnchor}
+          onClose={() => {
+            setHeaderPickerAnchor(null);
+            setHeaderPickerType(null);
+          }}
+          currentDate={currentDate}
+          onSelect={(date) => {
+            setCurrentDate(date);
+            setHeaderPickerAnchor(null);
+            setHeaderPickerType(null);
           }}
           locale={locale}
         />

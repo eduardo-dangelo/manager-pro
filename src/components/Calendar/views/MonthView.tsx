@@ -27,6 +27,12 @@ type MonthViewProps = {
   onDayClick: (date: Date) => void;
   onEventClick?: (event: CalendarEvent, anchorEl: HTMLElement) => void;
   locale: string;
+  /** When set from parent (e.g. toolbar), triggers the same slide animation as wheel */
+  slideDirection?: 'prev' | 'next' | null;
+  onSlideDirectionComplete?: () => void;
+  /** When set (e.g. from month picker), slides to this month with transition */
+  slideToDate?: Date | null;
+  onSlideToMonthComplete?: () => void;
 };
 
 type Direction = 'next' | 'prev' | null;
@@ -169,12 +175,18 @@ export function MonthView({
   events,
   onDayClick,
   onEventClick,
+  slideDirection: slideDirectionProp,
+  onSlideDirectionComplete,
+  slideToDate: slideToDateProp,
+  onSlideToMonthComplete,
 }: MonthViewProps) {
   const [direction, setDirection] = useState<Direction>(null);
   const [slideOffset, setSlideOffset] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [targetMonthForSlide, setTargetMonthForSlide] = useState<Date | null>(null);
   const [enableTransition, setEnableTransition] = useState(false);
   const viewportRef = useRef<HTMLDivElement>(null);
+  const currentMonthStart = startOfMonth(currentDate);
 
   const prev = useCallback(() => {
     if (isAnimating) {
@@ -226,15 +238,22 @@ export function MonthView({
       return;
     }
     setEnableTransition(false);
-    if (direction === 'next') {
-      onCurrentDateChange(addMonths(currentDate, 1));
+    if (targetMonthForSlide !== null) {
+      onCurrentDateChange(targetMonthForSlide);
+      onSlideToMonthComplete?.();
+      setTargetMonthForSlide(null);
     } else {
-      onCurrentDateChange(addMonths(currentDate, -1));
+      if (direction === 'next') {
+        onCurrentDateChange(addMonths(currentDate, 1));
+      } else {
+        onCurrentDateChange(addMonths(currentDate, -1));
+      }
+      onSlideDirectionComplete?.();
     }
     setDirection(null);
     setIsAnimating(false);
     setSlideOffset(0);
-  }, [isAnimating, direction, currentDate, onCurrentDateChange]);
+  }, [isAnimating, direction, currentDate, onCurrentDateChange, onSlideDirectionComplete, onSlideToMonthComplete, targetMonthForSlide]);
 
   useEffect(() => {
     const el = viewportRef.current;
@@ -256,6 +275,31 @@ export function MonthView({
     el.addEventListener('wheel', handleWheel, { passive: false });
     return () => el.removeEventListener('wheel', handleWheel);
   }, [isAnimating, prev, next]);
+
+  useEffect(() => {
+    if (slideDirectionProp === 'prev') {
+      prev();
+    } else if (slideDirectionProp === 'next') {
+      next();
+    }
+  }, [slideDirectionProp, prev, next]);
+
+  useEffect(() => {
+    if (slideToDateProp == null || isAnimating) {
+      return;
+    }
+    const targetMonthStart = startOfMonth(slideToDateProp);
+    const currentMonthTime = currentMonthStart.getTime();
+    const targetMonthTime = targetMonthStart.getTime();
+    if (currentMonthTime === targetMonthTime) {
+      return;
+    }
+    setTargetMonthForSlide(targetMonthStart);
+    setDirection(targetMonthTime > currentMonthTime ? 'next' : 'prev');
+    setIsAnimating(true);
+    setSlideOffset(targetMonthTime > currentMonthTime ? 0 : -SLOT_HEIGHT_PX);
+    setEnableTransition(false);
+  }, [slideToDateProp, currentMonthStart.getTime(), isAnimating]);
 
   const showTwoSlots = isAnimating && direction !== null;
   const trackHeight = showTwoSlots ? SLOT_HEIGHT_PX * 2 : SLOT_HEIGHT_PX;
@@ -286,14 +330,14 @@ export function MonthView({
                       <MonthGrid monthDate={currentDate} events={events} onDayClick={onDayClick} onEventClick={onEventClick} />
                     </Box>
                     <Box sx={{ height: SLOT_HEIGHT_PX, p: 0, overflow: 'hidden' }}>
-                      <MonthGrid monthDate={addMonths(currentDate, 1)} events={events} onDayClick={onDayClick} onEventClick={onEventClick} />
+                      <MonthGrid monthDate={targetMonthForSlide ?? addMonths(currentDate, 1)} events={events} onDayClick={onDayClick} onEventClick={onEventClick} />
                     </Box>
                   </>
                 )
               : (
                   <>
                     <Box sx={{ height: SLOT_HEIGHT_PX, p: 0, overflow: 'hidden' }}>
-                      <MonthGrid monthDate={addMonths(currentDate, -1)} events={events} onDayClick={onDayClick} onEventClick={onEventClick} />
+                      <MonthGrid monthDate={targetMonthForSlide ?? addMonths(currentDate, -1)} events={events} onDayClick={onDayClick} onEventClick={onEventClick} />
                     </Box>
                     <Box sx={{ height: SLOT_HEIGHT_PX, p: 0, overflow: 'hidden' }}>
                       <MonthGrid monthDate={currentDate} events={events} onDayClick={onDayClick} onEventClick={onEventClick} />
