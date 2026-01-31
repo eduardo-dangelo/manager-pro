@@ -13,6 +13,7 @@ import {
   startOfWeek,
 } from 'date-fns';
 import { useHoverSound } from '@/hooks/useHoverSound';
+import { COLOR_MAP } from '../constants';
 
 type YearBlockProps = {
   year: number;
@@ -29,6 +30,13 @@ function getEventsForDate(events: CalendarEvent[], date: Date): CalendarEvent[] 
     const end = format(new Date(e.end), 'yyyy-MM-dd');
     return (dateStr >= start && dateStr <= end) || start === dateStr;
   });
+}
+
+function eventColor(color: string | null): string {
+  if (!color) {
+    return '#6b7280';
+  }
+  return COLOR_MAP[color] ?? color;
 }
 
 export function YearBlock({ year, events, onDayClick, showYearLabel = true }: YearBlockProps) {
@@ -76,12 +84,13 @@ export function YearBlock({ year, events, onDayClick, showYearLabel = true }: Ye
                 {days.map((day) => {
                   const inMonth = isSameMonth(day, month);
                   if (!inMonth) {
-                    return <Box key={day.toISOString()} sx={{ minWidth: 24, height: 24 }} />;
+                    return <Box key={day.toISOString()} sx={{ minWidth: 24, height: 28 }} />;
                   }
                   const isToday = isSameDay(day, today);
                   const dayEvents = getEventsForDate(events, day);
                   const hasEvents = dayEvents.length > 0;
-                  const showBg = isToday || hasEvents;
+                  const showBg = isToday;
+                  const dotsToShow = dayEvents.slice(0, 3);
                   return (
                     <Paper
                       key={day.toISOString()}
@@ -89,23 +98,50 @@ export function YearBlock({ year, events, onDayClick, showYearLabel = true }: Ye
                       type="button"
                       onClick={e => onDayClick(day, e.currentTarget as HTMLElement)}
                       onMouseEnter={playHoverSound}
+                      aria-label={hasEvents ? `${format(day, 'd')}, ${dayEvents.length} events` : format(day, 'd')}
                       sx={{
                         'minWidth': 24,
-                        'height': 24,
+                        'height': 28,
                         'p': 0,
                         'cursor': 'pointer',
                         'fontSize': '0.7rem',
                         'display': 'flex',
+                        'flexDirection': 'column',
                         'alignItems': 'center',
                         'justifyContent': 'center',
                         'border': 'none',
-                        'bgcolor': showBg ? (isToday ? 'action.selected' : 'primary.light') : 'transparent',
-                        'color': hasEvents ? 'primary.contrastText' : 'text.secondary',
-                        '&:hover': { bgcolor: showBg ? (isToday ? 'action.hover' : 'primary.main') : 'grey.200' },
+                        'bgcolor': showBg ? 'action.selected' : 'transparent',
+                        'color': showBg ? 'primary.contrastText' : 'text.secondary',
+                        '&:hover': { bgcolor: showBg ? 'action.hover' : 'grey.200' },
                       }}
                       elevation={0}
                     >
                       {format(day, 'd')}
+                      {hasEvents && (
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexWrap: 'wrap',
+                            gap: 0.2,
+                            mt: 0.25,
+                          }}
+                        >
+                          {dotsToShow.map(ev => (
+                            <Box
+                              key={ev.id}
+                              sx={{
+                                width: 6,
+                                height: 6,
+                                borderRadius: '50%',
+                                bgcolor: eventColor(ev.color),
+                              }}
+                            />
+                          ))}
+                        </Box>
+                      )}
                     </Paper>
                   );
                 })}

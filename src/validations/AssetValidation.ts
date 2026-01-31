@@ -14,7 +14,11 @@ export const AssetValidation = z.object({
   metadata: z.record(z.string(), z.any()).optional(),
 });
 
-export const UpdateAssetValidation = AssetValidation.omit({ type: true }).partial();
+export const UpdateAssetValidation = AssetValidation.omit({ type: true })
+  .partial()
+  .extend({
+    tabs: z.array(z.string()).optional(),
+  });
 
 export type AssetInput = z.infer<typeof AssetValidation>;
 export type UpdateAssetInput = z.infer<typeof UpdateAssetValidation>;

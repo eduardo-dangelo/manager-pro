@@ -3,7 +3,7 @@
 import type { CalendarEvent } from './types';
 import { Add as AddIcon, Close as CloseIcon } from '@mui/icons-material';
 import { Box, Button, IconButton, Popover, Typography } from '@mui/material';
-import { format, isSameDay } from 'date-fns';
+import { format } from 'date-fns';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import { CalendarEvent as CalendarEventItem } from './CalendarEvent';
@@ -103,9 +103,7 @@ export function DayEventsPopover({
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, maxHeight: 240, overflow: 'auto' }}>
           {events.length === 0
             ? (
-                <Typography variant="body2" color="text.secondary">
-                  {isSameDay(date, new Date()) ? t('no_events_today') : t('no_events_for_the_day')}
-                </Typography>
+                <></>
               )
             : (
                 events.map(ev => (
