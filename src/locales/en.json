@@ -307,8 +307,7 @@
     "event_asset": "Asset",
     "select_asset": "Select asset",
     "no_events": "No events",
-    "no_events_for_today": "No events for today",
-    "no_events_today": "No events today",
-    "no_events_for_the_day": "No events this day"
+    "no_events_today": "No event today",
+    "no_events_for_the_day": "No event this day"
   }
 }

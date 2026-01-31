@@ -15,6 +15,7 @@ import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { getButtonGroupSx } from '@/utils/buttonGroupStyles';
 import { CreateEventModal } from './CreateEventModal';
+import { CreateEventPopover } from './CreateEventPopover';
 import { DayEventsPopover } from './DayEventsPopover';
 import { DayView } from './views/DayView';
 import { MonthView } from './views/MonthView';
@@ -122,6 +123,8 @@ export function CalendarView({
   const [yearSlideToYear, setYearSlideToYear] = useState<number | null>(null);
   const [yearDayPopoverAnchor, setYearDayPopoverAnchor] = useState<HTMLElement | null>(null);
   const [yearDayPopoverDate, setYearDayPopoverDate] = useState<Date | null>(null);
+  const [createPopoverAnchor, setCreatePopoverAnchor] = useState<HTMLElement | null>(null);
+  const [createPopoverDate, setCreatePopoverDate] = useState<Date | undefined>(undefined);
 
   const handleDayClick = (date: Date, anchorEl?: HTMLElement) => {
     if (anchorEl != null) {
@@ -319,12 +322,32 @@ export function CalendarView({
             setYearDayPopoverDate(null);
           }}
           onCreateEvent={(date) => {
-            setCreateModalDate(date);
-            setCreateModalOpen(true);
+            setCreatePopoverAnchor(yearDayPopoverAnchor);
+            setCreatePopoverDate(date);
             setYearDayPopoverAnchor(null);
             setYearDayPopoverDate(null);
           }}
           locale={locale}
+        />
+      )}
+
+      {createPopoverAnchor != null && (
+        <CreateEventPopover
+          open
+          anchorEl={createPopoverAnchor}
+          onClose={() => {
+            setCreatePopoverAnchor(null);
+            setCreatePopoverDate(undefined);
+          }}
+          initialDate={createPopoverDate}
+          assetId={assetId}
+          assets={assets}
+          locale={locale}
+          onCreateSuccess={(event) => {
+            handleCreateSuccess(event);
+            setCreatePopoverAnchor(null);
+            setCreatePopoverDate(undefined);
+          }}
         />
       )}
 
