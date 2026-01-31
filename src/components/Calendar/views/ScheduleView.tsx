@@ -11,6 +11,7 @@ type ScheduleViewProps = {
   onCurrentDateChange: (_d: Date) => void;
   events: CalendarEvent[];
   onDayClick: (date: Date) => void;
+  onEventClick?: (event: CalendarEvent, anchorEl: HTMLElement) => void;
   locale: string;
 };
 
@@ -32,6 +33,7 @@ function groupEventsByDay(events: CalendarEvent[]): { date: string; events: Cale
 export function ScheduleView({
   events,
   onDayClick,
+  onEventClick,
 }: ScheduleViewProps) {
   const t = useTranslations('Calendar');
   const grouped = groupEventsByDay(events);
@@ -72,7 +74,27 @@ export function ScheduleView({
             </Box>
             <Box sx={{ p: 1.5, display: 'flex', flexDirection: 'column', gap: 1 }}>
               {dayEvents.map(ev => (
-                <CalendarEventItem key={ev.id} event={ev} variant="inline" />
+                <Box
+                  key={ev.id}
+                  component="button"
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEventClick?.(ev, e.currentTarget);
+                  }}
+                  sx={{
+                    width: '100%',
+                    p: 0,
+                    m: 0,
+                    border: 'none',
+                    bgcolor: 'transparent',
+                    cursor: onEventClick ? 'pointer' : 'default',
+                    textAlign: 'left',
+                    '&:hover': onEventClick ? { opacity: 0.9 } : {},
+                  }}
+                >
+                  <CalendarEventItem event={ev} variant="inline" />
+                </Box>
               ))}
             </Box>
           </Paper>

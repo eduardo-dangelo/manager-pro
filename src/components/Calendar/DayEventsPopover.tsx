@@ -18,6 +18,7 @@ type DayEventsPopoverProps = {
   events: CalendarEvent[];
   onClose: () => void;
   onCreateEvent: (date: Date) => void;
+  onEventClick?: (event: CalendarEvent, anchorEl: HTMLElement) => void;
   locale?: string;
 };
 
@@ -49,6 +50,7 @@ export function DayEventsPopover({
   events,
   onClose,
   onCreateEvent,
+  onEventClick,
 }: DayEventsPopoverProps) {
   const t = useTranslations('Calendar');
 
@@ -107,7 +109,24 @@ export function DayEventsPopover({
               )
             : (
                 events.map(ev => (
-                  <CalendarEventItem key={ev.id} event={ev} variant="compact" />
+                  <Box
+                    key={ev.id}
+                    component="button"
+                    type="button"
+                    onClick={(e) => onEventClick?.(ev, e.currentTarget)}
+                    sx={{
+                      'width': '100%',
+                      'p': 0,
+                      'm': 0,
+                      'border': 'none',
+                      'bgcolor': 'transparent',
+                      'cursor': onEventClick ? 'pointer' : 'default',
+                      'textAlign': 'left',
+                      '&:hover': onEventClick ? { opacity: 0.9 } : {},
+                    }}
+                  >
+                    <CalendarEventItem event={ev} variant="compact" />
+                  </Box>
                 ))
               )}
         </Box>

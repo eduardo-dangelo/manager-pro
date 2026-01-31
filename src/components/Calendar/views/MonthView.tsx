@@ -25,6 +25,7 @@ type MonthViewProps = {
   onCurrentDateChange: (d: Date) => void;
   events: CalendarEvent[];
   onDayClick: (date: Date) => void;
+  onEventClick?: (event: CalendarEvent, anchorEl: HTMLElement) => void;
   locale: string;
 };
 
@@ -43,9 +44,10 @@ type MonthGridProps = {
   monthDate: Date;
   events: CalendarEvent[];
   onDayClick: (date: Date) => void;
+  onEventClick?: (event: CalendarEvent, anchorEl: HTMLElement) => void;
 };
 
-function MonthGrid({ monthDate, events, onDayClick }: MonthGridProps) {
+function MonthGrid({ monthDate, events, onDayClick, onEventClick }: MonthGridProps) {
   const monthStart = startOfMonth(monthDate);
   const monthEnd = endOfMonth(monthDate);
   const rangeStart = startOfWeek(monthStart, { weekStartsOn: 0 });
@@ -129,7 +131,22 @@ function MonthGrid({ monthDate, events, onDayClick }: MonthGridProps) {
               </Typography>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, flex: 1, overflow: 'hidden' }}>
                 {dayEvents.slice(0, 3).map(ev => (
-                  <CalendarEventItem key={ev.id} event={ev} variant="chip" />
+                  <Box
+                    key={ev.id}
+                    component="span"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEventClick?.(ev, e.currentTarget);
+                    }}
+                    sx={{
+                      display: 'inline-block',
+                      cursor: onEventClick ? 'pointer' : 'default',
+                      alignSelf: 'flex-start',
+                      '&:hover': onEventClick ? { opacity: 0.9 } : {},
+                    }}
+                  >
+                    <CalendarEventItem event={ev} variant="chip" />
+                  </Box>
                 ))}
                 {dayEvents.length > 3 && (
                   <Typography variant="caption" sx={{ fontSize: '0.688rem', color: 'grey.600' }}>
@@ -151,6 +168,7 @@ export function MonthView({
   onCurrentDateChange,
   events,
   onDayClick,
+  onEventClick,
 }: MonthViewProps) {
   const [direction, setDirection] = useState<Direction>(null);
   const [slideOffset, setSlideOffset] = useState(0);
@@ -265,26 +283,26 @@ export function MonthView({
               ? (
                   <>
                     <Box sx={{ height: SLOT_HEIGHT_PX, p: 0, overflow: 'hidden' }}>
-                      <MonthGrid monthDate={currentDate} events={events} onDayClick={onDayClick} />
+                      <MonthGrid monthDate={currentDate} events={events} onDayClick={onDayClick} onEventClick={onEventClick} />
                     </Box>
                     <Box sx={{ height: SLOT_HEIGHT_PX, p: 0, overflow: 'hidden' }}>
-                      <MonthGrid monthDate={addMonths(currentDate, 1)} events={events} onDayClick={onDayClick} />
+                      <MonthGrid monthDate={addMonths(currentDate, 1)} events={events} onDayClick={onDayClick} onEventClick={onEventClick} />
                     </Box>
                   </>
                 )
               : (
                   <>
                     <Box sx={{ height: SLOT_HEIGHT_PX, p: 0, overflow: 'hidden' }}>
-                      <MonthGrid monthDate={addMonths(currentDate, -1)} events={events} onDayClick={onDayClick} />
+                      <MonthGrid monthDate={addMonths(currentDate, -1)} events={events} onDayClick={onDayClick} onEventClick={onEventClick} />
                     </Box>
                     <Box sx={{ height: SLOT_HEIGHT_PX, p: 0, overflow: 'hidden' }}>
-                      <MonthGrid monthDate={currentDate} events={events} onDayClick={onDayClick} />
+                      <MonthGrid monthDate={currentDate} events={events} onDayClick={onDayClick} onEventClick={onEventClick} />
                     </Box>
                   </>
                 )
             : (
                 <Box sx={{ height: SLOT_HEIGHT_PX, p: 0, overflow: 'hidden' }}>
-                  <MonthGrid monthDate={currentDate} events={events} onDayClick={onDayClick} />
+                  <MonthGrid monthDate={currentDate} events={events} onDayClick={onDayClick} onEventClick={onEventClick} />
                 </Box>
               )}
         </Box>

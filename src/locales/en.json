@@ -297,6 +297,7 @@
     "today": "Today",
     "create_event": "Create Event",
     "new_event": "New Event",
+    "event_details": "Event Details",
     "event_name": "Event Name",
     "event_name_label": "Name",
     "event_date": "Date",

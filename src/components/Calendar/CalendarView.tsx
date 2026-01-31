@@ -17,6 +17,7 @@ import { getButtonGroupSx } from '@/utils/buttonGroupStyles';
 import { CreateEventModal } from './CreateEventModal';
 import { CreateEventPopover } from './CreateEventPopover';
 import { DayEventsPopover } from './DayEventsPopover';
+import { EventDetailsPopover } from './EventDetailsPopover';
 import { DayView } from './views/DayView';
 import { MonthView } from './views/MonthView';
 import { ScheduleView } from './views/ScheduleView';
@@ -125,6 +126,13 @@ export function CalendarView({
   const [yearDayPopoverDate, setYearDayPopoverDate] = useState<Date | null>(null);
   const [createPopoverAnchor, setCreatePopoverAnchor] = useState<HTMLElement | null>(null);
   const [createPopoverDate, setCreatePopoverDate] = useState<Date | undefined>(undefined);
+  const [eventDetailsAnchor, setEventDetailsAnchor] = useState<HTMLElement | null>(null);
+  const [eventDetailsEvent, setEventDetailsEvent] = useState<CalendarEvent | null>(null);
+
+  const handleEventClick = (event: CalendarEvent, anchorEl: HTMLElement) => {
+    setEventDetailsAnchor(anchorEl);
+    setEventDetailsEvent(event);
+  };
 
   const handleDayClick = (date: Date, anchorEl?: HTMLElement) => {
     if (anchorEl != null) {
@@ -276,6 +284,7 @@ export function CalendarView({
           onCurrentDateChange={setCurrentDate}
           events={events}
           onDayClick={handleDayClick}
+          onEventClick={handleEventClick}
           locale={locale}
         />
       )}
@@ -285,6 +294,7 @@ export function CalendarView({
           onCurrentDateChange={setCurrentDate}
           events={events}
           onDayClick={handleDayClick}
+          onEventClick={handleEventClick}
           locale={locale}
         />
       )}
@@ -307,6 +317,7 @@ export function CalendarView({
           onCurrentDateChange={setCurrentDate}
           events={events}
           onDayClick={handleDayClick}
+          onEventClick={handleEventClick}
           locale={locale}
         />
       )}
@@ -326,6 +337,9 @@ export function CalendarView({
             setCreatePopoverDate(date);
             setYearDayPopoverAnchor(null);
             setYearDayPopoverDate(null);
+          }}
+          onEventClick={(ev, anchorEl) => {
+            handleEventClick(ev, anchorEl);
           }}
           locale={locale}
         />
@@ -348,6 +362,20 @@ export function CalendarView({
             setCreatePopoverAnchor(null);
             setCreatePopoverDate(undefined);
           }}
+        />
+      )}
+
+      {eventDetailsAnchor != null && eventDetailsEvent != null && (
+        <EventDetailsPopover
+          open
+          anchorEl={eventDetailsAnchor}
+          event={eventDetailsEvent}
+          assets={assets}
+          onClose={() => {
+            setEventDetailsAnchor(null);
+            setEventDetailsEvent(null);
+          }}
+          locale={locale}
         />
       )}
 
