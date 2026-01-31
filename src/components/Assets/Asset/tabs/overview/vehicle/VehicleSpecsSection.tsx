@@ -42,6 +42,7 @@ type Asset = {
   id: number;
   name: string;
   type?: string | null;
+  tabs?: string[];
   metadata?: Record<string, any>;
   objectives?: any[];
   todos?: any[];
@@ -325,6 +326,7 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
       if (newMakeModel) {
         updatePayload.name = newMakeModel;
       }
+      updatePayload.tabs = asset.tabs ?? ['overview'];
 
       const response = await fetch(`/${locale}/api/assets/${asset.id}`, {
         method: 'PUT',
@@ -337,7 +339,12 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
       }
 
       const updated = await response.json();
-      onUpdateAsset({ ...asset, ...(updated.asset || {}), metadata: updatedMetadata });
+      onUpdateAsset({
+        ...asset,
+        ...(updated.asset || {}),
+        metadata: updatedMetadata,
+        tabs: updated.asset?.tabs ?? asset.tabs ?? ['overview'],
+      });
       setRegistrationInput('');
       setPreviewData(null);
       setHasLookedUp(false);
@@ -492,6 +499,7 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
           updatePayload.name = newMakeModel;
         }
       }
+      updatePayload.tabs = asset.tabs ?? ['overview'];
 
       // Call API to save
       const response = await fetch(`/${locale}/api/assets/${asset.id}`, {
@@ -506,7 +514,12 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
 
       const updated = await response.json();
       const finalMetadata = updated.asset?.metadata || updatedMetadata;
-      onUpdateAsset({ ...asset, ...(updated.asset || {}), metadata: finalMetadata });
+      onUpdateAsset({
+        ...asset,
+        ...(updated.asset || {}),
+        metadata: finalMetadata,
+        tabs: updated.asset?.tabs ?? asset.tabs ?? ['overview'],
+      });
     } catch (error) {
       console.error('Error updating vehicle spec:', error);
       throw error; // Re-throw to let component handle it
@@ -624,6 +637,7 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
       if (newMakeModel) {
         updatePayload.name = newMakeModel;
       }
+      updatePayload.tabs = asset.tabs ?? ['overview'];
 
       // Save to asset
       const saveResponse = await fetch(`/${locale}/api/assets/${asset.id}`, {
@@ -637,7 +651,12 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
       }
 
       const updated = await saveResponse.json();
-      onUpdateAsset({ ...asset, ...(updated.asset || {}), metadata: updatedMetadata });
+      onUpdateAsset({
+        ...asset,
+        ...(updated.asset || {}),
+        metadata: updatedMetadata,
+        tabs: updated.asset?.tabs ?? asset.tabs ?? ['overview'],
+      });
 
       // Store last refresh timestamp in localStorage
       const refreshKey = `vehicle_refresh_${asset.id}`;

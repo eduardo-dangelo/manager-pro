@@ -15,6 +15,12 @@ type YearViewProps = {
   events: CalendarEvent[];
   onDayClick: (date: Date) => void;
   locale: string;
+  /** When set from parent (e.g. toolbar), triggers the same slide animation as wheel */
+  slideDirection?: 'prev' | 'next' | null;
+  onSlideDirectionComplete?: () => void;
+  /** When set (e.g. from Today button), slides to this year with transition */
+  slideToYear?: number | null;
+  onSlideToYearComplete?: () => void;
 };
 
 type Direction = 'next' | 'prev' | null;
@@ -25,11 +31,16 @@ export function YearView({
   events,
   onDayClick,
   locale,
+  slideDirection: slideDirectionProp,
+  onSlideDirectionComplete,
+  slideToYear: slideToYearProp,
+  onSlideToYearComplete,
 }: YearViewProps) {
   const year = currentDate.getFullYear();
   const [direction, setDirection] = useState<Direction>(null);
   const [slideOffset, setSlideOffset] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [targetYearForSlide, setTargetYearForSlide] = useState<number | null>(null);
 
   const [enableTransition, setEnableTransition] = useState(false);
 
@@ -83,19 +94,45 @@ export function YearView({
       return;
     }
     setEnableTransition(false);
-    if (direction === 'next') {
-      onCurrentDateChange(addYears(currentDate, 1));
+    if (targetYearForSlide !== null) {
+      onCurrentDateChange(new Date(targetYearForSlide, 0, 1));
+      onSlideToYearComplete?.();
+      setTargetYearForSlide(null);
     } else {
-      onCurrentDateChange(addYears(currentDate, -1));
+      if (direction === 'next') {
+        onCurrentDateChange(addYears(currentDate, 1));
+      } else {
+        onCurrentDateChange(addYears(currentDate, -1));
+      }
+      onSlideDirectionComplete?.();
     }
     setDirection(null);
     setIsAnimating(false);
     setSlideOffset(0);
-  }, [isAnimating, direction, currentDate, onCurrentDateChange]);
+  }, [isAnimating, direction, currentDate, onCurrentDateChange, onSlideDirectionComplete, onSlideToYearComplete, targetYearForSlide]);
 
   const showTwoSlots = isAnimating && direction !== null;
   const trackHeight = showTwoSlots ? SLOT_HEIGHT_PX * 2 : SLOT_HEIGHT_PX;
   const viewportRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (slideDirectionProp === 'prev') {
+      prev();
+    } else if (slideDirectionProp === 'next') {
+      next();
+    }
+  }, [slideDirectionProp, prev, next]);
+
+  useEffect(() => {
+    if (slideToYearProp == null || slideToYearProp === year || isAnimating) {
+      return;
+    }
+    setTargetYearForSlide(slideToYearProp);
+    setDirection(slideToYearProp > year ? 'next' : 'prev');
+    setIsAnimating(true);
+    setSlideOffset(slideToYearProp > year ? 0 : -SLOT_HEIGHT_PX);
+    setEnableTransition(false);
+  }, [slideToYearProp, year, isAnimating]);
 
   useEffect(() => {
     const el = viewportRef.current;
@@ -144,14 +181,14 @@ export function YearView({
                       <YearBlock year={year} events={events} onDayClick={onDayClick} locale={locale} showYearLabel={false} />
                     </Box>
                     <Box sx={{ height: SLOT_HEIGHT_PX }}>
-                      <YearBlock year={year + 1} events={events} onDayClick={onDayClick} locale={locale} showYearLabel={false} />
+                      <YearBlock year={targetYearForSlide ?? year + 1} events={events} onDayClick={onDayClick} locale={locale} showYearLabel={false} />
                     </Box>
                   </>
                 )
               : (
                   <>
                     <Box sx={{ height: SLOT_HEIGHT_PX }}>
-                      <YearBlock year={year - 1} events={events} onDayClick={onDayClick} locale={locale} showYearLabel={false} />
+                      <YearBlock year={targetYearForSlide ?? year - 1} events={events} onDayClick={onDayClick} locale={locale} showYearLabel={false} />
                     </Box>
                     <Box sx={{ height: SLOT_HEIGHT_PX }}>
                       <YearBlock year={year} events={events} onDayClick={onDayClick} locale={locale} showYearLabel={false} />

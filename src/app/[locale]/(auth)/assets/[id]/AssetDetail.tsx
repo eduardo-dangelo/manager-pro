@@ -98,10 +98,23 @@ export function AssetDetail({
       }
 
       const { asset: updatedAsset } = await response.json();
-      setAsset({ ...asset, ...updatedAsset });
+      setAsset(prev => ({
+        ...prev,
+        ...updatedAsset,
+        tabs: updatedAsset?.tabs ?? prev.tabs ?? ['overview'],
+      }));
     } catch (error) {
       console.error('Error updating asset:', error);
     }
+  };
+
+  // Wrapper that preserves tabs when merging updates (e.g. from vehicle refresh)
+  const handleAssetUpdate = (updates: Partial<Asset> | Asset) => {
+    setAsset(prev => ({
+      ...prev,
+      ...updates,
+      tabs: (updates as Asset).tabs ?? prev.tabs ?? ['overview'],
+    }));
   };
 
   return (
@@ -118,7 +131,7 @@ export function AssetDetail({
         <AssetTabs
           asset={asset}
           locale={locale}
-          onUpdateAsset={setAsset}
+          onUpdateAsset={handleAssetUpdate}
         />
       </Box>
     </Box>

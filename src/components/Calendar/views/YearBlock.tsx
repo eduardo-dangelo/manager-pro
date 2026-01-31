@@ -2,6 +2,7 @@
 
 import type { CalendarEvent } from '../types';
 import { Box, Paper, Typography } from '@mui/material';
+import { useHoverSound } from '@/hooks/useHoverSound';
 import {
   eachDayOfInterval,
   endOfMonth,
@@ -31,6 +32,7 @@ function getEventsForDate(events: CalendarEvent[], date: Date): CalendarEvent[] 
 }
 
 export function YearBlock({ year, events, onDayClick, showYearLabel = true }: YearBlockProps) {
+  const { playHoverSound } = useHoverSound();
   const months = Array.from({ length: 12 }, (_, i) => new Date(year, i, 1));
   const today = new Date();
 
@@ -79,12 +81,14 @@ export function YearBlock({ year, events, onDayClick, showYearLabel = true }: Ye
                   const isToday = isSameDay(day, today);
                   const dayEvents = getEventsForDate(events, day);
                   const hasEvents = dayEvents.length > 0;
+                  const showBg = isToday || hasEvents;
                   return (
                     <Paper
                       key={day.toISOString()}
                       component="button"
                       type="button"
                       onClick={() => onDayClick(day)}
+                      onMouseEnter={playHoverSound}
                       sx={{
                         'minWidth': 24,
                         'height': 24,
@@ -95,9 +99,9 @@ export function YearBlock({ year, events, onDayClick, showYearLabel = true }: Ye
                         'alignItems': 'center',
                         'justifyContent': 'center',
                         'border': 'none',
-                        'bgcolor': isToday ? '#fecaca' : (hasEvents ? 'primary.100' : 'grey.100'),
+                        'bgcolor': showBg ? (isToday ? '#fecaca' : 'primary.100') : 'transparent',
                         'color': 'text.primary',
-                        '&:hover': { bgcolor: isToday ? '#fca5a5' : (hasEvents ? 'primary.200' : 'grey.200') },
+                        '&:hover': { bgcolor: showBg ? (isToday ? '#fca5a5' : 'primary.200') : 'grey.200' },
                         'transition': 'background-color 0.15s',
                       }}
                       elevation={0}

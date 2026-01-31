@@ -123,6 +123,8 @@ export function CalendarView({
   const [currentDate, setCurrentDate] = useState(() => new Date());
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [createModalDate, setCreateModalDate] = useState<Date | undefined>(undefined);
+  const [yearSlideDirection, setYearSlideDirection] = useState<'prev' | 'next' | null>(null);
+  const [yearSlideToYear, setYearSlideToYear] = useState<number | null>(null);
 
   const handleDayClick = (date: Date) => {
     setCreateModalDate(date);
@@ -140,9 +142,34 @@ export function CalendarView({
     }
   };
 
-  const handlePrev = () => setCurrentDate(getPrevDate(viewMode, currentDate));
-  const handleNext = () => setCurrentDate(getNextDate(viewMode, currentDate));
-  const handleToday = () => setCurrentDate(getTodayDate(viewMode));
+  const handlePrev = () => {
+    if (viewMode === 'year') {
+      setYearSlideDirection('prev');
+    } else {
+      setCurrentDate(getPrevDate(viewMode, currentDate));
+    }
+  };
+  const handleNext = () => {
+    if (viewMode === 'year') {
+      setYearSlideDirection('next');
+    } else {
+      setCurrentDate(getNextDate(viewMode, currentDate));
+    }
+  };
+  const handleToday = () => {
+    const todayDate = getTodayDate(viewMode);
+    if (viewMode === 'year') {
+      const currentYear = currentDate.getFullYear();
+      const todayYear = todayDate.getFullYear();
+      if (currentYear !== todayYear) {
+        setYearSlideToYear(todayYear);
+      } else {
+        setCurrentDate(todayDate);
+      }
+    } else {
+      setCurrentDate(todayDate);
+    }
+  };
 
   const headerText = getHeaderText(viewMode, currentDate, t);
 
@@ -186,11 +213,11 @@ export function CalendarView({
                 {t('view_day')}
               </Typography>
             </ToggleButton>
-            <ToggleButton value="week" aria-label={t('view_week')}>
+            {/* <ToggleButton value="week" aria-label={t('view_week')}>
               <Typography variant="caption">
                 {t('view_week')}
               </Typography>
-            </ToggleButton>
+            </ToggleButton> */}
             <ToggleButton value="month" aria-label={t('view_month')}>
               <Typography variant="caption">
                 {t('view_month')}
@@ -272,6 +299,10 @@ export function CalendarView({
           events={events}
           onDayClick={handleDayClick}
           locale={locale}
+          slideDirection={yearSlideDirection}
+          onSlideDirectionComplete={() => setYearSlideDirection(null)}
+          slideToYear={yearSlideToYear}
+          onSlideToYearComplete={() => setYearSlideToYear(null)}
         />
       )}
       {viewMode === 'schedule' && (
