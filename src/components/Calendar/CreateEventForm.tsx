@@ -17,7 +17,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { endOfDay } from 'date-fns';
+import { endOfDay, format } from 'date-fns';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import { DEFAULT_EVENT_COLOR, EVENT_COLORS } from './constants';
@@ -45,6 +45,15 @@ export function parseDateTime(dateStr: string, timeStr: string): Date {
   return d;
 }
 
+function isAllDayRange(start: Date, end: Date): boolean {
+  return (
+    start.getHours() === 0
+    && start.getMinutes() === 0
+    && ((end.getHours() === 23 && end.getMinutes() === 59)
+      || (end.getHours() === 0 && end.getMinutes() === 0))
+  );
+}
+
 type CreateEventFormProps = {
   open: boolean;
   initialDate?: Date;
@@ -65,7 +74,9 @@ export function CreateEventForm({
   onSuccess,
   onCancel,
   variant = 'modal',
-}: CreateEventFormProps) {
+  mode = 'create',
+  event,
+}: CreateEventFormProps & { mode?: 'create' | 'edit'; event?: CalendarEvent | null }) {
   const t = useTranslations('Calendar');
   const tAssets = useTranslations('Assets');
   const [loading, setLoading] = useState(false);
@@ -93,6 +104,38 @@ export function CreateEventForm({
     if (!open) {
       return;
     }
+
+    // Edit mode: prefill from existing event
+    if (mode === 'edit' && event) {
+      const startDate = new Date(event.start);
+      const endDate = new Date(event.end);
+      const allDayRange = isAllDayRange(startDate, endDate);
+      const startDateStr = toDateLocal(startDate);
+      const endDateStr = toDateLocal(endDate);
+
+      setDate(startDateStr);
+      setEndDate(allDayRange ? endDateStr : startDateStr);
+      setAllDay(allDayRange);
+      setStartTime(allDayRange ? '09:00' : format(startDate, 'HH:mm'));
+      setEndTime(allDayRange ? '10:00' : format(endDate, 'HH:mm'));
+      setName(event.name ?? '');
+      setLocation(event.location ?? '');
+      setColor(event.color ?? DEFAULT_EVENT_COLOR);
+      setDescription(event.description ?? '');
+      setError(null);
+
+      if (isGlobal && assets?.length) {
+        const assetIdFromEvent = event.assetId;
+        const hasAsset = assets.some(a => a.id === assetIdFromEvent);
+        setSelectedAssetId(hasAsset ? assetIdFromEvent : assets[0]!.id);
+      } else {
+        setSelectedAssetId('');
+      }
+
+      return;
+    }
+
+    // Create mode: reset to defaults
     const d = initialDate ?? new Date();
     const dateStr = toDateLocal(d);
     setDate(dateStr);
@@ -110,7 +153,7 @@ export function CreateEventForm({
     } else {
       setSelectedAssetId('');
     }
-  }, [open, initialDate, isGlobal, assets]);
+  }, [open, initialDate, isGlobal, assets, mode, event]);
   /* eslint-enable react-hooks-extra/no-direct-set-state-in-use-effect */
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -145,25 +188,36 @@ export function CreateEventForm({
           return;
         }
       }
-      const res = await fetch(`/${locale}/api/calendar-events`, {
-        method: 'POST',
+
+      const payload = {
+        assetId: effectiveAssetId,
+        name: name.trim(),
+        description: description.trim() || null,
+        location: location.trim() || null,
+        color: color || null,
+        start: start.toISOString(),
+        end: end.toISOString(),
+      };
+
+      const url = mode === 'edit' && event
+        ? `/${locale}/api/calendar-events/${event.id}`
+        : `/${locale}/api/calendar-events`;
+
+      const method = mode === 'edit' && event ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          assetId: effectiveAssetId,
-          name: name.trim(),
-          description: description.trim() || null,
-          location: location.trim() || null,
-          color: color || null,
-          start: start.toISOString(),
-          end: end.toISOString(),
-        }),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error ?? 'Failed to create event');
+        throw new Error(
+          data.error ?? (mode === 'edit' ? 'Failed to update event' : 'Failed to create event'),
+        );
       }
-      const { event } = (await res.json()) as { event: CalendarEvent };
-      onSuccess(event);
+      const { event: savedEvent } = (await res.json()) as { event: CalendarEvent };
+      onSuccess(savedEvent);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create event');
     } finally {
@@ -187,7 +241,7 @@ export function CreateEventForm({
         {isPopover && (
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <Typography variant="h6" component="div" sx={{ fontWeight: 600, fontSize: '1rem' }}>
-              {t('new_event')}
+              {mode === 'edit' ? t('edit_event') : t('new_event')}
             </Typography>
             <IconButton
               edge="end"

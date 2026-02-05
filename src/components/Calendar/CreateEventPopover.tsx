@@ -17,7 +17,11 @@ type CreateEventPopoverProps = {
   assetId?: number;
   assets?: AssetOption[];
   locale: string;
+  /** @deprecated Use onSuccess with mode="create" instead. */
   onCreateSuccess?: (event: CalendarEvent) => void;
+  mode?: 'create' | 'edit';
+  event?: CalendarEvent | null;
+  onSuccess?: (event: CalendarEvent) => void;
 };
 
 export function CreateEventPopover({
@@ -29,9 +33,13 @@ export function CreateEventPopover({
   assets,
   locale,
   onCreateSuccess,
+  mode = 'create',
+  event,
+  onSuccess,
 }: CreateEventPopoverProps) {
-  const handleSuccess = (event: CalendarEvent) => {
-    onCreateSuccess?.(event);
+  const handleSuccess = (savedEvent: CalendarEvent) => {
+    onSuccess?.(savedEvent);
+    onCreateSuccess?.(savedEvent);
     onClose();
   };
 
@@ -46,14 +54,16 @@ export function CreateEventPopover({
     >
       <Box sx={{ maxHeight: POPOVER_MAX_HEIGHT, overflow: 'auto' }}>
         <CreateEventForm
-        open={open}
-        initialDate={initialDate}
-        assetId={assetId}
-        assets={assets}
-        locale={locale}
-        onSuccess={handleSuccess}
-        onCancel={onClose}
-        variant="popover"
+          open={open}
+          initialDate={initialDate}
+          assetId={assetId}
+          assets={assets}
+          locale={locale}
+          onSuccess={handleSuccess}
+          onCancel={onClose}
+          variant="popover"
+          mode={mode}
+          event={event}
         />
       </Box>
     </Popover>

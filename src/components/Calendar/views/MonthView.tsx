@@ -14,7 +14,7 @@ import {
   startOfWeek,
 } from 'date-fns';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { CalendarEvent as CalendarEventItem } from '../CalendarEvent';
+import { COLOR_MAP } from '../constants';
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const SLOT_HEIGHT_PX = 700;
@@ -24,7 +24,7 @@ type MonthViewProps = {
   currentDate: Date;
   onCurrentDateChange: (d: Date) => void;
   events: CalendarEvent[];
-  onDayClick: (date: Date) => void;
+  onDayClick: (date: Date, anchorEl?: HTMLElement) => void;
   onEventClick?: (event: CalendarEvent, anchorEl: HTMLElement) => void;
   locale: string;
   /** When set from parent (e.g. toolbar), triggers the same slide animation as wheel */
@@ -46,10 +46,32 @@ function getEventsForDate(events: CalendarEvent[], date: Date): CalendarEvent[] 
   });
 }
 
+function eventColor(color: string | null): string {
+  if (!color) {
+    return '#6b7280';
+  }
+  return COLOR_MAP[color] ?? color;
+}
+
+function isAllDayEvent(start: Date, end: Date): boolean {
+  return (
+    start.getHours() === 0
+    && start.getMinutes() === 0
+    && ((end.getHours() === 23 && end.getMinutes() === 59)
+      || (end.getHours() === 0 && end.getMinutes() === 0))
+  );
+}
+
+function isMultiDayEvent(start: Date, end: Date): boolean {
+  const startStr = format(start, 'yyyy-MM-dd');
+  const endStr = format(end, 'yyyy-MM-dd');
+  return startStr !== endStr;
+}
+
 type MonthGridProps = {
   monthDate: Date;
   events: CalendarEvent[];
-  onDayClick: (date: Date) => void;
+  onDayClick: (date: Date, anchorEl?: HTMLElement) => void;
   onEventClick?: (event: CalendarEvent, anchorEl: HTMLElement) => void;
 };
 
@@ -94,7 +116,21 @@ function MonthGrid({ monthDate, events, onDayClick, onEventClick }: MonthGridPro
         }}
       >
         {days.map((day) => {
-          const dayEvents = getEventsForDate(events, day);
+          const dayEvents = getEventsForDate(events, day)
+            .map((ev) => {
+              const startDate = new Date(ev.start);
+              const endDate = new Date(ev.end);
+              const allDay = isAllDayEvent(startDate, endDate);
+              const multiDay = isMultiDayEvent(startDate, endDate);
+              return {
+                ev,
+                startDate,
+                endDate,
+                allDay,
+                multiDay,
+              };
+            })
+            .sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
           const inMonth = isSameMonth(day, monthDate);
           const isTodayDate = isSameDay(day, today);
           return (
@@ -102,7 +138,7 @@ function MonthGrid({ monthDate, events, onDayClick, onEventClick }: MonthGridPro
               key={day.toISOString()}
               component="button"
               type="button"
-              onClick={() => onDayClick(day)}
+              onClick={e => onDayClick(day, e.currentTarget as HTMLElement)}
               sx={{
                 'minHeight': 100,
                 'p': 1,
@@ -135,25 +171,105 @@ function MonthGrid({ monthDate, events, onDayClick, onEventClick }: MonthGridPro
               >
                 {format(day, 'd')}
               </Typography>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, flex: 1, overflow: 'hidden' }}>
-                {dayEvents.slice(0, 3).map(ev => (
-                  <Box
-                    key={ev.id}
-                    component="span"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onEventClick?.(ev, e.currentTarget);
-                    }}
-                    sx={{
-                      'display': 'inline-block',
-                      'cursor': onEventClick ? 'pointer' : 'default',
-                      'alignSelf': 'flex-start',
-                      '&:hover': onEventClick ? { opacity: 0.9 } : {},
-                    }}
-                  >
-                    <CalendarEventItem event={ev} variant="chip" />
-                  </Box>
-                ))}
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, flex: 1, overflow: 'visible' }}>
+                {dayEvents.slice(0, 3).map(({ ev, startDate, allDay, multiDay }) => {
+                  const color = eventColor(ev.color);
+                  const isTimedSingleDay = !allDay && !multiDay;
+                  const isWeekStart = day.getDay() === 0;
+                  const isFirstDayOfEvent = format(day, 'yyyy-MM-dd') === format(startDate, 'yyyy-MM-dd');
+                  const showTitle = !multiDay || isFirstDayOfEvent || isWeekStart;
+
+                  return (
+                    <Box
+                      key={ev.id}
+                      component="span"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEventClick?.(ev, e.currentTarget as HTMLElement);
+                      }}
+                      sx={{
+                        'display': 'inline-block',
+                        'cursor': onEventClick ? 'pointer' : 'default',
+                        'alignSelf': 'flex-start',
+                        '&:hover': onEventClick ? { opacity: 0.9 } : {},
+                        'width': '100%',
+                      }}
+                    >
+                      {isTimedSingleDay
+                        ? (
+                            <Box
+                              sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 0.5,
+                                width: '100%',
+                              }}
+                            >
+                              <Box
+                                sx={{
+                                  width: 6,
+                                  height: 6,
+                                  borderRadius: '50%',
+                                  bgcolor: color,
+                                  mr: 0.5,
+                                  flexShrink: 0,
+                                }}
+                              />
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  mr: 0.5,
+                                  color: 'text.secondary',
+                                  flexShrink: 0,
+                                  fontSize: '0.688rem',
+                                }}
+                              >
+                                {format(startDate, 'HH:mm')}
+                              </Typography>
+                              <Typography
+                                variant="caption"
+                                noWrap
+                                sx={{
+                                  minWidth: 0,
+                                  fontSize: '0.688rem',
+                                }}
+                              >
+                                {ev.name}
+                              </Typography>
+                            </Box>
+                          )
+                        : (
+                            <Box
+                              sx={{
+                                width: `calc(100% + ${28}px)`,
+                                marginLeft: !isFirstDayOfEvent ? -1.15 : 0,
+                                borderRadius: showTitle ? 1 : 0,
+                                bgcolor: color,
+                                px: 0.5,
+                                py: 0.25,
+                                display: 'flex',
+                                alignItems: 'center',
+                                minHeight: 24,
+                              }}
+                            >
+                              {showTitle && (
+                                <Typography
+                                  variant="caption"
+                                  noWrap
+                                  sx={{
+                                    color: 'common.white',
+                                    fontWeight: 500,
+                                    fontSize: '0.688rem',
+                                  }}
+                                >
+                                  {ev.name}
+                                </Typography>
+                              )}
+                            </Box>
+                          )}
+                    </Box>
+                  );
+                })}
                 {dayEvents.length > 3 && (
                   <Typography variant="caption" sx={{ fontSize: '0.688rem', color: 'grey.600' }}>
                     +

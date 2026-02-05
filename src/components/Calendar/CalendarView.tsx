@@ -136,6 +136,8 @@ export function CalendarView({
   const [headerPickerType, setHeaderPickerType] = useState<'year' | 'month' | 'day' | null>(null);
   const [monthSlideDirection, setMonthSlideDirection] = useState<'prev' | 'next' | null>(null);
   const [monthSlideToDate, setMonthSlideToDate] = useState<Date | null>(null);
+  const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
+  const [editPopoverAnchor, setEditPopoverAnchor] = useState<HTMLElement | null>(null);
 
   const handleEventClick = (event: CalendarEvent, anchorEl: HTMLElement) => {
     setEventDetailsAnchor(anchorEl);
@@ -575,6 +577,15 @@ export function CalendarView({
             setEventDetailsAnchor(null);
             setEventDetailsEvent(null);
           }}
+          onEdit={() => {
+            if (!eventDetailsEvent || !eventDetailsAnchor) {
+              return;
+            }
+            setEditingEvent(eventDetailsEvent);
+            setEditPopoverAnchor(eventDetailsAnchor);
+            setEventDetailsAnchor(null);
+            setEventDetailsEvent(null);
+          }}
           locale={locale}
         />
       )}
@@ -654,6 +665,45 @@ export function CalendarView({
         locale={locale}
         onCreateSuccess={handleCreateSuccess}
       />
+      {editPopoverAnchor != null && editingEvent != null && (
+        <CreateEventPopover
+          open
+          anchorEl={editPopoverAnchor}
+          onClose={() => {
+            setEditPopoverAnchor(null);
+            setEditingEvent(null);
+          }}
+          initialDate={new Date(editingEvent.start)}
+          assetId={assetId}
+          assets={assets}
+          locale={locale}
+          mode="edit"
+          event={editingEvent}
+          onSuccess={(updated) => {
+            if (!onEventsChange) {
+              setEditPopoverAnchor(null);
+              setEditingEvent(null);
+              return;
+            }
+
+            let nextEvents: CalendarEvent[];
+
+            if (assetId != null) {
+              if (updated.assetId === assetId) {
+                nextEvents = events.map(ev => (ev.id === updated.id ? updated : ev));
+              } else {
+                nextEvents = events.filter(ev => ev.id !== updated.id);
+              }
+            } else {
+              nextEvents = events.map(ev => (ev.id === updated.id ? updated : ev));
+            }
+
+            onEventsChange(nextEvents);
+            setEditPopoverAnchor(null);
+            setEditingEvent(null);
+          }}
+        />
+      )}
     </Box>
   );
 }

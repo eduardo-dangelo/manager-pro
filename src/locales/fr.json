@@ -300,6 +300,7 @@
     "select_date": "Choisir la date",
     "create_event": "Créer un événement",
     "new_event": "Nouvel événement",
+    "edit_event": "Modifier l'événement",
     "event_name": "Nom de l'événement",
     "event_name_label": "Nom",
     "event_date": "Date",

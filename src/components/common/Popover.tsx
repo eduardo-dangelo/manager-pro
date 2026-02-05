@@ -83,7 +83,7 @@ export function Popover({
       return;
     }
     const anchorCenterY = anchorRect.top + anchorRect.height / 2;
-    let top = anchorCenterY - paperRect.top - ARROW_SIZE;
+    let top = anchorCenterY - paperRect.top;
     top = Math.max(ARROW_SIZE, Math.min(paperRect.height - ARROW_SIZE, top));
     setArrowTop(top);
   }, [anchorEl]);
@@ -93,6 +93,7 @@ export function Popover({
       setArrowTop(null);
       return;
     }
+    computeArrowTop();
     const handleResize = () => computeArrowTop();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -149,6 +150,7 @@ export function Popover({
           transform: 'translateY(-50%)',
           width: 0,
           height: 0,
+          transition: 'top 0.2s ease-in-out',
           ...(anchorOrigin.horizontal === 'right'
             ? {
                 left: -ARROW_SIZE,

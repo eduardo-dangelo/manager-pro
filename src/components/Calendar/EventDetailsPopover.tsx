@@ -4,7 +4,7 @@ import type { CalendarEvent } from './types';
 import type { Asset } from '@/components/Assets/utils';
 import { pluralizeType } from '@/components/Assets/utils';
 import { AssetCard } from '@/components/Assets/AssetCard';
-import { Close as CloseIcon } from '@mui/icons-material';
+import { Close as CloseIcon, EditOutlined as EditIcon } from '@mui/icons-material';
 import { Box, IconButton, Typography } from '@mui/material';
 import { format } from 'date-fns';
 import Link from 'next/link';
@@ -22,6 +22,7 @@ type EventDetailsPopoverProps = {
   showAssetCard?: boolean;
   onClose: () => void;
   locale: string;
+  onEdit?: () => void;
 };
 
 function eventColor(color: string | null): string {
@@ -39,6 +40,7 @@ export function EventDetailsPopover({
   showAssetCard = false,
   onClose,
   locale,
+  onEdit,
 }: EventDetailsPopoverProps) {
   const t = useTranslations('Calendar');
 
@@ -81,14 +83,26 @@ export function EventDetailsPopover({
               {event.name}
             </Typography>
           </Box>
-          <IconButton
-            size="small"
-            onClick={onClose}
-            aria-label="close"
-            sx={{ mt: -0.5, mr: -0.5 }}
-          >
-            <CloseIcon fontSize="small" />
-          </IconButton>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            {onEdit && (
+              <IconButton
+                size="small"
+                onClick={onEdit}
+                aria-label={t('edit_event')}
+                sx={{ mt: -0.5 }}
+              >
+                <EditIcon fontSize="small" />
+              </IconButton>
+            )}
+            <IconButton
+              size="small"
+              onClick={onClose}
+              aria-label="close"
+              sx={{ mt: -0.5, mr: -0.5 }}
+            >
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </Box>
         </Box>
 
         {showAssetCard && asset && (
