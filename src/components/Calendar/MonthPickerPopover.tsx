@@ -31,6 +31,7 @@ export function MonthPickerPopover({
       open={open}
       anchorEl={anchorEl}
       onClose={onClose}
+      showArrow={false}
       minWidth="auto"
       maxWidth="auto"
     >

@@ -3,7 +3,14 @@
 import type { CalendarEvent, CalendarViewMode } from './types';
 import type { Asset } from '@/components/Assets/utils';
 import { ChevronLeft, ChevronRight } from '@mui/icons-material';
-import { Box, ButtonBase, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
+import {
+  Box,
+  ButtonBase,
+  ToggleButton,
+  ToggleButtonGroup,
+  Typography,
+  useMediaQuery,
+} from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import {
   addDays,
@@ -13,7 +20,7 @@ import {
   startOfMonth,
 } from 'date-fns';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { getButtonGroupSx } from '@/utils/buttonGroupStyles';
 import { CreateEventModal } from './CreateEventModal';
 import { CreateEventPopover } from './CreateEventPopover';
@@ -119,6 +126,7 @@ export function CalendarView({
   const t = useTranslations('Calendar');
   const theme = useTheme();
   const buttonGroupSx = getButtonGroupSx(theme);
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const [viewMode, setViewMode] = useState<CalendarViewMode>(defaultView);
   const [currentDate, setCurrentDate] = useState(() => getTodayDate(defaultView));
@@ -138,6 +146,13 @@ export function CalendarView({
   const [monthSlideToDate, setMonthSlideToDate] = useState<Date | null>(null);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [editPopoverAnchor, setEditPopoverAnchor] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (isMobile && viewMode === 'month') {
+      setViewMode('year');
+      setCurrentDate(d => new Date(d.getFullYear(), 0, 1));
+    }
+  }, [isMobile, viewMode]);
 
   const handleEventClick = (event: CalendarEvent, anchorEl: HTMLElement) => {
     setEventDetailsAnchor(anchorEl);
@@ -162,6 +177,9 @@ export function CalendarView({
 
   const handleViewChange = (_e: React.MouseEvent<HTMLElement>, value: CalendarViewMode | null) => {
     if (value == null || value === viewMode) {
+      return;
+    }
+    if (value === 'month' && isMobile) {
       return;
     }
 
@@ -413,11 +431,13 @@ export function CalendarView({
                 {t('view_day')}
               </Typography>
             </ToggleButton>
-            <ToggleButton value="month" aria-label={t('view_month')}>
-              <Typography variant="caption">
-                {t('view_month')}
-              </Typography>
-            </ToggleButton>
+            {!isMobile && (
+              <ToggleButton value="month" aria-label={t('view_month')}>
+                <Typography variant="caption">
+                  {t('view_month')}
+                </Typography>
+              </ToggleButton>
+            )}
             <ToggleButton value="year" aria-label={t('view_year')}>
               <Typography variant="caption">
                 {t('view_year')}
@@ -494,7 +514,7 @@ export function CalendarView({
             setYearDayPopoverAnchor(null);
             setYearDayPopoverDate(null);
             setCurrentDate(date);
-            setViewMode('month');
+            setViewMode(isMobile ? 'day' : 'month');
           }}
           locale={locale}
           slideDirection={yearSlideDirection}

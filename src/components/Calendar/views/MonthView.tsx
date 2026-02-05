@@ -14,6 +14,7 @@ import {
   startOfWeek,
 } from 'date-fns';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useHoverSound } from '@/hooks/useHoverSound';
 import { COLOR_MAP } from '../constants';
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -149,6 +150,7 @@ type MonthGridProps = {
 };
 
 function MonthGrid({ monthDate, events, onDayClick, onEventClick }: MonthGridProps) {
+  const { playHoverSound } = useHoverSound();
   const monthStart = startOfMonth(monthDate);
   const monthEnd = endOfMonth(monthDate);
   const rangeStart = startOfWeek(monthStart, { weekStartsOn: 0 });
@@ -222,7 +224,9 @@ function MonthGrid({ monthDate, events, onDayClick, onEventClick }: MonthGridPro
           const inMonth = isSameMonth(day, monthDate);
           const isTodayDate = isSameDay(day, today);
           const visibleLaneCount = Math.min(maxLane + 1, MAX_VISIBLE_LANES);
-          const moreCount = maxLane >= MAX_VISIBLE_LANES ? maxLane - MAX_VISIBLE_LANES + 1 : 0;
+          const moreCount = dayEventsEnriched.filter(
+            entry => (eventToLane.get(entry.ev.id) ?? -1) >= MAX_VISIBLE_LANES,
+          ).length;
 
           return (
             <Paper
@@ -230,6 +234,7 @@ function MonthGrid({ monthDate, events, onDayClick, onEventClick }: MonthGridPro
               component="button"
               type="button"
               onClick={e => onDayClick(day, e.currentTarget as HTMLElement)}
+              onMouseEnter={playHoverSound}
               sx={{
                 'minHeight': 140,
                 'p': 1,
@@ -239,13 +244,9 @@ function MonthGrid({ monthDate, events, onDayClick, onEventClick }: MonthGridPro
                 'flexDirection': 'column',
                 'border': '1px solid',
                 'borderColor': isTodayDate ? 'primary.main' : 'divider',
-                'bgcolor': inMonth
-                  ? isTodayDate
-                    ? 'primary.50'
-                    : 'transparent'
-                  : 'transparent',
+                'bgcolor': 'transparent',
                 '&:hover': inMonth
-                  ? { bgcolor: isTodayDate ? 'primary.100' : 'grey.200' }
+                  ? { bgcolor: 'action.hover' }
                   : {},
                 'transition': 'background-color 0.15s',
               }}
@@ -491,27 +492,6 @@ export function MonthView({
     setIsAnimating(false);
     setSlideOffset(0);
   }, [isAnimating, direction, currentDate, onCurrentDateChange, onSlideDirectionComplete, onSlideToMonthComplete, targetMonthForSlide]);
-
-  useEffect(() => {
-    const el = viewportRef.current;
-    if (!el) {
-      return;
-    }
-    const handleWheel = (e: WheelEvent) => {
-      if (isAnimating) {
-        return;
-      }
-      if (e.deltaY > 0) {
-        e.preventDefault();
-        next();
-      } else if (e.deltaY < 0) {
-        e.preventDefault();
-        prev();
-      }
-    };
-    el.addEventListener('wheel', handleWheel, { passive: false });
-    return () => el.removeEventListener('wheel', handleWheel);
-  }, [isAnimating, prev, next]);
 
   useEffect(() => {
     if (slideDirectionProp === 'prev') {

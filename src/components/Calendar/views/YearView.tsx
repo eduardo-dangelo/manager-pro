@@ -136,27 +136,6 @@ export function YearView({
     setEnableTransition(false);
   }, [slideToYearProp, year, isAnimating]);
 
-  useEffect(() => {
-    const el = viewportRef.current;
-    if (!el) {
-      return;
-    }
-    const handleWheel = (e: WheelEvent) => {
-      if (isAnimating) {
-        return;
-      }
-      if (e.deltaY > 0) {
-        e.preventDefault();
-        next();
-      } else if (e.deltaY < 0) {
-        e.preventDefault();
-        prev();
-      }
-    };
-    el.addEventListener('wheel', handleWheel, { passive: false });
-    return () => el.removeEventListener('wheel', handleWheel);
-  }, [isAnimating, prev, next]);
-
   return (
     <Box>
       <Box
