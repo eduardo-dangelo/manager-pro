@@ -240,8 +240,10 @@ const buildMaintenanceCards = (
 
   // Tax Card
   const taxRemainingDays = taxExpiry ? Math.max(0, moment(taxExpiry).startOf('day').diff(moment().startOf('day'), 'days')) : null;
-  const taxIsExpiringSoon = taxRemainingDays !== null && taxRemainingDays <= 30;
-  const taxIsExpired = taxStatus !== 'Taxed';
+  const taxIsExpired = taxExpiry
+    ? moment(taxExpiry).startOf('day').isBefore(moment().startOf('day'))
+    : taxStatus !== 'Taxed';
+  const taxIsExpiringSoon = !taxIsExpired && taxRemainingDays !== null && taxRemainingDays <= 30;
 
   cards.push({
     id: 'tax',
@@ -249,12 +251,12 @@ const buildMaintenanceCards = (
     hasData: () => hasTaxData,
     sections: taxExpiry
       ? [
-          ...(taxStatus
+          ...(taxStatus || taxIsExpired
             ? [
                 {
                   label: 'Tax Status',
                   icon: <AutorenewOutlinedIcon />,
-                  value: taxStatus,
+                  value: taxIsExpired ? 'Expired' : (taxStatus ?? 'Expired'),
                   valueIcon: getIcon(taxIsExpired, taxIsExpiringSoon),
                   tooltip: taxIsExpiringSoon && taxRemainingDays !== null
                     ? `Expiring soon`

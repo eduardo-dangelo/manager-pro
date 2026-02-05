@@ -307,6 +307,8 @@
     "event_date": "Date",
     "event_start_time": "Start",
     "event_end_time": "End",
+    "event_end_date": "End date",
+    "all_day": "All day",
     "event_location": "Location",
     "event_color": "Color",
     "event_color_custom": "Custom color",

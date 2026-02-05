@@ -530,8 +530,11 @@ export function CalendarView({
             setCurrentDate(date);
             setViewMode('day');
           }}
-          onEventClick={(ev, anchorEl) => {
-            handleEventClick(ev, anchorEl);
+          onEventClick={(ev) => {
+            const dayAnchor = yearDayPopoverAnchor;
+            setYearDayPopoverAnchor(null);
+            setYearDayPopoverDate(null);
+            handleEventClick(ev, dayAnchor);
           }}
           locale={locale}
         />

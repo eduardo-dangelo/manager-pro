@@ -5,15 +5,14 @@ import type { Asset } from '@/components/Assets/utils';
 import { pluralizeType } from '@/components/Assets/utils';
 import { AssetCard } from '@/components/Assets/AssetCard';
 import { Close as CloseIcon } from '@mui/icons-material';
-import { Box, IconButton, Popover, Typography } from '@mui/material';
+import { Box, IconButton, Typography } from '@mui/material';
 import { format } from 'date-fns';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useMemo } from 'react';
+import { Popover } from '@/components/common/Popover';
 import { COLOR_MAP } from './constants';
 
 const POPOVER_WIDTH = 320;
-const POPOVER_GAP = 8;
 
 type EventDetailsPopoverProps = {
   open: boolean;
@@ -24,30 +23,6 @@ type EventDetailsPopoverProps = {
   onClose: () => void;
   locale: string;
 };
-
-function getAnchorOrigin(anchorEl: HTMLElement | null): { vertical: 'top' | 'center' | 'bottom'; horizontal: 'left' | 'center' | 'right' } {
-  if (!anchorEl) {
-    return { vertical: 'center', horizontal: 'left' };
-  }
-  if (typeof window === 'undefined') {
-    return { vertical: 'center', horizontal: 'right' };
-  }
-  const rect = anchorEl.getBoundingClientRect();
-  const spaceOnRight = window.innerWidth - rect.right;
-  const spaceOnLeft = rect.left;
-  const openToRight = spaceOnRight >= POPOVER_WIDTH + POPOVER_GAP || spaceOnRight >= spaceOnLeft;
-  return {
-    vertical: 'center',
-    horizontal: openToRight ? 'right' : 'left',
-  };
-}
-
-function getTransformOrigin(anchorOrigin: { vertical: string; horizontal: string }): { vertical: 'top' | 'center' | 'bottom'; horizontal: 'left' | 'center' | 'right' } {
-  return {
-    vertical: 'center',
-    horizontal: anchorOrigin.horizontal === 'right' ? 'left' : 'right',
-  };
-}
 
 function eventColor(color: string | null): string {
   if (!color) {
@@ -67,15 +42,6 @@ export function EventDetailsPopover({
 }: EventDetailsPopoverProps) {
   const t = useTranslations('Calendar');
 
-  const anchorOrigin = useMemo(() => {
-    if (!open || !anchorEl) {
-      return { vertical: 'center' as const, horizontal: 'left' as const };
-    }
-    return getAnchorOrigin(anchorEl);
-  }, [open, anchorEl]);
-
-  const transformOrigin = useMemo(() => getTransformOrigin(anchorOrigin), [anchorOrigin]);
-
   if (!event) {
     return null;
   }
@@ -84,6 +50,11 @@ export function EventDetailsPopover({
   const startDate = new Date(event.start);
   const endDate = new Date(event.end);
   const isSameDay = format(startDate, 'yyyy-MM-dd') === format(endDate, 'yyyy-MM-dd');
+  const isAllDay
+    = startDate.getHours() === 0
+    && startDate.getMinutes() === 0
+    && ((endDate.getHours() === 23 && endDate.getMinutes() === 59)
+      || (endDate.getHours() === 0 && endDate.getMinutes() === 0));
   const asset = assets?.find(a => a.id === event.assetId) ?? null;
   const assetName = asset?.name ?? null;
 
@@ -92,20 +63,8 @@ export function EventDetailsPopover({
       open={open}
       anchorEl={anchorEl}
       onClose={onClose}
-      anchorOrigin={anchorOrigin}
-      transformOrigin={transformOrigin}
-      slotProps={{
-        paper: {
-          sx: {
-            minWidth: POPOVER_WIDTH,
-            maxWidth: POPOVER_WIDTH,
-            borderRadius: 2,
-            marginLeft: anchorOrigin.horizontal === 'right' ? `${POPOVER_GAP}px` : undefined,
-            marginRight: anchorOrigin.horizontal === 'left' ? `${POPOVER_GAP}px` : undefined,
-          },
-        },
-      }}
-      disableRestoreFocus
+      minWidth={POPOVER_WIDTH}
+      maxWidth={POPOVER_WIDTH}
     >
       <Box sx={{ p: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1, mb: 2 }}>
@@ -166,7 +125,7 @@ export function EventDetailsPopover({
               {t('event_start_time')} – {t('event_end_time')}
             </Typography>
             <Typography variant="body2">
-              {format(startDate, 'HH:mm')} – {format(endDate, 'HH:mm')}
+              {isAllDay ? t('all_day') : `${format(startDate, 'HH:mm')} – ${format(endDate, 'HH:mm')}`}
             </Typography>
           </Box>
 

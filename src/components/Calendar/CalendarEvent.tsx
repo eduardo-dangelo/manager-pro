@@ -3,6 +3,7 @@
 import type { CalendarEvent as CalendarEventType } from './types';
 import { Box, Chip, Typography } from '@mui/material';
 import { format } from 'date-fns';
+import { useTranslations } from 'next-intl';
 import { COLOR_MAP } from './constants';
 
 function eventColor(color: string | null): string {
@@ -12,13 +13,26 @@ function eventColor(color: string | null): string {
   return COLOR_MAP[color] ?? color;
 }
 
+function isAllDayEvent(start: Date, end: Date): boolean {
+  return (
+    start.getHours() === 0
+    && start.getMinutes() === 0
+    && ((end.getHours() === 23 && end.getMinutes() === 59)
+      || (end.getHours() === 0 && end.getMinutes() === 0))
+  );
+}
+
 type CalendarEventProps = {
   event: CalendarEventType;
   variant?: 'chip' | 'inline' | 'compact';
 };
 
 export function CalendarEvent({ event, variant = 'inline' }: CalendarEventProps) {
+  const t = useTranslations('Calendar');
   const color = eventColor(event.color);
+  const startDate = new Date(event.start);
+  const endDate = new Date(event.end);
+  const allDay = isAllDayEvent(startDate, endDate);
 
   if (variant === 'chip') {
     return (
@@ -60,9 +74,7 @@ export function CalendarEvent({ event, variant = 'inline' }: CalendarEventProps)
         }}
       >
         <Typography variant="caption" sx={{ flexShrink: 0, color: 'text.secondary' }}>
-          {format(new Date(event.start), 'HH:mm')}
-          –
-          {format(new Date(event.end), 'HH:mm')}
+          {allDay ? t('all_day') : `${format(startDate, 'HH:mm')} – ${format(endDate, 'HH:mm')}`}
         </Typography>
         <Typography variant="body2" fontWeight={500} noWrap sx={{ minWidth: 0 }}>
           {event.name}
@@ -92,9 +104,7 @@ export function CalendarEvent({ event, variant = 'inline' }: CalendarEventProps)
         {event.name}
       </Typography>
       <Typography variant="caption" color="text.secondary">
-        {format(new Date(event.start), 'HH:mm')}
-        –
-        {format(new Date(event.end), 'HH:mm')}
+        {allDay ? t('all_day') : `${format(startDate, 'HH:mm')} – ${format(endDate, 'HH:mm')}`}
         {event.location ? ` · ${event.location}` : ''}
       </Typography>
     </Box>

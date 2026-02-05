@@ -625,16 +625,16 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
         maintenance: updatedMaintenance,
       };
 
-      // Update asset name to Make Model
-      const newMake = refreshedSpecs.make;
-      const newModel = refreshedSpecs.model;
-      const newMakeModel = [newMake, newModel].filter(Boolean).join(' ');
+      // Update name only when empty or when it equals current make+model; preserve custom names
+      const currentMakeModel = [metadata?.specs?.make, metadata?.specs?.model].filter(Boolean).join(' ');
+      const newMakeModel = [refreshedSpecs.make, refreshedSpecs.model].filter(Boolean).join(' ');
+      const nameIsEmptyOrMakeModel = !asset.name?.trim() || asset.name?.trim() === currentMakeModel;
 
       const updatePayload: Record<string, any> = { metadata: updatedMetadata };
       if (refreshedSpecs.registration) {
         updatePayload.registrationNumber = refreshedSpecs.registration;
       }
-      if (newMakeModel) {
+      if (newMakeModel && nameIsEmptyOrMakeModel) {
         updatePayload.name = newMakeModel;
       }
       updatePayload.tabs = asset.tabs ?? ['overview'];

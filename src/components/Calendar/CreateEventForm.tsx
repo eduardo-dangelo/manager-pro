@@ -5,7 +5,9 @@ import { Close as CloseIcon, Palette as PaletteIcon } from '@mui/icons-material'
 import {
   Box,
   Button,
+  Checkbox,
   FormControl,
+  FormControlLabel,
   IconButton,
   InputAdornment,
   InputLabel,
@@ -15,9 +17,11 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
+import { endOfDay } from 'date-fns';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import { DEFAULT_EVENT_COLOR, EVENT_COLORS } from './constants';
+import { TimePickerPopover } from './TimePickerPopover';
 
 function isCustomColor(color: string): boolean {
   return color?.startsWith('#') ?? false;
@@ -33,7 +37,9 @@ export function toDateLocal(d: Date): string {
 }
 
 export function parseDateTime(dateStr: string, timeStr: string): Date {
-  const [hh, mm] = timeStr.split(':').map(Number);
+  const parts = timeStr.split(':').map(Number);
+  const hh = parts[0] ?? 0;
+  const mm = parts[1] ?? 0;
   const d = new Date(dateStr);
   d.setHours(hh, mm, 0, 0);
   return d;
@@ -66,13 +72,17 @@ export function CreateEventForm({
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [date, setDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('10:00');
+  const [allDay, setAllDay] = useState(false);
   const [location, setLocation] = useState('');
   const [color, setColor] = useState(DEFAULT_EVENT_COLOR);
   const [description, setDescription] = useState('');
   const [selectedAssetId, setSelectedAssetId] = useState<number | ''>('');
   const [colorPickerAnchor, setColorPickerAnchor] = useState<HTMLElement | null>(null);
+  const [startTimeAnchor, setStartTimeAnchor] = useState<HTMLElement | null>(null);
+  const [endTimeAnchor, setEndTimeAnchor] = useState<HTMLElement | null>(null);
   const colorInputRef = useRef<HTMLInputElement>(null);
 
   const isGlobal = !fixedAssetId && (assets?.length ?? 0) > 0;
@@ -84,16 +94,19 @@ export function CreateEventForm({
       return;
     }
     const d = initialDate ?? new Date();
-    setDate(toDateLocal(d));
+    const dateStr = toDateLocal(d);
+    setDate(dateStr);
+    setEndDate(dateStr);
     setStartTime('09:00');
     setEndTime('10:00');
+    setAllDay(false);
     setName('');
     setLocation('');
     setColor(DEFAULT_EVENT_COLOR);
     setDescription('');
     setError(null);
     if (isGlobal && assets?.length) {
-      setSelectedAssetId(assets[0].id);
+      setSelectedAssetId(assets[0]!.id);
     } else {
       setSelectedAssetId('');
     }
@@ -113,12 +126,24 @@ export function CreateEventForm({
     setLoading(true);
     setError(null);
     try {
-      const start = parseDateTime(date, startTime);
-      const end = parseDateTime(date, endTime);
-      if (end <= start) {
-        setError('End time must be after start time');
-        setLoading(false);
-        return;
+      let start: Date;
+      let end: Date;
+      if (allDay) {
+        start = parseDateTime(date, '00:00');
+        end = endOfDay(parseDateTime(endDate, '00:00'));
+        if (end < start) {
+          setError('End date must be on or after start date');
+          setLoading(false);
+          return;
+        }
+      } else {
+        start = parseDateTime(date, startTime);
+        end = parseDateTime(date, endTime);
+        if (end <= start) {
+          setError('End time must be after start time');
+          setLoading(false);
+          return;
+        }
       }
       const res = await fetch(`/${locale}/api/calendar-events`, {
         method: 'POST',
@@ -310,55 +335,121 @@ export function CreateEventForm({
               />
             </Box>
           </Popover>
-          <Box sx={{ display: 'flex', gap: 2 }}>
-            <TextField
-              required
-              size="small"
-              label={t('event_date')}
-              type="date"
-              value={date}
-              onChange={e => setDate(e.target.value)}
-              slotProps={{
-                inputLabel: {
-                  shrink: true,
-                  sx: { '& .MuiFormLabel-asterisk': { color: 'error.main' } },
-                },
-              }}
-              sx={{ flex: '2 1 0', minWidth: 0 }}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: contentGap }}>
+            {allDay
+              ? (
+                  <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                    <TextField
+                      required
+                      size="small"
+                      label={t('event_date')}
+                      type="date"
+                      value={date}
+                      onChange={e => setDate(e.target.value)}
+                      slotProps={{
+                        inputLabel: {
+                          shrink: true,
+                          sx: { '& .MuiFormLabel-asterisk': { color: 'error.main' } },
+                        },
+                      }}
+                      sx={{ flex: '1 1 0', minWidth: 0 }}
+                    />
+                    <TextField
+                      required
+                      size="small"
+                      label={t('event_end_date')}
+                      type="date"
+                      value={endDate}
+                      onChange={e => setEndDate(e.target.value)}
+                      slotProps={{
+                        inputLabel: {
+                          shrink: true,
+                          sx: { '& .MuiFormLabel-asterisk': { color: 'error.main' } },
+                        },
+                      }}
+                      sx={{ flex: '1 1 0', minWidth: 0 }}
+                    />
+                  </Box>
+                )
+              : (
+                  <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <TextField
+                      required
+                      size="small"
+                      label={t('event_date')}
+                      type="date"
+                      value={date}
+                      onChange={e => setDate(e.target.value)}
+                      slotProps={{
+                        inputLabel: {
+                          shrink: true,
+                          sx: { '& .MuiFormLabel-asterisk': { color: 'error.main' } },
+                        },
+                      }}
+                      sx={{ flex: '2 1 0', minWidth: 0 }}
+                    />
+                    <Box
+                      onClick={e => setStartTimeAnchor(e.currentTarget)}
+                      sx={{ flex: '1 1 0', minWidth: 0, cursor: 'pointer' }}
+                    >
+                      <TextField
+                        size="small"
+                        label={t('event_start_time')}
+                        value={startTime}
+                        slotProps={{
+                          inputLabel: { shrink: true },
+                          input: {
+                            readOnly: true,
+                            sx: { 'cursor': 'pointer', '&::-webkit-calendar-picker-indicator': { display: 'none' } },
+                          },
+                        }}
+                        sx={{ width: '100%' }}
+                      />
+                    </Box>
+                    <Box
+                      onClick={e => setEndTimeAnchor(e.currentTarget)}
+                      sx={{ flex: '1 1 0', minWidth: 0, cursor: 'pointer' }}
+                    >
+                      <TextField
+                        size="small"
+                        label={t('event_end_time')}
+                        value={endTime}
+                        slotProps={{
+                          inputLabel: { shrink: true },
+                          input: {
+                            readOnly: true,
+                            sx: { 'cursor': 'pointer', '&::-webkit-calendar-picker-indicator': { display: 'none' } },
+                          },
+                        }}
+                        sx={{ width: '100%' }}
+                      />
+                    </Box>
+                  </Box>
+                )}
+            <FormControlLabel
+              control={(
+                <Checkbox
+                  checked={allDay}
+                  onChange={e => setAllDay(e.target.checked)}
+                  size="small"
+                  sx={{ my: -1 }}
+                />
+              )}
+              label={t('all_day')}
             />
-            <TextField
-              size="small"
-              label={t('event_start_time')}
-              type="time"
+            <TimePickerPopover
+              open={Boolean(startTimeAnchor)}
+              anchorEl={startTimeAnchor}
+              onClose={() => setStartTimeAnchor(null)}
               value={startTime}
-              onChange={e => setStartTime(e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              inputProps={{ step: 300 }}
-              slotProps={{
-                input: {
-                  sx: {
-                    '& input::-webkit-calendar-picker-indicator': { display: 'none' },
-                  },
-                },
-              }}
-              sx={{ flex: '1 1 0', minWidth: 0 }}
+              onChange={setStartTime}
             />
-            <TextField
-              size="small"
-              label={t('event_end_time')}
-              type="time"
+            <TimePickerPopover
+              open={Boolean(endTimeAnchor)}
+              anchorEl={endTimeAnchor}
+              onClose={() => setEndTimeAnchor(null)}
               value={endTime}
-              onChange={e => setEndTime(e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              inputProps={{ step: 300 }}
-              slotProps={{
-                input: {
-                  sx: {
-                    '& input::-webkit-calendar-picker-indicator': { display: 'none' },
-                  },
-                },
-              }}
-              sx={{ flex: '1 1 0', minWidth: 0 }}
+              onChange={setEndTime}
             />
           </Box>
           {/* <TextField
@@ -375,7 +466,8 @@ export function CreateEventForm({
             value={description}
             onChange={e => setDescription(e.target.value)}
             multiline
-            rows={descriptionRows}
+            minRows={descriptionRows}
+            maxRows={12}
           />
           {error && (
             <Typography variant="body2" color="error">
