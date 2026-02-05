@@ -121,7 +121,7 @@ export function CalendarView({
   const buttonGroupSx = getButtonGroupSx(theme);
 
   const [viewMode, setViewMode] = useState<CalendarViewMode>(defaultView);
-  const [currentDate, setCurrentDate] = useState(() => new Date());
+  const [currentDate, setCurrentDate] = useState(() => getTodayDate(defaultView));
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [createModalDate, setCreateModalDate] = useState<Date | undefined>(undefined);
   const [yearSlideDirection, setYearSlideDirection] = useState<'prev' | 'next' | null>(null);
@@ -159,12 +159,16 @@ export function CalendarView({
   };
 
   const handleViewChange = (_e: React.MouseEvent<HTMLElement>, value: CalendarViewMode | null) => {
-    if (value !== null) {
-      setViewMode(value);
-      if (value !== 'year') {
-        setYearDayPopoverAnchor(null);
-        setYearDayPopoverDate(null);
-      }
+    if (value == null || value === viewMode) {
+      return;
+    }
+
+    setViewMode(value);
+    setCurrentDate(getTodayDate(value));
+
+    if (value !== 'year') {
+      setYearDayPopoverAnchor(null);
+      setYearDayPopoverDate(null);
     }
   };
 

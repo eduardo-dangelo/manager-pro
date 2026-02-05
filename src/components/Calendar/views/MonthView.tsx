@@ -111,12 +111,12 @@ function MonthGrid({ monthDate, events, onDayClick, onEventClick }: MonthGridPro
                 'display': 'flex',
                 'flexDirection': 'column',
                 'border': '1px solid',
-                'borderColor': isTodayDate ? 'primary.main' : 'grey.200',
+                'borderColor': isTodayDate ? 'primary.main' : 'divider',
                 'bgcolor': inMonth
                   ? isTodayDate
                     ? 'primary.50'
-                    : 'grey.50'
-                  : 'grey.100',
+                    : 'transparent'
+                  : 'transparent',
                 '&:hover': inMonth
                   ? { bgcolor: isTodayDate ? 'primary.100' : 'grey.200' }
                   : {},
@@ -145,9 +145,9 @@ function MonthGrid({ monthDate, events, onDayClick, onEventClick }: MonthGridPro
                       onEventClick?.(ev, e.currentTarget);
                     }}
                     sx={{
-                      display: 'inline-block',
-                      cursor: onEventClick ? 'pointer' : 'default',
-                      alignSelf: 'flex-start',
+                      'display': 'inline-block',
+                      'cursor': onEventClick ? 'pointer' : 'default',
+                      'alignSelf': 'flex-start',
                       '&:hover': onEventClick ? { opacity: 0.9 } : {},
                     }}
                   >
