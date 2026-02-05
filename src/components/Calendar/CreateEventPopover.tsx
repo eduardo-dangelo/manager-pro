@@ -22,6 +22,7 @@ type CreateEventPopoverProps = {
   mode?: 'create' | 'edit';
   event?: CalendarEvent | null;
   onSuccess?: (event: CalendarEvent) => void;
+  onDeleteSuccess?: (eventId: number) => void;
 };
 
 export function CreateEventPopover({
@@ -36,6 +37,7 @@ export function CreateEventPopover({
   mode = 'create',
   event,
   onSuccess,
+  onDeleteSuccess,
 }: CreateEventPopoverProps) {
   const handleSuccess = (savedEvent: CalendarEvent) => {
     onSuccess?.(savedEvent);
@@ -61,6 +63,7 @@ export function CreateEventPopover({
           locale={locale}
           onSuccess={handleSuccess}
           onCancel={onClose}
+          onDeleteSuccess={onDeleteSuccess}
           variant="popover"
           mode={mode}
           event={event}

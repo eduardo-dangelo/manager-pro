@@ -702,6 +702,13 @@ export function CalendarView({
             setEditPopoverAnchor(null);
             setEditingEvent(null);
           }}
+          onDeleteSuccess={(eventId) => {
+            if (onEventsChange) {
+              onEventsChange(events.filter(ev => ev.id !== eventId));
+            }
+            setEditPopoverAnchor(null);
+            setEditingEvent(null);
+          }}
         />
       )}
     </Box>

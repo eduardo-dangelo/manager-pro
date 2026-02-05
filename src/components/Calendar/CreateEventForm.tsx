@@ -1,7 +1,7 @@
 'use client';
 
 import type { CalendarEvent } from './types';
-import { Close as CloseIcon, Palette as PaletteIcon } from '@mui/icons-material';
+import { Close as CloseIcon, DeleteOutlined as DeleteIcon, Palette as PaletteIcon } from '@mui/icons-material';
 import {
   Box,
   Button,
@@ -20,6 +20,7 @@ import {
 import { endOfDay, format } from 'date-fns';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
+import { ConfirmPopover } from '@/components/common/ConfirmPopover';
 import { DEFAULT_EVENT_COLOR, EVENT_COLORS } from './constants';
 import { TimePickerPopover } from './TimePickerPopover';
 
@@ -63,6 +64,7 @@ type CreateEventFormProps = {
   onSuccess: (event: CalendarEvent) => void;
   onCancel: () => void;
   variant?: 'modal' | 'popover';
+  onDeleteSuccess?: (eventId: number) => void;
 };
 
 export function CreateEventForm({
@@ -73,6 +75,7 @@ export function CreateEventForm({
   locale,
   onSuccess,
   onCancel,
+  onDeleteSuccess,
   variant = 'modal',
   mode = 'create',
   event,
@@ -94,6 +97,8 @@ export function CreateEventForm({
   const [colorPickerAnchor, setColorPickerAnchor] = useState<HTMLElement | null>(null);
   const [startTimeAnchor, setStartTimeAnchor] = useState<HTMLElement | null>(null);
   const [endTimeAnchor, setEndTimeAnchor] = useState<HTMLElement | null>(null);
+  const [deleteConfirmAnchor, setDeleteConfirmAnchor] = useState<HTMLElement | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const colorInputRef = useRef<HTMLInputElement>(null);
 
   const isGlobal = !fixedAssetId && (assets?.length ?? 0) > 0;
@@ -226,8 +231,29 @@ export function CreateEventForm({
   };
 
   const handleCancel = () => {
-    if (!loading) {
+    if (!loading && !deleting) {
       onCancel();
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!event || !onDeleteSuccess) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      const res = await fetch(`/${locale}/api/calendar-events/${event.id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? 'Failed to delete event');
+      }
+      onDeleteSuccess(event.id);
+      setDeleteConfirmAnchor(null);
+      onCancel();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete event');
+    } finally {
+      setDeleting(false);
+      setDeleteConfirmAnchor(null);
     }
   };
 
@@ -243,15 +269,41 @@ export function CreateEventForm({
             <Typography variant="h6" component="div" sx={{ fontWeight: 600, fontSize: '1rem' }}>
               {mode === 'edit' ? t('edit_event') : t('new_event')}
             </Typography>
-            <IconButton
-              edge="end"
-              onClick={handleCancel}
-              aria-label="Close"
-              size="small"
-            >
-              <CloseIcon fontSize="small" />
-            </IconButton>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              {mode === 'edit' && event && (
+                <IconButton
+                  onClick={e => setDeleteConfirmAnchor(e.currentTarget)}
+                  aria-label={t('delete_event')}
+                  size="small"
+                  disabled={loading || deleting}
+                >
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              )}
+              <IconButton
+                edge="end"
+                onClick={handleCancel}
+                aria-label="Close"
+                size="small"
+                disabled={deleting}
+              >
+                <CloseIcon fontSize="small" />
+              </IconButton>
+            </Box>
           </Box>
+        )}
+        {deleteConfirmAnchor != null && (
+          <ConfirmPopover
+            open
+            anchorEl={deleteConfirmAnchor}
+            onClose={() => setDeleteConfirmAnchor(null)}
+            onConfirm={handleConfirmDelete}
+            message={t('delete_event_confirm')}
+            confirmLabel={t('delete')}
+            cancelLabel={t('cancel')}
+            confirmColor="error"
+            loading={deleting}
+          />
         )}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: contentGap }}>
           {isGlobal && assets && assets.length > 0 && (
