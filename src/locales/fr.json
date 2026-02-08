@@ -289,7 +289,6 @@
     "mileage_not_enough_data": "Pas encore assez d'historique CT pour afficher les tendances annuelles de kilométrage."
   },
   "Calendar": {
-    "view_day": "jour",
     "view_month": "mois",
     "view_year": "année",
     "view_schedule": "agenda",

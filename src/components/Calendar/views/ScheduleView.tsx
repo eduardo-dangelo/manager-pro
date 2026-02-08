@@ -1,16 +1,16 @@
 'use client';
 
 import type { CalendarEvent } from '../types';
-import { CalendarEvent as CalendarEventItem } from '../CalendarEvent';
 import { Box, Paper, Typography } from '@mui/material';
 import { format, parseISO } from 'date-fns';
 import { useTranslations } from 'next-intl';
+import { CalendarEvent as CalendarEventItem } from '../CalendarEvent';
 
 type ScheduleViewProps = {
   currentDate: Date;
   onCurrentDateChange: (_d: Date) => void;
   events: CalendarEvent[];
-  onDayClick: (date: Date) => void;
+  onDayClick: (date: Date, anchorEl?: HTMLElement) => void;
   onEventClick?: (event: CalendarEvent, anchorEl: HTMLElement) => void;
   locale: string;
 };
@@ -47,57 +47,115 @@ export function ScheduleView({
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      {grouped.map(({ date, events: dayEvents }) => {
+    <Box sx={{ position: 'relative' }}>
+      {grouped.map(({ date, events: dayEvents }, index) => {
         const d = parseISO(date);
+        const isLastDay = index === grouped.length - 1;
         return (
-          <Paper key={date} sx={{ overflow: 'hidden' }} elevation={1}>
+          <Box
+            key={date}
+            sx={{
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'stretch',
+              gap: 1,
+              pb: 0.5,
+            }}
+          >
+            {/* Timeline left column: circle + vertical line */}
             <Box
-              component="button"
-              type="button"
-              onClick={() => onDayClick(d)}
               sx={{
-                'width': '100%',
-                'p': 1.5,
-                'textAlign': 'left',
-                'cursor': 'pointer',
-                'border': 'none',
-                'bgcolor': 'grey.50',
-                '&:hover': { bgcolor: 'grey.200' },
-                'borderBottom': '1px solid',
-                'borderColor': 'grey.200',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexDirection: 'column',
+                gap: 0.5,
+                flexShrink: 0,
               }}
             >
-              <Typography variant="subtitle2" fontWeight={600}>
-                {format(d, 'EEEE, MMMM d, yyyy')}
-              </Typography>
+              <Box
+                component="button"
+                type="button"
+                onClick={e => onDayClick(d, e.currentTarget)}
+                sx={{
+                  'width': 34,
+                  'color': 'text.primary',
+                  'display': 'flex',
+                  'alignItems': 'center',
+                  'justifyContent': 'center',
+                  'zIndex': 1,
+                  'cursor': 'pointer',
+                  '&:hover': {
+                    opacity: 0.8,
+                  },
+                }}
+              >
+                <Typography variant="body2" fontWeight={600} sx={{ fontSize: 30 }}>
+                  {format(d, 'd')}
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  width: '1px',
+                  height: '100%',
+                  backgroundColor: isLastDay ? 'transparent' : 'divider',
+                  borderRadius: 2,
+                }}
+              />
             </Box>
-            <Box sx={{ p: 1.5, display: 'flex', flexDirection: 'column', gap: 1 }}>
-              {dayEvents.map(ev => (
-                <Box
-                  key={ev.id}
-                  component="button"
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onEventClick?.(ev, e.currentTarget);
-                  }}
-                  sx={{
-                    width: '100%',
-                    p: 0,
-                    m: 0,
-                    border: 'none',
-                    bgcolor: 'transparent',
-                    cursor: onEventClick ? 'pointer' : 'default',
-                    textAlign: 'left',
-                    '&:hover': onEventClick ? { opacity: 0.9 } : {},
-                  }}
-                >
-                  <CalendarEventItem event={ev} variant="inline" />
-                </Box>
-              ))}
+
+            {/* Content right column: date string + events card */}
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Box
+                component="button"
+                type="button"
+                onClick={e => onDayClick(d, e.currentTarget)}
+                sx={{
+                  'width': '100%',
+                  'p': 0,
+                  'mb': 0.5,
+                  'border': 'none',
+                  'bgcolor': 'transparent',
+                  'cursor': 'pointer',
+                  'textAlign': 'left',
+                  '&:hover': { opacity: 0.8 },
+                  'mt': 1.3,
+
+                }}
+              >
+                <Typography variant="subtitle2" fontWeight={600}>
+                  {format(d, 'MMMM yyyy')}
+                </Typography>
+              </Box>
+
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 1, mb: 2 }}>
+                {dayEvents.map(ev => (
+                  <Box
+                    key={ev.id}
+                    component="button"
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEventClick?.(ev, e.currentTarget);
+                    }}
+                    sx={{
+                      'width': '100%',
+                      'p': 0,
+                      'm': 0,
+                      'border': 'none',
+                      'bgcolor': 'transparent',
+                      'cursor': onEventClick ? 'pointer' : 'default',
+                      'textAlign': 'left',
+                      '&:hover': onEventClick ? { opacity: 0.9 } : {},
+                    }}
+                  >
+                    <CalendarEventItem event={ev} variant="inline" />
+                  </Box>
+                ))}
+              </Box>
+
             </Box>
-          </Paper>
+          </Box>
         );
       })}
     </Box>

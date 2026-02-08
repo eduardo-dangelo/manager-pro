@@ -102,7 +102,7 @@ export function DayEventsPopover({
                       '&:hover': onEventClick ? { opacity: 0.9 } : {},
                     }}
                   >
-                    <CalendarEventItem event={ev} variant="compact" />
+                    <CalendarEventItem event={ev} variant="compact" showEndTime={false} />
                   </Box>
                 ))
               )}

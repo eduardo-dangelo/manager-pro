@@ -25,9 +25,10 @@ function isAllDayEvent(start: Date, end: Date): boolean {
 type CalendarEventProps = {
   event: CalendarEventType;
   variant?: 'chip' | 'inline' | 'compact';
+  showEndTime?: boolean;
 };
 
-export function CalendarEvent({ event, variant = 'inline' }: CalendarEventProps) {
+export function CalendarEvent({ event, variant = 'inline', showEndTime = true }: CalendarEventProps) {
   const t = useTranslations('Calendar');
   const color = eventColor(event.color);
   const startDate = new Date(event.start);
@@ -74,7 +75,7 @@ export function CalendarEvent({ event, variant = 'inline' }: CalendarEventProps)
         }}
       >
         <Typography variant="caption" sx={{ flexShrink: 0, color: 'text.secondary' }}>
-          {allDay ? t('all_day') : `${format(startDate, 'HH:mm')} – ${format(endDate, 'HH:mm')}`}
+          {allDay ? t('all_day') : (showEndTime ? `${format(startDate, 'HH:mm')} – ${format(endDate, 'HH:mm')}` : format(startDate, 'HH:mm'))}
         </Typography>
         <Typography variant="body2" fontWeight={500} noWrap sx={{ minWidth: 0 }}>
           {event.name}

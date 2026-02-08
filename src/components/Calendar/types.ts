@@ -12,4 +12,4 @@ export type CalendarEvent = {
   updatedAt: string;
 };
 
-export type CalendarViewMode = 'day' | 'month' | 'year' | 'schedule';
+export type CalendarViewMode = 'month' | 'year' | 'schedule';

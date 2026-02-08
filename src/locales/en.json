@@ -290,7 +290,6 @@
     "mileage_not_enough_data": "Not enough MOT history yet to show yearly mileage trends."
   },
   "Calendar": {
-    "view_day": "Day",
     "view_month": "Month",
     "view_year": "Year",
     "view_schedule": "Schedule",
