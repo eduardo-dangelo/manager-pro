@@ -1,6 +1,11 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, gte, sql } from 'drizzle-orm';
 import { db } from '@/libs/DB';
 import { assetsSchema, calendarEventsSchema } from '@/models/Schema';
+
+export type EventReminders = {
+  useDefault: boolean;
+  overrides: { method: 'email' | 'popup'; minutes: number }[];
+};
 
 export type CalendarEventData = {
   assetId: number;
@@ -10,6 +15,7 @@ export type CalendarEventData = {
   color?: string | null;
   start: Date;
   end: Date;
+  reminders?: EventReminders | null;
 };
 
 export class CalendarEventService {
@@ -45,6 +51,7 @@ export class CalendarEventService {
         color: eventData.color ?? null,
         start: eventData.start,
         end: eventData.end,
+        reminders: eventData.reminders ?? null,
         createdAt: new Date(),
         updatedAt: new Date(),
       })
@@ -89,6 +96,21 @@ export class CalendarEventService {
       .orderBy(calendarEventsSchema.start);
   }
 
+  /** Events that have reminders with overrides and start on or after startAfter (for cron). */
+  static async getEventsWithReminders(startAfter: Date) {
+    return db
+      .select()
+      .from(calendarEventsSchema)
+      .where(
+        and(
+          gte(calendarEventsSchema.start, startAfter),
+          sql`${calendarEventsSchema.reminders} IS NOT NULL`,
+          sql`jsonb_array_length(${calendarEventsSchema.reminders}->'overrides') > 0`,
+        ),
+      )
+      .orderBy(calendarEventsSchema.start);
+  }
+
   static async update(
     eventId: number,
     updates: Partial<CalendarEventData>,
@@ -127,6 +149,9 @@ export class CalendarEventService {
     }
     if (updates.assetId !== undefined) {
       updateData.assetId = updates.assetId;
+    }
+    if (updates.reminders !== undefined) {
+      updateData.reminders = updates.reminders;
     }
 
     const [updated] = await db

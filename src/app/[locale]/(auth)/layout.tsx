@@ -14,6 +14,7 @@ import {
 } from '@mui/icons-material';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { ConditionalSidebar } from '@/components/ConditionalSidebar';
+import { DevCronScheduler } from '@/components/DevCronScheduler';
 import { Sidebar } from '@/components/Sidebar';
 import { routing } from '@/libs/I18nRouting';
 import { AssetService } from '@/services/assetService';
@@ -132,6 +133,7 @@ export default async function AuthLayout(props: {
       signUpFallbackRedirectUrl={dashboardUrl}
       afterSignOutUrl={afterSignOutUrl}
     >
+      <DevCronScheduler />
       <ConditionalSidebar
         sidebarContent={(
           <Sidebar

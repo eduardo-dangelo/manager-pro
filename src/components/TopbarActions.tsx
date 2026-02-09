@@ -5,10 +5,12 @@ import {
   DarkMode,
   LightMode,
   Logout,
+  Notifications as NotificationsIcon,
   Settings,
 } from '@mui/icons-material';
 import {
   Avatar,
+  Badge,
   Box,
   IconButton,
   Tooltip,
@@ -16,9 +18,12 @@ import {
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useNotificationsRefetch } from '@/contexts/NotificationsRefetchContext';
 import { useHoverSound } from '@/hooks/useHoverSound';
 import { getI18nPath } from '@/utils/Helpers';
+import type { Notification } from './Notifications/types';
+import { NotificationsPopover } from './Notifications/NotificationsPopover';
 import { useThemeMode } from './ThemeProvider';
 import { UserProfileModal } from './UserProfileModal';
 
@@ -33,11 +38,68 @@ export function TopbarActions() {
   // Get theme mode from ThemeProvider
   const { mode, toggleTheme } = useThemeMode();
   const { playHoverSound } = useHoverSound();
+  const { registerRefetch } = useNotificationsRefetch();
   const [userProfileModalOpen, setUserProfileModalOpen] = useState(false);
+  const [notificationsAnchorEl, setNotificationsAnchorEl] = useState<HTMLElement | null>(null);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+
+  const unreadCount = notifications.filter((n) => !n.read).length;
+
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const res = await fetch(`/${locale}/api/notifications`);
+      if (!res.ok) return;
+      const data = (await res.json()) as { notifications: Notification[] };
+      setNotifications(data.notifications ?? []);
+    } catch {
+      // ignore
+    }
+  }, [locale]);
+
+  useEffect(() => {
+    void fetchNotifications();
+  }, [fetchNotifications]);
+
+  useEffect(() => {
+    registerRefetch(fetchNotifications);
+  }, [registerRefetch, fetchNotifications]);
+
+  useEffect(() => {
+    const handleFocus = () => {
+      void fetchNotifications();
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [fetchNotifications]);
 
   return (
     <>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        {/* Notifications */}
+        <Tooltip title={t('tooltip_notifications')}>
+          <Badge
+            badgeContent={unreadCount}
+            color="error"
+            invisible={unreadCount === 0}
+            overlap="circular"
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          >
+            <IconButton
+              onClick={(e) => setNotificationsAnchorEl(e.currentTarget)}
+              onMouseEnter={playHoverSound}
+              size="small"
+              sx={{
+                'color': 'text.secondary',
+                '&:hover': {
+                  bgcolor: 'action.hover',
+                },
+              }}
+            >
+              <NotificationsIcon fontSize="small" />
+            </IconButton>
+          </Badge>
+        </Tooltip>
+
         {/* Theme Switcher */}
         <Tooltip title={mode === 'light' ? t('tooltip_dark_mode') : t('tooltip_light_mode')}>
           <IconButton
@@ -118,6 +180,15 @@ export function TopbarActions() {
           </SignOutButton>
         </Tooltip>
       </Box>
+
+      {/* Notifications Popover */}
+      <NotificationsPopover
+        open={Boolean(notificationsAnchorEl)}
+        anchorEl={notificationsAnchorEl}
+        onClose={() => setNotificationsAnchorEl(null)}
+        locale={locale}
+        onRefetch={setNotifications}
+      />
 
       {/* User Profile Modal */}
       <UserProfileModal

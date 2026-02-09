@@ -1,3 +1,8 @@
+export type EventReminders = {
+  useDefault: boolean;
+  overrides: { method: 'email' | 'popup'; minutes: number }[];
+};
+
 export type CalendarEvent = {
   id: number;
   assetId: number;
@@ -8,6 +13,7 @@ export type CalendarEvent = {
   color: string | null;
   start: string;
   end: string;
+  reminders?: EventReminders | null;
   createdAt: string;
   updatedAt: string;
 };

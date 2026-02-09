@@ -63,6 +63,7 @@ export const POST = async (request: Request) => {
       color: parse.data.color ?? null,
       start: new Date(parse.data.start),
       end: new Date(parse.data.end),
+      reminders: parse.data.reminders ?? null,
     };
 
     const event = await CalendarEventService.create(eventData, user.id);

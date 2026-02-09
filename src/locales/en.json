@@ -71,9 +71,17 @@
   "GlobalTopbar": {
     "tooltip_dark_mode": "Go dark mode",
     "tooltip_light_mode": "Go light mode",
+    "tooltip_notifications": "Notifications",
     "tooltip_user_profile": "User Profile",
     "tooltip_settings": "Settings",
     "tooltip_logout": "Logout"
+  },
+  "Notifications": {
+    "title": "Notifications",
+    "loading": "Loading…",
+    "empty": "No notifications",
+    "show_only_unread": "Unread only",
+    "no_unread": "No unread notifications"
   },
   "Settings": {
     "meta_title": "Settings",
@@ -321,6 +329,17 @@
     "select_asset": "Select asset",
     "no_events": "No events",
     "no_events_today": "No event today",
-    "no_events_for_the_day": "No event this day"
+    "no_events_for_the_day": "No event this day",
+    "reminders_section": "Notifications",
+    "reminder_method": "Notification",
+    "reminder_method_popup": "Notification",
+    "reminder_method_email": "Email",
+    "reminder_unit_minutes": "minutes",
+    "reminder_unit_hours": "hours",
+    "reminder_unit_days": "days",
+    "reminder_unit_weeks": "weeks",
+    "reminder_before_at": "before at",
+    "reminder_remove": "Remove notification",
+    "reminder_add": "Add notification"
   }
 }

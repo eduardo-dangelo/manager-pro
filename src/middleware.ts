@@ -22,6 +22,7 @@ const isProtectedRoute = createRouteMatcher([
 const isProtectedApiRoute = createRouteMatcher([
   '/api/assets(.*)',
   '/api/calendar-events(.*)',
+  '/api/notifications(.*)',
   '/api/objectives(.*)',
   '/api/todos(.*)',
   '/api/sprints(.*)',
@@ -29,6 +30,7 @@ const isProtectedApiRoute = createRouteMatcher([
   '/api/vehicles(.*)',
   '/:locale/api/assets(.*)',
   '/:locale/api/calendar-events(.*)',
+  '/:locale/api/notifications(.*)',
   '/:locale/api/objectives(.*)',
   '/:locale/api/todos(.*)',
   '/:locale/api/sprints(.*)',
@@ -69,6 +71,11 @@ export default async function middleware(
     if (decision.isDenied()) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
+  }
+
+  // Cron routes: no auth, no i18n (secured by CRON_SECRET in the route)
+  if (request.nextUrl.pathname.startsWith('/api/cron/')) {
+    return NextResponse.next();
   }
 
   // Handle protected API routes (no i18n routing needed)

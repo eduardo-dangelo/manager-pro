@@ -1,5 +1,5 @@
 import { relations } from 'drizzle-orm';
-import { integer, jsonb, pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core';
+import { boolean, integer, jsonb, pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core';
 
 // This file defines the structure of your database tables using the Drizzle ORM.
 
@@ -142,11 +142,22 @@ export const calendarEventsSchema = pgTable('calendar_events', {
   color: text('color'),
   start: timestamp('start', { mode: 'date' }).notNull(),
   end: timestamp('end', { mode: 'date' }).notNull(),
+  reminders: jsonb('reminders'),
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { mode: 'date' })
     .defaultNow()
     .$onUpdate(() => new Date())
     .notNull(),
+});
+
+export const notificationsSchema = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: text('user_id').references(() => usersSchema.id).notNull(),
+  type: text('type').notNull(),
+  title: text('title').notNull(),
+  metadata: jsonb('metadata'),
+  read: boolean('read').notNull().default(false),
+  createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
 });
 
 // Define relationships
@@ -158,6 +169,7 @@ export const userRelations = relations(usersSchema, ({ many }) => ({
   sprints: many(sprintsSchema),
   workSpaces: many(workSpacesSchema),
   calendarEvents: many(calendarEventsSchema),
+  notifications: many(notificationsSchema),
 }));
 
 export const workSpacesRelations = relations(workSpacesSchema, ({ many }) => ({
@@ -242,6 +254,13 @@ export const calendarEventsRelations = relations(calendarEventsSchema, ({ one })
   }),
   user: one(usersSchema, {
     fields: [calendarEventsSchema.userId],
+    references: [usersSchema.id],
+  }),
+}));
+
+export const notificationsRelations = relations(notificationsSchema, ({ one }) => ({
+  user: one(usersSchema, {
+    fields: [notificationsSchema.userId],
     references: [usersSchema.id],
   }),
 }));

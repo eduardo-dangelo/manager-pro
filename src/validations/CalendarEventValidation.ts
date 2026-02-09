@@ -1,5 +1,15 @@
 import z from 'zod';
 
+export const RemindersSchema = z.object({
+  useDefault: z.boolean(),
+  overrides: z.array(
+    z.object({
+      method: z.enum(['email', 'popup']),
+      minutes: z.number().int().min(0),
+    }),
+  ).max(5),
+});
+
 export const CalendarEventValidation = z.object({
   assetId: z.number().int().positive(),
   name: z.string().min(1, 'Name is required').max(200),
@@ -8,6 +18,7 @@ export const CalendarEventValidation = z.object({
   color: z.string().max(50).optional().nullable(),
   start: z.string().datetime(),
   end: z.string().datetime(),
+  reminders: RemindersSchema.nullable().optional(),
 });
 
 export const UpdateCalendarEventValidation = CalendarEventValidation.partial().extend({

@@ -32,6 +32,7 @@ import { GlobalTopbar } from './GlobalTopbar';
 import { GlobalTopbarContentProvider } from './GlobalTopbarContentContext';
 import { Logo } from './Logo';
 import { TopbarActions } from './TopbarActions';
+import { NotificationsRefetchProvider } from '@/contexts/NotificationsRefetchContext';
 
 type MenuItem = {
   icon: React.ComponentType<any>;
@@ -603,7 +604,8 @@ export function Sidebar({
 
       {/* Main Content */}
       <BreadcrumbProvider>
-        <GlobalTopbarContentProvider>
+        <NotificationsRefetchProvider>
+          <GlobalTopbarContentProvider>
           <Box
             component="main"
             sx={{
@@ -666,7 +668,8 @@ export function Sidebar({
               </Box>
             </Box>
           </Box>
-        </GlobalTopbarContentProvider>
+          </GlobalTopbarContentProvider>
+        </NotificationsRefetchProvider>
       </BreadcrumbProvider>
     </Box>
   );

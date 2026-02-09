@@ -29,6 +29,20 @@
       "when": 1769722153962,
       "tag": "0003_striped_robin_chapel",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1770662410306,
+      "tag": "0004_past_revanche",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1770664413435,
+      "tag": "0005_magenta_living_tribunal",
+      "breakpoints": true
     }
   ]
 }

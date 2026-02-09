@@ -1,6 +1,6 @@
 'use client';
 
-import type { CalendarEvent } from './types';
+import type { CalendarEvent, EventReminders } from './types';
 import { Close as CloseIcon, DeleteOutlined as DeleteIcon, Palette as PaletteIcon } from '@mui/icons-material';
 import {
   Box,
@@ -20,6 +20,7 @@ import {
 import { endOfDay, format } from 'date-fns';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
+import { useNotificationsRefetch } from '@/contexts/NotificationsRefetchContext';
 import { ConfirmPopover } from '@/components/common/ConfirmPopover';
 import { DEFAULT_EVENT_COLOR, EVENT_COLORS } from './constants';
 import { TimePickerPopover } from './TimePickerPopover';
@@ -55,6 +56,39 @@ function isAllDayRange(start: Date, end: Date): boolean {
   );
 }
 
+export type ReminderUnit = 'minutes' | 'hours' | 'days' | 'weeks';
+
+export type ReminderRow = {
+  id: string;
+  amount: number;
+  unit: ReminderUnit;
+};
+
+const MINUTES_PER: Record<ReminderUnit, number> = {
+  minutes: 1,
+  hours: 60,
+  days: 24 * 60,
+  weeks: 7 * 24 * 60,
+};
+
+function reminderRowToMinutes(_eventStart: Date, row: ReminderRow): number {
+  if (row.amount <= 0) return 0;
+  return row.amount * MINUTES_PER[row.unit];
+}
+
+function minutesToReminderRow(minutes: number): Pick<ReminderRow, 'amount' | 'unit'> {
+  if (minutes < 60) {
+    return { amount: minutes, unit: 'minutes' };
+  }
+  if (minutes < 24 * 60) {
+    return { amount: Math.round(minutes / 60), unit: 'hours' };
+  }
+  if (minutes < 7 * 24 * 60) {
+    return { amount: Math.round(minutes / (24 * 60)), unit: 'days' };
+  }
+  return { amount: Math.round(minutes / (7 * 24 * 60)), unit: 'weeks' };
+}
+
 type CreateEventFormProps = {
   open: boolean;
   initialDate?: Date;
@@ -82,6 +116,7 @@ export function CreateEventForm({
 }: CreateEventFormProps & { mode?: 'create' | 'edit'; event?: CalendarEvent | null }) {
   const t = useTranslations('Calendar');
   const tAssets = useTranslations('Assets');
+  const { refetchNotifications } = useNotificationsRefetch();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState('');
@@ -99,6 +134,7 @@ export function CreateEventForm({
   const [endTimeAnchor, setEndTimeAnchor] = useState<HTMLElement | null>(null);
   const [deleteConfirmAnchor, setDeleteConfirmAnchor] = useState<HTMLElement | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [reminderRows, setReminderRows] = useState<ReminderRow[]>([]);
   const colorInputRef = useRef<HTMLInputElement>(null);
 
   const isGlobal = !fixedAssetId && (assets?.length ?? 0) > 0;
@@ -128,6 +164,17 @@ export function CreateEventForm({
       setColor(event.color ?? DEFAULT_EVENT_COLOR);
       setDescription(event.description ?? '');
       setError(null);
+      const overrides = event.reminders?.overrides ?? [];
+      setReminderRows(
+        overrides.map((o, i) => {
+          const { amount, unit } = minutesToReminderRow(o.minutes);
+          return {
+            id: `edit-${event.id}-${i}`,
+            amount,
+            unit,
+          };
+        }),
+      );
 
       if (isGlobal && assets?.length) {
         const assetIdFromEvent = event.assetId;
@@ -153,6 +200,7 @@ export function CreateEventForm({
     setColor(DEFAULT_EVENT_COLOR);
     setDescription('');
     setError(null);
+    setReminderRows([]);
     if (isGlobal && assets?.length) {
       setSelectedAssetId(assets[0]!.id);
     } else {
@@ -194,6 +242,19 @@ export function CreateEventForm({
         }
       }
 
+      const overrides = reminderRows
+        .filter(r => r.amount > 0)
+        .map(r => ({
+          method: 'popup' as const,
+          minutes: reminderRowToMinutes(start, r),
+        }))
+        .filter(o => o.minutes >= 0)
+        .slice(0, 5);
+      const reminders: EventReminders | null
+        = overrides.length > 0
+          ? { useDefault: false, overrides }
+          : null;
+
       const payload = {
         assetId: effectiveAssetId,
         name: name.trim(),
@@ -202,6 +263,7 @@ export function CreateEventForm({
         color: color || null,
         start: start.toISOString(),
         end: end.toISOString(),
+        reminders,
       };
 
       const url = mode === 'edit' && event
@@ -222,6 +284,7 @@ export function CreateEventForm({
         );
       }
       const { event: savedEvent } = (await res.json()) as { event: CalendarEvent };
+      refetchNotifications();
       onSuccess(savedEvent);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create event');
@@ -558,13 +621,62 @@ export function CreateEventForm({
               onChange={setEndTime}
             />
           </Box>
-          {/* <TextField
-            fullWidth
-            size="small"
-            label={t('event_location')}
-            value={location}
-            onChange={e => setLocation(e.target.value)}
-          /> */}
+          {/* Reminders (relative to event start) */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            {reminderRows.map((row) => (
+              <Box
+                key={row.id}
+                sx={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                  gap: 1,
+                }}
+              >
+                <TextField
+                  type="number"
+                  size="small"
+                  value={row.amount}
+                  onChange={e => setReminderRows(prev =>
+                    prev.map(r => r.id === row.id ? { ...r, amount: Math.max(0, Number(e.target.value) || 0) } : r))}
+                  inputProps={{ min: 0 }}
+                  sx={{ width: 64 }}
+                />
+                <FormControl size="small" sx={{ minWidth: 100 }}>
+                  <Select
+                    value={row.unit}
+                    onChange={e => setReminderRows(prev =>
+                      prev.map(r => r.id === row.id ? { ...r, unit: e.target.value as ReminderUnit } : r))}
+                  >
+                    <MenuItem value="minutes">{t('reminder_unit_minutes')}</MenuItem>
+                    <MenuItem value="hours">{t('reminder_unit_hours')}</MenuItem>
+                    <MenuItem value="days">{t('reminder_unit_days')}</MenuItem>
+                    <MenuItem value="weeks">{t('reminder_unit_weeks')}</MenuItem>
+                  </Select>
+                </FormControl>
+                <IconButton
+                  size="small"
+                  onClick={() => setReminderRows(prev => prev.filter(r => r.id !== row.id))}
+                  aria-label={t('reminder_remove')}
+                >
+                  <CloseIcon fontSize="small" />
+                </IconButton>
+              </Box>
+            ))}
+            {reminderRows.length < 5 && (
+              <Button
+                type="button"
+                size="small"
+                onClick={() => setReminderRows(prev => [...prev, {
+                  id: `new-${Date.now()}`,
+                  amount: 1,
+                  unit: 'days',
+                }])}
+              >
+                {t('reminder_add')}
+              </Button>
+            )}
+          </Box>
           <TextField
             fullWidth
             size="small"

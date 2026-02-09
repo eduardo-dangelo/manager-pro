@@ -84,6 +84,9 @@ export const PUT = async (
     if (parse.data.end !== undefined) {
       updates.end = new Date(parse.data.end);
     }
+    if (parse.data.reminders !== undefined) {
+      updates.reminders = parse.data.reminders;
+    }
 
     const event = await CalendarEventService.update(
       eventId,

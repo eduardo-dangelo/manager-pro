@@ -388,6 +388,13 @@ To run Storybook tests in headless mode, you can use the following command:
 npm run storybook:test
 ```
 
+### Cron jobs and event reminders
+
+Calendar event reminders (e.g. "10 minutes before") are created by a cron job that runs every minute. The job is defined in `vercel.json` and calls `GET /api/cron/check-event-reminders`.
+
+- **Production (Vercel):** Set the `CRON_SECRET` environment variable in your Vercel project. Vercel sends this secret when invoking the cron; if it is missing, the route returns 401 and no reminder notifications are created.
+- **Local development:** The cron route skips the secret check when `NODE_ENV === 'development'`, so you can trigger it manually at `http://localhost:3000/api/cron/check-event-reminders`. A dev-only scheduler also runs in the background and calls this endpoint every minute when you use the app locally, so reminders fire automatically without Vercel.
+
 ### Deploy to production
 
 During the build process, database migrations are automatically executed, so there's no need to run them manually. However, you must define `DATABASE_URL` in your environment variables.
