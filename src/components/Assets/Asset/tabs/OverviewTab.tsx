@@ -53,9 +53,10 @@ type OverviewTabProps = {
   asset: Asset;
   locale: string;
   onUpdateAsset: (asset: Partial<Asset> | Asset) => void;
+  onCalendarRefreshRequested?: () => void;
 };
 
-export function OverviewTab({ asset, locale, onUpdateAsset }: OverviewTabProps) {
+export function OverviewTab({ asset, locale, onUpdateAsset, onCalendarRefreshRequested }: OverviewTabProps) {
   const renderContent = () => {
     switch (asset.type) {
       case 'vehicle':
@@ -69,6 +70,7 @@ export function OverviewTab({ asset, locale, onUpdateAsset }: OverviewTabProps) 
               asset={asset}
               locale={locale}
               onUpdateAsset={onUpdateAsset}
+              onCalendarRefreshRequested={onCalendarRefreshRequested}
             />
             {hasSpecs && (
               <Box sx={{ mt: 2 }}>

@@ -22,9 +22,10 @@ type Asset = {
 type CalendarTabProps = {
   asset: Asset;
   locale: string;
+  registerCalendarRefresh?: (fn: (() => void) | null) => void;
 };
 
-export function CalendarTab({ asset, locale }: CalendarTabProps) {
+export function CalendarTab({ asset, locale, registerCalendarRefresh }: CalendarTabProps) {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -50,6 +51,11 @@ export function CalendarTab({ asset, locale }: CalendarTabProps) {
   useEffect(() => {
     fetchEvents();
   }, [fetchEvents]);
+
+  useEffect(() => {
+    registerCalendarRefresh?.(fetchEvents);
+    return () => { registerCalendarRefresh?.(null); };
+  }, [fetchEvents, registerCalendarRefresh]);
 
   if (loading) {
     return (

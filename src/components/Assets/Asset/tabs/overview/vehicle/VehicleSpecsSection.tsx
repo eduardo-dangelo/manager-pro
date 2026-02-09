@@ -53,9 +53,10 @@ type VehicleSpecsSectionProps = {
   asset: Asset;
   locale: string;
   onUpdateAsset: (asset: Asset) => void;
+  onCalendarRefreshRequested?: () => void;
 };
 
-export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpecsSectionProps) {
+export function VehicleSpecsSection({ asset, locale, onUpdateAsset, onCalendarRefreshRequested }: VehicleSpecsSectionProps) {
   const t = useTranslations('Assets');
   const { playHoverSound } = useHoverSound();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -351,6 +352,22 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
       setLookupError(null);
       setRegistrationError(null);
       setIsModalOpen(false);
+
+      if (motExpires || taxExpires) {
+        fetch(`/${locale}/api/vehicles/${asset.id}/sync-reminder-events`, { method: 'POST' })
+          .then(async (res) => {
+            if (res.ok) {
+              const data = (await res.json()) as { created?: number; updated?: number; tabs?: string[] };
+              if ((data.created ?? 0) > 0 || (data.updated ?? 0) > 0) {
+                onCalendarRefreshRequested?.();
+              }
+              if (data.tabs) {
+                onUpdateAsset({ ...asset, tabs: data.tabs });
+              }
+            }
+          })
+          .catch((err) => console.warn('Failed to sync reminder events:', err));
+      }
     } catch (error) {
       console.error('Error updating vehicle specs:', error);
     }
@@ -657,6 +674,22 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset }: VehicleSpe
         metadata: updatedMetadata,
         tabs: updated.asset?.tabs ?? asset.tabs ?? ['overview'],
       });
+
+      if (motExpires || taxExpires) {
+        fetch(`/${locale}/api/vehicles/${asset.id}/sync-reminder-events`, { method: 'POST' })
+          .then(async (res) => {
+            if (res.ok) {
+              const data = (await res.json()) as { created?: number; updated?: number; tabs?: string[] };
+              if ((data.created ?? 0) > 0 || (data.updated ?? 0) > 0) {
+                onCalendarRefreshRequested?.();
+              }
+              if (data.tabs) {
+                onUpdateAsset({ ...asset, tabs: data.tabs });
+              }
+            }
+          })
+          .catch((err) => console.warn('Failed to sync reminder events:', err));
+      }
 
       // Store last refresh timestamp in localStorage
       const refreshKey = `vehicle_refresh_${asset.id}`;

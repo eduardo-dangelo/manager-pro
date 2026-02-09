@@ -55,7 +55,7 @@ import {
   useTheme,
 } from '@mui/material';
 import { useTranslations } from 'next-intl';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { CalendarTab } from '@/components/Assets/Asset/tabs/CalendarTab';
 import { FinanceTab } from '@/components/Assets/Asset/tabs/FinanceTab';
@@ -312,6 +312,10 @@ export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const dropdownButtonRef = useRef<HTMLButtonElement>(null);
+  const calendarRefreshRef = useRef<(() => void) | null>(null);
+  const registerCalendarRefresh = useCallback((fn: (() => void) | null) => {
+    calendarRefreshRef.current = fn;
+  }, []);
 
   // Define all available tabs
   const availableTabs = ['overview', 'todos', 'calendar', 'sprints', 'finance', 'docs', 'gallery', 'listing', 'timeline', 'insights'];
@@ -723,6 +727,7 @@ export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
             asset={asset}
             locale={locale}
             onUpdateAsset={onUpdateAsset}
+            onCalendarRefreshRequested={() => calendarRefreshRef.current?.()}
           />
         );
       case 'todos':
@@ -742,7 +747,13 @@ export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
           />
         );
       case 'calendar':
-        return <CalendarTab asset={asset} locale={locale} />;
+        return (
+          <CalendarTab
+            asset={asset}
+            locale={locale}
+            registerCalendarRefresh={registerCalendarRefresh}
+          />
+        );
       case 'timeline':
         return <TimelineTab asset={asset} />;
       case 'insights':

@@ -4,8 +4,8 @@ import type { CalendarEvent } from './types';
 import type { Asset } from '@/components/Assets/utils';
 import { pluralizeType } from '@/components/Assets/utils';
 import { AssetCard } from '@/components/Assets/AssetCard';
-import { Close as CloseIcon, EditOutlined as EditIcon } from '@mui/icons-material';
-import { Box, IconButton, Typography } from '@mui/material';
+import { Close as CloseIcon, EditOutlined as EditIcon, OpenInNewOutlined as OpenInNewIcon } from '@mui/icons-material';
+import { Box, Button, IconButton, Typography } from '@mui/material';
 import { format } from 'date-fns';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -25,11 +25,24 @@ type EventDetailsPopoverProps = {
   onEdit?: () => void;
 };
 
+const TAX_REMINDER_MARKER = '[AUTO:vehicle_tax_reminder]';
+const MOT_REMINDER_MARKER = '[AUTO:vehicle_mot_reminder]';
+
 function eventColor(color: string | null): string {
   if (!color) {
     return '#6b7280';
   }
   return COLOR_MAP[color] ?? color;
+}
+
+function isTaxReminderEvent(event: CalendarEvent): boolean {
+  return event.description?.includes(TAX_REMINDER_MARKER) ?? false;
+}
+
+function hasUserVisibleDescription(event: CalendarEvent): boolean {
+  const d = event.description?.trim();
+  if (!d) return false;
+  return d !== TAX_REMINDER_MARKER && d !== MOT_REMINDER_MARKER;
 }
 
 export function EventDetailsPopover({
@@ -43,6 +56,7 @@ export function EventDetailsPopover({
   onEdit,
 }: EventDetailsPopoverProps) {
   const t = useTranslations('Calendar');
+  const tAssets = useTranslations('Assets');
 
   if (!event) {
     return null;
@@ -143,7 +157,7 @@ export function EventDetailsPopover({
             </Typography>
           </Box>
 
-          {event.description && (
+          {event.description && hasUserVisibleDescription(event) && (
             <Box>
               <Typography variant="caption" color="text.secondary" display="block">
                 {t('event_description')}
@@ -163,6 +177,19 @@ export function EventDetailsPopover({
                 {event.location}
               </Typography>
             </Box>
+          )}
+
+          {isTaxReminderEvent(event) && (
+            <Button
+              variant="outlined"
+              color="primary"
+              startIcon={<OpenInNewIcon />}
+              fullWidth
+              onClick={() => window.open('https://www.gov.uk/vehicle-tax', '_blank', 'noopener,noreferrer')}
+              sx={{ textTransform: 'none', fontWeight: 600 }}
+            >
+              {tAssets('tax_your_vehicle')}
+            </Button>
           )}
 
           {assetName && !showAssetCard && (
