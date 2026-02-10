@@ -1,6 +1,7 @@
 export type NotificationMetadata = {
   eventId?: number;
   eventName?: string;
+  eventStart?: string;
   assetId?: number;
   reminderMinutes?: number;
 };

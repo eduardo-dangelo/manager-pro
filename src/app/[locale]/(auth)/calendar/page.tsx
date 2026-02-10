@@ -20,8 +20,10 @@ export async function generateMetadata(props: {
 
 export default async function CalendarPage(props: {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<{ view?: string; year?: string; month?: string }>;
 }) {
   const { locale } = await props.params;
+  const searchParams = await props.searchParams;
   setRequestLocale(locale);
 
   const user = await currentUser();
@@ -30,5 +32,24 @@ export default async function CalendarPage(props: {
     redirect(`/${locale}/sign-in`);
   }
 
-  return <CalendarClient locale={locale} />;
+  const view = searchParams?.view;
+  const defaultView = (view === 'month' || view === 'year' || view === 'schedule') ? view : undefined;
+  const yearParam = searchParams?.year;
+  const monthParam = searchParams?.month;
+  let initialDate: Date | undefined;
+  if (yearParam != null && monthParam != null) {
+    const y = Number.parseInt(String(yearParam), 10);
+    const m = Number.parseInt(String(monthParam), 10);
+    if (Number.isFinite(y) && Number.isFinite(m) && m >= 1 && m <= 12) {
+      initialDate = new Date(y, m - 1, 1);
+    }
+  }
+
+  return (
+    <CalendarClient
+      locale={locale}
+      defaultView={defaultView}
+      initialDate={initialDate}
+    />
+  );
 }

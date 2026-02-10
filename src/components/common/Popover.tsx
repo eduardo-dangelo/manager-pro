@@ -52,7 +52,12 @@ export type CommonPopoverProps = {
   anchorWidth?: number;
   anchorOrigin?: PopoverOrigin;
   transformOrigin?: PopoverOrigin;
+  /** When set, position popover at these viewport coordinates instead of anchorEl. Arrow is hidden. */
+  anchorPosition?: { top: number; left: number } | null;
 };
+
+const POSITION_ANCHOR_ORIGIN: PopoverOrigin = { vertical: 'center', horizontal: 'left' };
+const POSITION_TRANSFORM_ORIGIN: PopoverOrigin = { vertical: 'center', horizontal: 'left' };
 
 export function Popover({
   open,
@@ -68,9 +73,11 @@ export function Popover({
   anchorWidth = 200,
   anchorOrigin: anchorOriginOverride,
   transformOrigin: transformOriginOverride,
+  anchorPosition,
 }: CommonPopoverProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const [arrowTop, setArrowTop] = useState<number | null>(null);
+  const usePositionAnchor = anchorPosition != null;
 
   const computeArrowTop = useCallback(() => {
     if (!anchorEl || !contentRef.current?.parentElement) {
@@ -89,7 +96,7 @@ export function Popover({
   }, [anchorEl]);
 
   useLayoutEffect(() => {
-    if (!open || !anchorEl || !showArrow) {
+    if (!open || !anchorEl || !showArrow || usePositionAnchor) {
       setArrowTop(null);
       return;
     }
@@ -97,7 +104,7 @@ export function Popover({
     const handleResize = () => computeArrowTop();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [open, anchorEl, showArrow, computeArrowTop]);
+  }, [open, anchorEl, showArrow, usePositionAnchor, computeArrowTop]);
 
   const effectiveAnchorWidth = useMemo(() => {
     if (typeof maxWidth === 'number') {
@@ -110,6 +117,9 @@ export function Popover({
   }, [maxWidth, minWidth, anchorWidth]);
 
   const anchorOrigin = useMemo(() => {
+    if (usePositionAnchor) {
+      return POSITION_ANCHOR_ORIGIN;
+    }
     if (anchorOriginOverride) {
       return anchorOriginOverride;
     }
@@ -117,27 +127,32 @@ export function Popover({
       return { vertical: 'center' as const, horizontal: 'left' as const };
     }
     return getAnchorOrigin(anchorEl, effectiveAnchorWidth);
-  }, [anchorOriginOverride, open, anchorEl, effectiveAnchorWidth]);
+  }, [usePositionAnchor, anchorOriginOverride, open, anchorEl, effectiveAnchorWidth]);
 
   const transformOrigin = useMemo(() => {
+    if (usePositionAnchor) {
+      return POSITION_TRANSFORM_ORIGIN;
+    }
     if (transformOriginOverride) {
       return transformOriginOverride;
     }
     return getTransformOrigin(anchorOrigin);
-  }, [transformOriginOverride, anchorOrigin]);
+  }, [usePositionAnchor, transformOriginOverride, anchorOrigin]);
+
+  const effectiveShowArrow = showArrow && !usePositionAnchor;
 
   const paperSxResolved = useMemo((): SxProps<Theme> => {
     const isAutoWidth = minWidth === 'auto' && maxWidth === 'auto';
     const base: SxProps<Theme> = {
       borderRadius: 2,
-      marginLeft: anchorOrigin.horizontal === 'right' ? `${POPOVER_GAP}px` : undefined,
-      marginRight: anchorOrigin.horizontal === 'left' ? `${POPOVER_GAP}px` : undefined,
+      marginLeft: usePositionAnchor ? `${POPOVER_GAP}px` : (anchorOrigin.horizontal === 'right' ? `${POPOVER_GAP}px` : undefined),
+      marginRight: usePositionAnchor ? undefined : (anchorOrigin.horizontal === 'left' ? `${POPOVER_GAP}px` : undefined),
       ...(isAutoWidth && { width: 'fit-content' }),
       ...(minWidth != null && { minWidth }),
       ...(maxWidth != null && { maxWidth }),
       ...(maxHeight != null && { maxHeight }),
     };
-    if (showArrow) {
+    if (effectiveShowArrow) {
       const arrowTopValue = arrowTop != null ? `${arrowTop}px` : '50%';
       return ((theme: Theme) => ({
         ...base,
@@ -171,12 +186,14 @@ export function Popover({
     return typeof paperSx === 'function'
       ? (theme: Theme) => ({ ...base, ...paperSx(theme) })
       : { ...base, ...paperSx };
-  }, [showArrow, anchorOrigin.horizontal, arrowTop, minWidth, maxWidth, maxHeight, paperSx]);
+  }, [effectiveShowArrow, anchorOrigin.horizontal, usePositionAnchor, arrowTop, minWidth, maxWidth, maxHeight, paperSx]);
 
   return (
     <MuiPopover
       open={open}
-      anchorEl={anchorEl}
+      anchorEl={usePositionAnchor ? null : anchorEl}
+      anchorReference={usePositionAnchor ? 'anchorPosition' : 'anchorEl'}
+      anchorPosition={usePositionAnchor ? anchorPosition ?? undefined : undefined}
       onClose={onClose}
       anchorOrigin={anchorOrigin}
       transformOrigin={transformOrigin}
@@ -186,7 +203,7 @@ export function Popover({
         },
         transition: {
           onEntered: () => {
-            if (showArrow) {
+            if (effectiveShowArrow) {
               computeArrowTop();
             }
           },

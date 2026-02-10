@@ -1,6 +1,6 @@
 'use client';
 
-import type { CalendarEvent } from '@/components/Calendar/types';
+import type { CalendarEvent, CalendarViewMode } from '@/components/Calendar/types';
 import type { Asset } from '@/components/Assets/utils';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import { useTranslations } from 'next-intl';
@@ -10,9 +10,11 @@ import { CalendarView } from '@/components/Calendar';
 
 type CalendarClientProps = {
   locale: string;
+  defaultView?: CalendarViewMode;
+  initialDate?: Date;
 };
 
-export function CalendarClient({ locale }: CalendarClientProps) {
+export function CalendarClient({ locale, defaultView, initialDate }: CalendarClientProps) {
   const dashboardT = useTranslations('DashboardLayout');
 
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -82,6 +84,8 @@ export function CalendarClient({ locale }: CalendarClientProps) {
         locale={locale}
         assets={assets}
         onEventsChange={setEvents}
+        defaultView={defaultView}
+        initialDate={initialDate}
       />
     </Box>
   );

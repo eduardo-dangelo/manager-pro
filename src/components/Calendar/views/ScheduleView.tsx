@@ -11,7 +11,7 @@ type ScheduleViewProps = {
   onCurrentDateChange: (_d: Date) => void;
   events: CalendarEvent[];
   onDayClick: (date: Date, anchorEl?: HTMLElement) => void;
-  onEventClick?: (event: CalendarEvent, anchorEl: HTMLElement) => void;
+  onEventClick?: (event: CalendarEvent, anchorEl: HTMLElement, anchorPosition?: { x: number; y: number }) => void;
   locale: string;
 };
 
@@ -136,7 +136,7 @@ export function ScheduleView({
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      onEventClick?.(ev, e.currentTarget);
+                      onEventClick?.(ev, e.currentTarget, { x: e.clientX, y: e.clientY });
                     }}
                     sx={{
                       'width': '100%',

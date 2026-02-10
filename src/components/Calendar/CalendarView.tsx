@@ -46,6 +46,7 @@ type CalendarViewProps = {
   onDayClick?: (date: Date, anchorEl?: HTMLElement) => void;
   locale: string;
   defaultView?: CalendarViewMode;
+  initialDate?: Date;
   assetId?: number;
   assets?: Asset[];
   onEventsChange?: (events: CalendarEvent[]) => void;
@@ -109,6 +110,7 @@ export function CalendarView({
   onDayClick: onDayClickProp,
   locale,
   defaultView = 'schedule',
+  initialDate,
   assetId,
   assets,
   onEventsChange,
@@ -119,7 +121,12 @@ export function CalendarView({
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const [viewMode, setViewMode] = useState<CalendarViewMode>(defaultView);
-  const [currentDate, setCurrentDate] = useState(() => getTodayDate(defaultView));
+  const [currentDate, setCurrentDate] = useState(() => {
+    if (initialDate) {
+      return defaultView === 'month' ? startOfMonth(initialDate) : initialDate;
+    }
+    return getTodayDate(defaultView);
+  });
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [createModalDate, setCreateModalDate] = useState<Date | undefined>(undefined);
   const [yearSlideDirection, setYearSlideDirection] = useState<'prev' | 'next' | null>(null);
@@ -129,6 +136,7 @@ export function CalendarView({
   const [createPopoverAnchor, setCreatePopoverAnchor] = useState<HTMLElement | null>(null);
   const [createPopoverDate, setCreatePopoverDate] = useState<Date | undefined>(undefined);
   const [eventDetailsAnchor, setEventDetailsAnchor] = useState<HTMLElement | null>(null);
+  const [eventDetailsAnchorPosition, setEventDetailsAnchorPosition] = useState<{ top: number; left: number } | null>(null);
   const [eventDetailsEvent, setEventDetailsEvent] = useState<CalendarEvent | null>(null);
   const [headerPickerAnchor, setHeaderPickerAnchor] = useState<HTMLElement | null>(null);
   const [headerPickerType, setHeaderPickerType] = useState<'year' | 'month' | null>(null);
@@ -144,8 +152,9 @@ export function CalendarView({
     }
   }, [isMobile, viewMode]);
 
-  const handleEventClick = (event: CalendarEvent, anchorEl: HTMLElement) => {
+  const handleEventClick = (event: CalendarEvent, anchorEl: HTMLElement, anchorPosition?: { x: number; y: number }) => {
     setEventDetailsAnchor(anchorEl);
+    setEventDetailsAnchorPosition(anchorPosition ? { top: anchorPosition.y, left: anchorPosition.x } : null);
     setEventDetailsEvent(event);
   };
 
@@ -494,11 +503,13 @@ export function CalendarView({
         <EventDetailsPopover
           open
           anchorEl={eventDetailsAnchor}
+          anchorPosition={eventDetailsAnchorPosition}
           event={eventDetailsEvent}
           assets={assets}
           showAssetCard={!assetId}
           onClose={() => {
             setEventDetailsAnchor(null);
+            setEventDetailsAnchorPosition(null);
             setEventDetailsEvent(null);
           }}
           onEdit={() => {
@@ -508,6 +519,7 @@ export function CalendarView({
             setEditingEvent(eventDetailsEvent);
             setEditPopoverAnchor(eventDetailsAnchor);
             setEventDetailsAnchor(null);
+            setEventDetailsAnchorPosition(null);
             setEventDetailsEvent(null);
           }}
           locale={locale}

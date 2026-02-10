@@ -17,6 +17,7 @@ const POPOVER_WIDTH = 320;
 type EventDetailsPopoverProps = {
   open: boolean;
   anchorEl: HTMLElement | null;
+  anchorPosition?: { top: number; left: number } | null;
   event: CalendarEvent | null;
   assets?: Asset[];
   showAssetCard?: boolean;
@@ -48,6 +49,7 @@ function hasUserVisibleDescription(event: CalendarEvent): boolean {
 export function EventDetailsPopover({
   open,
   anchorEl,
+  anchorPosition = null,
   event,
   assets,
   showAssetCard = false,
@@ -78,9 +80,11 @@ export function EventDetailsPopover({
     <Popover
       open={open}
       anchorEl={anchorEl}
+      anchorPosition={anchorPosition}
       onClose={onClose}
       minWidth={POPOVER_WIDTH}
       maxWidth={POPOVER_WIDTH}
+      showArrow={anchorPosition == null}
     >
       <Box sx={{ p: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1, mb: 2 }}>

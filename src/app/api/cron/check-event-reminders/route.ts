@@ -57,6 +57,7 @@ export async function GET(request: Request) {
             type: 'event_reminder',
             eventId: event.id,
             eventName: event.name,
+            eventStart: typeof event.start === 'string' ? event.start : new Date(event.start).toISOString(),
             reminderMinutes: override.minutes,
             assetId: event.assetId,
           },

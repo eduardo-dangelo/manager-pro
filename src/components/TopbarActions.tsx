@@ -5,7 +5,7 @@ import {
   DarkMode,
   LightMode,
   Logout,
-  Notifications as NotificationsIcon,
+  NotificationsOutlined,
   Settings,
 } from '@mui/icons-material';
 import {
@@ -77,27 +77,27 @@ export function TopbarActions() {
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         {/* Notifications */}
         <Tooltip title={t('tooltip_notifications')}>
-          <Badge
-            badgeContent={unreadCount}
-            color="error"
-            invisible={unreadCount === 0}
-            overlap="circular"
-            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          <IconButton
+            onClick={(e) => setNotificationsAnchorEl(e.currentTarget)}
+            onMouseEnter={playHoverSound}
+            size="small"
+            sx={{
+              'color': 'text.secondary',
+              '&:hover': {
+                bgcolor: 'action.hover',
+              },
+            }}
           >
-            <IconButton
-              onClick={(e) => setNotificationsAnchorEl(e.currentTarget)}
-              onMouseEnter={playHoverSound}
-              size="small"
-              sx={{
-                'color': 'text.secondary',
-                '&:hover': {
-                  bgcolor: 'action.hover',
-                },
-              }}
+            <Badge
+              badgeContent={unreadCount}
+              color="error"
+              invisible={unreadCount === 0}
+              overlap="circular"
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
             >
-              <NotificationsIcon fontSize="small" />
-            </IconButton>
-          </Badge>
+              <NotificationsOutlined fontSize="small" />
+            </Badge>
+          </IconButton>
         </Tooltip>
 
         {/* Theme Switcher */}
