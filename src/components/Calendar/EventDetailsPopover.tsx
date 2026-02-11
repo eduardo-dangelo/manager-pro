@@ -2,7 +2,6 @@
 
 import type { CalendarEvent } from './types';
 import type { AssetData } from '@/entities';
-import { Asset } from '@/entities';
 import { Close as CloseIcon, EditOutlined as EditIcon, OpenInNewOutlined as OpenInNewIcon } from '@mui/icons-material';
 import { Box, Button, IconButton, Typography } from '@mui/material';
 import { format } from 'date-fns';
@@ -10,6 +9,7 @@ import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { AssetCard } from '@/components/Assets/AssetCard';
 import { Popover } from '@/components/common/Popover';
+import { Asset } from '@/entities';
 import { COLOR_MAP } from './constants';
 
 const POPOVER_WIDTH = 320;
@@ -134,7 +134,7 @@ export function EventDetailsPopover({
               'textDecoration': 'none',
               'mb': 2,
               '&:hover .folder-body': {
-                boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.1)',
+                bgcolor: 'action.hover',
               },
             }}
           >

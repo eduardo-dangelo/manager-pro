@@ -1,13 +1,13 @@
 'use client';
 
 import type { AssetData } from '@/entities';
-import { Asset } from '@/entities';
 import { Box, Fade, Typography } from '@mui/material';
 import { format } from 'date-fns';
 import { AssetActions } from '@/components/Assets/AssetActions';
 import { MotChip } from '@/components/Assets/MotChip';
 import { TaxChip } from '@/components/Assets/TaxChip';
 import { RegistrationPlate } from '@/components/common/RegistrationPlate';
+import { Asset } from '@/entities';
 
 export type CardSize = 'small' | 'medium' | 'large';
 
@@ -80,7 +80,8 @@ export function AssetCard({ asset, locale, cardSize, compact = false, onAssetDel
           bgcolor: 'background.paper',
           border: 1,
           borderColor: 'divider',
-          borderRadius: '12px',
+          // borderRadius: '12px',
+          borderRadius: 2,
           p: cardSize === 'small' && !compact ? 2 : compact ? 2 : 3,
           pb: cardSize === 'small' && !compact ? 1.5 : compact ? 1.5 : 2.5,
           display: 'flex',
