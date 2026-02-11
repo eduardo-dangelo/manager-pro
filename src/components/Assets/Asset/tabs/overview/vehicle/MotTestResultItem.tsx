@@ -3,7 +3,7 @@
 import { Box, Chip, Typography } from '@mui/material';
 import moment from 'moment';
 import { useTranslations } from 'next-intl';
-import { formatMileage } from '@/components/Assets/utils';
+import { Asset } from '@/entities';
 
 type Defect = {
   text?: string;
@@ -44,7 +44,7 @@ export function MotTestResultItem({
   const expiryDate = test.expiryDate ? moment(test.expiryDate).format('YYYY.MM.DD') : null;
 
   const formattedMileage = test.odometerValue
-    ? formatMileage(test.odometerValue)
+    ? Asset.formatMileage(test.odometerValue)
     : null;
 
   const defects = test.defects ?? [];

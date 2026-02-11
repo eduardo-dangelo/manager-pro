@@ -1,7 +1,7 @@
 'use client';
 
-import type { Asset } from '@/components/Assets/utils';
-import { formatVehicleInfo } from '@/components/Assets/utils';
+import type { AssetData } from '@/entities';
+import { Asset } from '@/entities';
 import { Box, Fade, Typography } from '@mui/material';
 import { format } from 'date-fns';
 import { AssetActions } from '@/components/Assets/AssetActions';
@@ -12,7 +12,7 @@ import { RegistrationPlate } from '@/components/common/RegistrationPlate';
 export type CardSize = 'small' | 'medium' | 'large';
 
 type AssetCardProps = {
-  asset: Asset;
+  asset: AssetData;
   locale: string;
   cardSize: CardSize;
   compact?: boolean;
@@ -133,7 +133,7 @@ export function AssetCard({ asset, locale, cardSize, compact = false, onAssetDel
         </Fade>
 
         {/* Vehicle info string for medium/large sizes (or compact) */}
-        {asset.type === 'vehicle' && formatVehicleInfo(asset) && (
+        {asset.type === 'vehicle' && new Asset(asset).formatVehicleInfo() && (
           <Fade in={true}>
             <Typography
               variant={cardSize === 'large' ? 'body2' : 'caption'}
@@ -143,7 +143,7 @@ export function AssetCard({ asset, locale, cardSize, compact = false, onAssetDel
                 mb: compact ? 0.5 : 1,
               }}
             >
-              {formatVehicleInfo(asset)}
+              {new Asset(asset).formatVehicleInfo()}
             </Typography>
           </Fade>
         )}

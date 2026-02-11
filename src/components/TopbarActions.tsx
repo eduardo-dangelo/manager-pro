@@ -18,11 +18,10 @@ import {
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
-import { useNotificationsRefetch } from '@/contexts/NotificationsRefetchContext';
+import { useEffect, useState } from 'react';
 import { useHoverSound } from '@/hooks/useHoverSound';
+import { useGetNotifications } from '@/queries/hooks/notifications';
 import { getI18nPath } from '@/utils/Helpers';
-import type { Notification } from './Notifications/types';
 import { NotificationsPopover } from './Notifications/NotificationsPopover';
 import { useThemeMode } from './ThemeProvider';
 import { UserProfileModal } from './UserProfileModal';
@@ -32,45 +31,23 @@ export function TopbarActions() {
   const pathname = usePathname();
   const t = useTranslations('GlobalTopbar');
 
-  // Extract locale from pathname
   const locale = pathname?.match(/^\/([a-z]{2})\//)?.[1] || 'en';
 
-  // Get theme mode from ThemeProvider
   const { mode, toggleTheme } = useThemeMode();
   const { playHoverSound } = useHoverSound();
-  const { registerRefetch } = useNotificationsRefetch();
+  const { data: notifications = [], refetch } = useGetNotifications(locale);
   const [userProfileModalOpen, setUserProfileModalOpen] = useState(false);
   const [notificationsAnchorEl, setNotificationsAnchorEl] = useState<HTMLElement | null>(null);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
-
-  const fetchNotifications = useCallback(async () => {
-    try {
-      const res = await fetch(`/${locale}/api/notifications`);
-      if (!res.ok) return;
-      const data = (await res.json()) as { notifications: Notification[] };
-      setNotifications(data.notifications ?? []);
-    } catch {
-      // ignore
-    }
-  }, [locale]);
-
-  useEffect(() => {
-    void fetchNotifications();
-  }, [fetchNotifications]);
-
-  useEffect(() => {
-    registerRefetch(fetchNotifications);
-  }, [registerRefetch, fetchNotifications]);
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   useEffect(() => {
     const handleFocus = () => {
-      void fetchNotifications();
+      void refetch();
     };
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
-  }, [fetchNotifications]);
+  }, [refetch]);
 
   return (
     <>
@@ -78,7 +55,7 @@ export function TopbarActions() {
         {/* Notifications */}
         <Tooltip title={t('tooltip_notifications')}>
           <IconButton
-            onClick={(e) => setNotificationsAnchorEl(e.currentTarget)}
+            onClick={e => setNotificationsAnchorEl(e.currentTarget)}
             onMouseEnter={playHoverSound}
             size="small"
             sx={{
@@ -187,7 +164,6 @@ export function TopbarActions() {
         anchorEl={notificationsAnchorEl}
         onClose={() => setNotificationsAnchorEl(null)}
         locale={locale}
-        onRefetch={setNotifications}
       />
 
       {/* User Profile Modal */}
@@ -198,4 +174,3 @@ export function TopbarActions() {
     </>
   );
 }
-

@@ -326,4 +326,3 @@ export function SprintsTab({ asset, locale, onUpdateAsset }: SprintsTabProps) {
     </Box>
   );
 }
-

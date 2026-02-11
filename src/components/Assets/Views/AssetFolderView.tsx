@@ -1,15 +1,16 @@
 'use client';
 
-import type { Asset } from '@/components/Assets/utils';
-import { pluralizeType } from '@/components/Assets/utils';
-import { AssetCard, type CardSize } from '@/components/Assets/AssetCard';
+import type { CardSize } from '@/components/Assets/AssetCard';
+import type { AssetData } from '@/entities';
+import { Asset } from '@/entities';
 import { Box } from '@mui/material';
 import Link from 'next/link';
 import { TransitionGroup } from 'react-transition-group';
+import { AssetCard } from '@/components/Assets/AssetCard';
 import { useHoverSound } from '@/hooks/useHoverSound';
 
 type AssetFolderViewProps = {
-  assets: Asset[];
+  assets: AssetData[];
   locale: string;
   cardSize: CardSize;
   onAssetDeleted?: (assetId: number) => void;
@@ -37,20 +38,20 @@ export function AssetFolderView({ assets, locale, cardSize, onAssetDeleted }: As
           <Box
             key={asset.id}
             component={Link}
-            href={`/${locale}/assets/${pluralizeType(asset.type)}/${asset.id}`}
+            href={`/${locale}/assets/${new Asset(asset).getPluralizedRoute()}/${asset.id}`}
             onMouseEnter={playHoverSound}
             sx={{
-              textDecoration: 'none',
-              cursor: 'pointer',
-              display: 'block',
-              perspective: '1000px',
-              padding: 0,
-              width: getGridSizes(),
-              transition: 'all 0.3s ease',
+              'textDecoration': 'none',
+              'cursor': 'pointer',
+              'display': 'block',
+              'perspective': '1000px',
+              'padding': 0,
+              'width': getGridSizes(),
+              'transition': 'all 0.3s ease',
               '&:hover .folder-body': {
                 boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.1)',
               },
-              p: 1,
+              'p': 1,
             }}
           >
             <AssetCard

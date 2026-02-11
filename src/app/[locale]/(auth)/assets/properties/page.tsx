@@ -47,4 +47,3 @@ export default async function PropertyAssetsPage(props: {
 
   return <AssetsPageClient assets={assets} locale={locale} assetType="property" />;
 }
-

@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { createContext, use, useCallback, useState, useMemo } from 'react';
+import { createContext, use, useCallback, useMemo, useState } from 'react';
 
 type GlobalTopbarContentContextType = {
   rightContent: ReactNode | null;
@@ -33,4 +33,3 @@ export function useGlobalTopbarContent() {
   }
   return context;
 }
-

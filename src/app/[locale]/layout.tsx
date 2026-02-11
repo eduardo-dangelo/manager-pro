@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation';
 import { PostHogProvider } from '@/components/analytics/PostHogProvider';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { routing } from '@/libs/I18nRouting';
+import { QueryProvider } from '@/queries/provider';
 import '@/styles/global.css';
 
 // Configure Nunito font
@@ -70,9 +71,11 @@ export default async function RootLayout(props: {
       <body className={`${nunito.variable} ${oswald.variable}`}>
         <NextIntlClientProvider>
           <PostHogProvider>
-            <ThemeProvider>
-              {props.children}
-            </ThemeProvider>
+            <QueryProvider>
+              <ThemeProvider>
+                {props.children}
+              </ThemeProvider>
+            </QueryProvider>
           </PostHogProvider>
         </NextIntlClientProvider>
       </body>

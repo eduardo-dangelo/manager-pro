@@ -49,4 +49,3 @@ export function AssetActions({ assetId, locale, onDeleted, onCompleted }: AssetA
     />
   );
 }
-

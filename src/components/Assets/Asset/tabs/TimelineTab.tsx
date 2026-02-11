@@ -380,4 +380,3 @@ export function TimelineTab({ asset }: TimelineTabProps) {
     </Box>
   );
 }
-

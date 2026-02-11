@@ -37,10 +37,10 @@ type Sprint = {
 
 type Asset = {
   id: number;
-  name: string;
-  description: string;
-  color: string;
-  status: string;
+  name: string | null;
+  description: string | null;
+  color: string | null;
+  status: string | null;
   type?: string | null;
   tabs?: string[];
   metadata?: Record<string, any>;
@@ -71,7 +71,7 @@ export function AssetDetail({
       const typeLabel = t(`type_${asset.type}` as any);
       return `New ${typeLabel}`;
     }
-    return asset.name;
+    return asset.name ?? '';
   };
 
   // Set breadcrumb in global topbar (only if not hidden)

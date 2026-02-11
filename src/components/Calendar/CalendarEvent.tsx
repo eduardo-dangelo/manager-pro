@@ -82,7 +82,9 @@ export function CalendarEvent({ event, variant = 'inline', showEndTime = true }:
         </Typography>
         {event.location && (
           <Typography variant="caption" color="text.secondary" noWrap sx={{ minWidth: 0 }}>
-            · {event.location}
+            ·
+            {' '}
+            {event.location}
           </Typography>
         )}
       </Box>

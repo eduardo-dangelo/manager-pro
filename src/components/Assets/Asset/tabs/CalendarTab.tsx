@@ -54,7 +54,9 @@ export function CalendarTab({ asset, locale, registerCalendarRefresh }: Calendar
 
   useEffect(() => {
     registerCalendarRefresh?.(fetchEvents);
-    return () => { registerCalendarRefresh?.(null); };
+    return () => {
+      registerCalendarRefresh?.(null);
+    };
   }, [fetchEvents, registerCalendarRefresh]);
 
   if (loading) {

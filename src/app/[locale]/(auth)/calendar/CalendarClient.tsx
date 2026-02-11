@@ -1,12 +1,14 @@
 'use client';
 
-import type { CalendarEvent, CalendarViewMode } from '@/components/Calendar/types';
-import type { Asset } from '@/components/Assets/utils';
+import type { CalendarViewMode } from '@/components/Calendar/types';
 import { Box, CircularProgress, Typography } from '@mui/material';
+import { useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useState } from 'react';
 import { useSetBreadcrumb } from '@/components/BreadcrumbContext';
 import { CalendarView } from '@/components/Calendar';
+import { useGetAssets } from '@/queries/hooks/assets';
+import { useGetCalendarEvents } from '@/queries/hooks/calendar-events';
+import { calendarEventKeys } from '@/queries/keys';
 
 type CalendarClientProps = {
   locale: string;
@@ -16,47 +18,21 @@ type CalendarClientProps = {
 
 export function CalendarClient({ locale, defaultView, initialDate }: CalendarClientProps) {
   const dashboardT = useTranslations('DashboardLayout');
+  const queryClient = useQueryClient();
 
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [assets, setAssets] = useState<Asset[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: events = [], isLoading: loading, error: queryError } = useGetCalendarEvents(locale);
+  const { data: assets = [] } = useGetAssets(locale);
+
+  const error = queryError ? (queryError instanceof Error ? queryError.message : 'Failed to load') : null;
+
+  const handleEventsChange = () => {
+    queryClient.invalidateQueries({ queryKey: calendarEventKeys.all });
+  };
 
   useSetBreadcrumb([
     { label: dashboardT('menu_dashboard'), href: `/${locale}/dashboard` },
     { label: dashboardT('menu_calendar'), href: `/${locale}/calendar` },
   ]);
-
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [eventsRes, assetsRes] = await Promise.all([
-        fetch(`/${locale}/api/calendar-events`),
-        fetch(`/${locale}/api/assets`),
-      ]);
-      if (!eventsRes.ok) {
-        throw new Error('Failed to fetch events');
-      }
-      if (!assetsRes.ok) {
-        throw new Error('Failed to fetch assets');
-      }
-      const eventsData = (await eventsRes.json()) as { events: CalendarEvent[] };
-      const assetsData = (await assetsRes.json()) as { assets: Asset[] };
-      setEvents(eventsData.events ?? []);
-      setAssets(assetsData.assets ?? []);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load');
-      setEvents([]);
-      setAssets([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [locale]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
 
   if (loading) {
     return (
@@ -83,7 +59,7 @@ export function CalendarClient({ locale, defaultView, initialDate }: CalendarCli
         events={events}
         locale={locale}
         assets={assets}
-        onEventsChange={setEvents}
+        onEventsChange={handleEventsChange}
         defaultView={defaultView}
         initialDate={initialDate}
       />

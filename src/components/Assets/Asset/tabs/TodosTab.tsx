@@ -472,4 +472,3 @@ export function TodosTab({ asset, locale, onUpdateAsset }: TodosTabProps) {
     </Box>
   );
 }
-

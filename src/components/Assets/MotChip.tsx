@@ -1,20 +1,21 @@
 'use client';
 
 import type { ChipProps } from '@mui/material';
-import type { Asset } from '@/components/Assets/utils';
+import type { AssetData } from '@/entities';
+import { Asset } from '@/entities';
 import CancelIcon from '@mui/icons-material/Cancel';
 import CheckIcon from '@mui/icons-material/CheckCircle';
 import WarningIcon from '@mui/icons-material/Warning';
 import { Box, Chip, Tooltip, Typography } from '@mui/material';
-import { getMotStatus, getStatusColors, getStatusTooltipText } from '@/components/Assets/utils';
 
 type MotChipProps = ChipProps & {
-  asset: Asset;
+  asset: AssetData;
   size?: 'small' | 'medium' | 'large';
 };
 
 export function MotChip({ asset, size = 'medium', ...props }: MotChipProps) {
-  const motStatus = getMotStatus(asset);
+  const assetEntity = new Asset(asset);
+  const motStatus = assetEntity.getMotStatus();
 
   const showIcons = size !== 'small';
   const fontSize = size === 'small' ? '0.625rem' : '0.75rem';
@@ -25,7 +26,7 @@ export function MotChip({ asset, size = 'medium', ...props }: MotChipProps) {
   // Determine status and colors
   const isExpired = motStatus.isExpired;
   const isExpiringSoon = motStatus.isExpiringSoon;
-  const colors = getStatusColors(isExpired, isExpiringSoon);
+  const colors = Asset.getStatusColors(isExpired, isExpiringSoon);
 
   // Determine icon
   const getIcon = () => {
@@ -73,7 +74,7 @@ export function MotChip({ asset, size = 'medium', ...props }: MotChipProps) {
     />
   );
 
-  const tooltipText = getStatusTooltipText(motStatus.expiryDate, isExpired);
+  const tooltipText = Asset.getStatusTooltipText(motStatus.expiryDate, isExpired);
   if (tooltipText) {
     return (
       <Tooltip title={tooltipText}>

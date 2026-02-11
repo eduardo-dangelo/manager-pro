@@ -1,8 +1,8 @@
 'use client';
 
 import type { Notification } from './types';
-import type { Asset } from '@/components/Assets/utils';
 import type { CalendarEvent } from '@/components/Calendar/types';
+import type { Asset } from '@/entities';
 import {
   Box,
   Collapse,
@@ -14,11 +14,13 @@ import {
 } from '@mui/material';
 import { formatDistanceToNow } from 'date-fns';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { TransitionGroup } from 'react-transition-group';
 import { CreateEventPopover } from '@/components/Calendar/CreateEventPopover';
 import { EventDetailsPopover } from '@/components/Calendar/EventDetailsPopover';
 import { Popover } from '@/components/common/Popover';
+import { useGetAssets } from '@/queries/hooks/assets';
+import { useGetNotifications, useMarkNotificationRead } from '@/queries/hooks/notifications';
 
 const POPOVER_WIDTH = 360;
 
@@ -77,7 +79,6 @@ type NotificationsPopoverProps = {
   anchorEl: HTMLElement | null;
   onClose: () => void;
   locale: string;
-  onRefetch?: (notifications: Notification[]) => void;
 };
 
 export function NotificationsPopover({
@@ -85,11 +86,12 @@ export function NotificationsPopover({
   anchorEl,
   onClose,
   locale,
-  onRefetch,
 }: NotificationsPopoverProps) {
   const t = useTranslations('Notifications');
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { data: notifications = [], isLoading: loading } = useGetNotifications(locale);
+  const markAsRead = useMarkNotificationRead(locale);
+  const { data: assets = [] } = useGetAssets(locale);
+
   const [showOnlyUnread, setShowOnlyUnread] = useState(true);
   const [eventDetailsAnchor, setEventDetailsAnchor] = useState<HTMLElement | null>(null);
   const [eventDetailsEvent, setEventDetailsEvent] = useState<CalendarEvent | null>(null);
@@ -97,28 +99,6 @@ export function NotificationsPopover({
   const [editPopoverAnchor, setEditPopoverAnchor] = useState<HTMLElement | null>(null);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [editingAssets, setEditingAssets] = useState<Asset[]>([]);
-
-  const fetchNotifications = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`/${locale}/api/notifications`);
-      if (!res.ok) {
-        return;
-      }
-      const data = (await res.json()) as { notifications: Notification[] };
-      const list = data.notifications ?? [];
-      setNotifications(list);
-      onRefetch?.(list);
-    } finally {
-      setLoading(false);
-    }
-  }, [locale, onRefetch]);
-
-  useEffect(() => {
-    if (open) {
-      void fetchNotifications();
-    }
-  }, [open, fetchNotifications]);
 
   const displayedNotifications = showOnlyUnread
     ? notifications.filter(n => !n.read)
@@ -129,20 +109,9 @@ export function NotificationsPopover({
       if (n.read) {
         return;
       }
-      const res = await fetch(`/${locale}/api/notifications/${n.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (!res.ok) {
-        return;
-      }
-      const updatedList = notifications.map(notif =>
-        notif.id === n.id ? { ...notif, read: true } : notif,
-      );
-      setNotifications(updatedList);
-      onRefetch?.(updatedList);
+      await markAsRead.mutateAsync(n.id);
     },
-    [locale, notifications, onRefetch],
+    [markAsRead],
   );
 
   const handleEventNameClick = useCallback(
@@ -155,23 +124,19 @@ export function NotificationsPopover({
       }
       setEventDetailsAnchor(e.currentTarget);
       try {
-        const [eventRes, assetsRes] = await Promise.all([
-          fetch(`/${locale}/api/calendar-events/${eventId}`),
-          fetch(`/${locale}/api/assets`),
-        ]);
-        if (!eventRes.ok || !assetsRes.ok) {
+        const eventRes = await fetch(`/${locale}/api/calendar-events/${eventId}`);
+        if (!eventRes.ok) {
           setEventDetailsAnchor(null);
           return;
         }
         const eventData = (await eventRes.json()) as { event: CalendarEvent };
-        const assetsData = (await assetsRes.json()) as { assets: Asset[] };
         setEventDetailsEvent(eventData.event);
-        setEventDetailsAssets(assetsData.assets ?? []);
+        setEventDetailsAssets(assets);
       } catch {
         setEventDetailsAnchor(null);
       }
     },
-    [locale],
+    [locale, assets],
   );
 
   const handleEventDetailsClose = useCallback(() => {
@@ -376,11 +341,9 @@ export function NotificationsPopover({
           event={editingEvent}
           onSuccess={() => {
             handleEditPopoverClose();
-            void fetchNotifications();
           }}
           onDeleteSuccess={() => {
             handleEditPopoverClose();
-            void fetchNotifications();
           }}
         />
       )}

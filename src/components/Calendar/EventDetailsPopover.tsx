@@ -1,14 +1,14 @@
 'use client';
 
 import type { CalendarEvent } from './types';
-import type { Asset } from '@/components/Assets/utils';
+import type { AssetData } from '@/entities';
+import { Asset } from '@/entities';
 import { Close as CloseIcon, EditOutlined as EditIcon, OpenInNewOutlined as OpenInNewIcon } from '@mui/icons-material';
 import { Box, Button, IconButton, Typography } from '@mui/material';
 import { format } from 'date-fns';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { AssetCard } from '@/components/Assets/AssetCard';
-import { pluralizeType } from '@/components/Assets/utils';
 import { Popover } from '@/components/common/Popover';
 import { COLOR_MAP } from './constants';
 
@@ -19,7 +19,7 @@ type EventDetailsPopoverProps = {
   anchorEl: HTMLElement | null;
   anchorPosition?: { top: number; left: number } | null;
   event: CalendarEvent | null;
-  assets?: Asset[];
+  assets?: AssetData[];
   showAssetCard?: boolean;
   onClose: () => void;
   locale: string;
@@ -128,7 +128,7 @@ export function EventDetailsPopover({
         {showAssetCard && asset && (
           <Box
             component={Link}
-            href={`/${locale}/assets/${pluralizeType(asset.type)}/${asset.id}`}
+            href={`/${locale}/assets/${new Asset(asset).getPluralizedRoute()}/${asset.id}`}
             sx={{
               'display': 'block',
               'textDecoration': 'none',

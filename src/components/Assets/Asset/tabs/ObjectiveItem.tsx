@@ -754,4 +754,3 @@ export function ObjectiveItem({
     </Accordion>
   );
 }
-

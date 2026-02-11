@@ -68,7 +68,9 @@ export const VehicleMileageChart: FC<VehicleMileageChartProps> = ({
               color: theme.palette.primary.main,
             }]}
             onHighlightChange={(highlightedItem) => {
-              if (highlightedItem) playHoverSound();
+              if (highlightedItem) {
+                playHoverSound();
+              }
             }}
           />
         )
@@ -89,7 +91,9 @@ export const VehicleMileageChart: FC<VehicleMileageChartProps> = ({
                 color: theme.palette.primary.main,
               }]}
               onHighlightChange={(highlightedItem) => {
-                if (highlightedItem) playHoverSound();
+                if (highlightedItem) {
+                  playHoverSound();
+                }
               }}
             />
           )

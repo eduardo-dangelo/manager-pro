@@ -10,9 +10,9 @@ import { AssetsList } from '@/components/Assets/Views/AssetsList';
 type Asset = {
   id: number;
   name: string | null;
-  description: string;
-  color: string;
-  status: string;
+  description: string | null;
+  color: string | null;
+  status: string | null;
   type: string;
   createdAt: Date;
   updatedAt: Date;

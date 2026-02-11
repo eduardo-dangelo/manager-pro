@@ -1,20 +1,21 @@
 'use client';
 
 import type { ChipProps } from '@mui/material';
-import type { Asset } from '@/components/Assets/utils';
+import type { AssetData } from '@/entities';
+import { Asset } from '@/entities';
 import CancelIcon from '@mui/icons-material/Cancel';
 import CheckIcon from '@mui/icons-material/CheckCircle';
 import WarningIcon from '@mui/icons-material/Warning';
 import { Box, Chip, Tooltip, Typography } from '@mui/material';
-import { getStatusColors, getStatusTooltipText, getTaxStatus } from '@/components/Assets/utils';
 
 type TaxChipProps = ChipProps & {
-  asset: Asset;
+  asset: AssetData;
   size?: 'small' | 'medium' | 'large';
 };
 
 export function TaxChip({ asset, size = 'medium', ...props }: TaxChipProps) {
-  const taxStatus = getTaxStatus(asset);
+  const assetEntity = new Asset(asset);
+  const taxStatus = assetEntity.getTaxStatus();
 
   const showIcons = size !== 'small';
   const fontSize = size === 'small' ? '0.625rem' : '0.75rem';
@@ -25,7 +26,7 @@ export function TaxChip({ asset, size = 'medium', ...props }: TaxChipProps) {
   // Determine status and colors
   const isExpired = taxStatus.isExpired;
   const isExpiringSoon = taxStatus.isExpiringSoon;
-  const colors = getStatusColors(isExpired, isExpiringSoon);
+  const colors = Asset.getStatusColors(isExpired, isExpiringSoon);
 
   // Determine icon
   const getIcon = () => {
@@ -73,7 +74,7 @@ export function TaxChip({ asset, size = 'medium', ...props }: TaxChipProps) {
     />
   );
 
-  const tooltipText = getStatusTooltipText(taxStatus.expiryDate, isExpired);
+  const tooltipText = Asset.getStatusTooltipText(taxStatus.expiryDate, isExpired);
   if (tooltipText) {
     return (
       <Tooltip title={tooltipText}>

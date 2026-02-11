@@ -70,15 +70,15 @@ export function TimePickerPopover({
                 onClose();
               }}
               sx={{
-                display: 'block',
-                width: '100%',
-                px: 1.5,
-                py: 0.75,
-                border: 'none',
-                borderRadius: 0,
-                bgcolor: isSelected ? 'action.selected' : 'transparent',
-                cursor: 'pointer',
-                textAlign: 'left',
+                'display': 'block',
+                'width': '100%',
+                'px': 1.5,
+                'py': 0.75,
+                'border': 'none',
+                'borderRadius': 0,
+                'bgcolor': isSelected ? 'action.selected' : 'transparent',
+                'cursor': 'pointer',
+                'textAlign': 'left',
                 '&:hover': {
                   bgcolor: isSelected ? 'action.selected' : 'action.hover',
                 },

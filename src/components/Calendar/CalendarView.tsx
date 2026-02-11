@@ -1,7 +1,7 @@
 'use client';
 
 import type { CalendarEvent, CalendarViewMode } from './types';
-import type { Asset } from '@/components/Assets/utils';
+import type { AssetData } from '@/entities';
 import { ChevronLeft, ChevronRight } from '@mui/icons-material';
 import {
   Box,
@@ -48,7 +48,7 @@ type CalendarViewProps = {
   defaultView?: CalendarViewMode;
   initialDate?: Date;
   assetId?: number;
-  assets?: Asset[];
+  assets?: AssetData[];
   onEventsChange?: (events: CalendarEvent[]) => void;
 };
 

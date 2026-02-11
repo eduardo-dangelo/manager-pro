@@ -59,4 +59,3 @@ export function RegistrationPlate({ registration, size = 'medium' }: Registratio
     </Box>
   );
 }
-

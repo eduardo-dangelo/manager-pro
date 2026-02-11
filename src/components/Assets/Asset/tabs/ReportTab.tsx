@@ -357,4 +357,3 @@ export function ReportTab({ asset }: ReportTabProps) {
     </Box>
   );
 }
-

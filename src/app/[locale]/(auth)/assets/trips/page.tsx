@@ -47,4 +47,3 @@ export default async function TripAssetsPage(props: {
 
   return <AssetsPageClient assets={assets} locale={locale} assetType="trip" />;
 }
-

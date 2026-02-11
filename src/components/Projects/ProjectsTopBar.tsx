@@ -73,7 +73,7 @@ export function ProjectsTopBar({
   const sortOpen = Boolean(sortAnchorEl);
   const t = useTranslations('Projects');
   const dashboardT = useTranslations('DashboardLayout');
-  
+
   // Determine page title based on project type
   const getPageTitle = () => {
     if (projectType) {

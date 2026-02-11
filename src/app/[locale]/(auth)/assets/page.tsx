@@ -52,4 +52,3 @@ export default async function AssetsPage(props: {
 
   return <AssetsPageClient assets={assets} locale={locale} userPreferences={userPreferences} />;
 }
-

@@ -510,4 +510,3 @@ export function ObjectivesTab({ asset, locale, onUpdateAsset }: ObjectivesTabPro
     </Box>
   );
 }
-

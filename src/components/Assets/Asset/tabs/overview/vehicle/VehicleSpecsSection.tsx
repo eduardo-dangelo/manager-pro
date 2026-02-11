@@ -31,14 +31,14 @@ import {
 } from '@mui/material';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
-import { VehicleSpecItem } from './VehicleSpecItem';
-import { formatEngineSize, formatMileage } from '@/components/Assets/utils';
 import { Card } from '@/components/common/Card';
 import { DropdownButton } from '@/components/common/DropdownButton';
 import { RegistrationPlate } from '@/components/common/RegistrationPlate';
+import { Asset } from '@/entities';
 import { useHoverSound } from '@/hooks/useHoverSound';
+import { VehicleSpecItem } from './VehicleSpecItem';
 
-type Asset = {
+type VehicleAsset = {
   id: number;
   name: string;
   type?: string | null;
@@ -50,9 +50,9 @@ type Asset = {
 };
 
 type VehicleSpecsSectionProps = {
-  asset: Asset;
+  asset: VehicleAsset;
   locale: string;
-  onUpdateAsset: (asset: Asset) => void;
+  onUpdateAsset: (asset: VehicleAsset) => void;
   onCalendarRefreshRequested?: () => void;
 };
 
@@ -366,7 +366,7 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset, onCalendarRe
               }
             }
           })
-          .catch((err) => console.warn('Failed to sync reminder events:', err));
+          .catch(err => console.warn('Failed to sync reminder events:', err));
       }
     } catch (error) {
       console.error('Error updating vehicle specs:', error);
@@ -475,9 +475,9 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset, onCalendarRe
     { key: 'registration', label: t('vehicle_registration'), value: specs.registration, format: (v: any) => v },
     { key: 'fuel', label: t('vehicle_fuel'), value: specs.fuel, format: (v: any) => v },
     { key: 'color', label: t('vehicle_color'), value: specs.color, format: (v: any) => v },
-    { key: 'mileage', label: t('vehicle_mileage'), value: mileage, format: (v: any) => formatMileage(v) || v },
-    { key: 'yearMileage', label: 'Yearly Mileage', value: yearMileage, format: (v: any) => formatMileage(v) || v },
-    { key: 'engineSize', label: t('vehicle_engine_size'), value: specs.engineSize, format: (v: any) => formatEngineSize(v) || v },
+    { key: 'mileage', label: t('vehicle_mileage'), value: mileage, format: (v: any) => Asset.formatMileage(v) || v },
+    { key: 'yearMileage', label: 'Yearly Mileage', value: yearMileage, format: (v: any) => Asset.formatMileage(v) || v },
+    { key: 'engineSize', label: t('vehicle_engine_size'), value: specs.engineSize, format: (v: any) => Asset.formatEngineSize(v) || v },
   ];
   // .filter(item => item.value !== '' && item.value !== null && item.value !== undefined);
 
@@ -688,7 +688,7 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset, onCalendarRe
               }
             }
           })
-          .catch((err) => console.warn('Failed to sync reminder events:', err));
+          .catch(err => console.warn('Failed to sync reminder events:', err));
       }
 
       // Store last refresh timestamp in localStorage

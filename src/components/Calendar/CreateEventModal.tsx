@@ -1,7 +1,7 @@
 'use client';
 
-import type { CalendarEvent } from './types';
 import type { AssetOption } from './CreateEventForm';
+import type { CalendarEvent } from './types';
 import { Close as CloseIcon } from '@mui/icons-material';
 import {
   Box,

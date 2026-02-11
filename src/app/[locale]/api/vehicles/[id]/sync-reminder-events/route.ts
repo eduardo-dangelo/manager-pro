@@ -1,15 +1,17 @@
 import { currentUser } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
+import { logger } from '@/libs/Logger';
 import { AssetService } from '@/services/assetService';
 import { CalendarEventService } from '@/services/calendarEventService';
-import { logger } from '@/libs/Logger';
 
 const MOT_REMINDER_MARKER = '[AUTO:vehicle_mot_reminder]';
 const TAX_REMINDER_MARKER = '[AUTO:vehicle_tax_reminder]';
 const REMINDER_COLOR = 'orange';
 
 function parseExpiryDate(value: string | undefined): Date | null {
-  if (!value || typeof value !== 'string') return null;
+  if (!value || typeof value !== 'string') {
+    return null;
+  }
   const d = new Date(value);
   return Number.isNaN(d.getTime()) ? null : d;
 }
@@ -68,10 +70,10 @@ export const POST = async (
     );
 
     const motEvent = existingEvents.find(
-      (e) => e.description?.includes(MOT_REMINDER_MARKER),
+      e => e.description?.includes(MOT_REMINDER_MARKER),
     );
     const taxEvent = existingEvents.find(
-      (e) => e.description?.includes(TAX_REMINDER_MARKER),
+      e => e.description?.includes(TAX_REMINDER_MARKER),
     );
 
     let created = 0;

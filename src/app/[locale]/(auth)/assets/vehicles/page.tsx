@@ -47,4 +47,3 @@ export default async function VehicleAssetsPage(props: {
 
   return <AssetsPageClient assets={assets} locale={locale} assetType="vehicle" />;
 }
-

@@ -2,6 +2,7 @@
 
 import type { SxProps, Theme } from '@mui/material';
 import type { ReactElement, ReactNode } from 'react';
+import type { MaintenanceItem, MotTest } from '@/entities';
 import {
   Add as AddIcon,
   AutorenewOutlined as AutorenewOutlinedIcon,
@@ -21,24 +22,13 @@ import {
 } from '@mui/material';
 import moment from 'moment';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
 
-import { VehicleMileageChart } from './VehicleMileageChart';
-import { MotHistorySidePanel } from './MotHistorySidePanel';
-import { getStatusColors, formatDate } from '@/components/Assets/utils';
-import {
-  type MotTest,
-  type MaintenanceItem,
-  type MaintenanceLink,
-  type MileagePoint,
-  type MaintenanceSectionItem,
-  type MaintenanceCardConfig,
-  buildMileageOverTimeSeries,
-  buildMileagePerYearSeries,
-  hasMaintenanceData,
-} from '@/components/Assets/vehicle/utils';
-import { useHoverSound } from '@/hooks/useHoverSound';
+import { useState } from 'react';
+import { Asset } from '@/entities';
 import { Card } from '@/components/common/Card';
+import { useHoverSound } from '@/hooks/useHoverSound';
+import { MotHistorySidePanel } from './MotHistorySidePanel';
+import { VehicleMileageChart } from './VehicleMileageChart';
 
 type Asset = {
   id: number;
@@ -55,7 +45,6 @@ type VehicleMaintenanceSectionProps = {
   locale: string;
   onUpdateAsset: (asset: Asset) => void;
 };
-
 
 type MaintenanceSectionItemProps = {
   label: string;
@@ -151,7 +140,7 @@ const buildMaintenanceCards = (
   latestMotTest: MotTest | null,
   t: ReturnType<typeof useTranslations<'Assets'>>,
   setMotHistoryOpen: (open: boolean) => void,
-): MaintenanceCardConfig[] => {
+): Array<{ id: string; titleKey: string; hasData: () => boolean; sections: MaintenanceSectionItemProps[] }> => {
   const mot: MaintenanceItem = maintenance.mot || {};
   const tax: MaintenanceItem = maintenance.tax || {};
   const insurance: MaintenanceItem = maintenance.insurance || {};
@@ -164,10 +153,10 @@ const buildMaintenanceCards = (
   const taxExpiry = tax.expires || dvlaData.taxDueDate;
   const taxStatus = dvlaData.taxStatus;
 
-  const cards: MaintenanceCardConfig[] = [];
+  const cards: Array<{ id: string; titleKey: string; hasData: () => boolean; sections: MaintenanceSectionItemProps[] }> = [];
 
-  const mileageOverTimeSeries = buildMileageOverTimeSeries(motTests);
-  const mileagePerYearSeries = buildMileagePerYearSeries(motTests);
+  const mileageOverTimeSeries = Asset.buildMileageOverTimeSeries(motTests);
+  const mileagePerYearSeries = Asset.buildMileagePerYearSeries(motTests);
   const hasMileageData = mileageOverTimeSeries.length > 0;
 
   const getIcon = (isExpired: boolean, isExpiringSoon: boolean): ReactElement => {
@@ -203,7 +192,7 @@ const buildMaintenanceCards = (
               ? `Expiring soon`
               : undefined,
             customSx: () => {
-              const color = getStatusColors(motIsInvalid, false);
+              const color = Asset.getStatusColors(motIsInvalid, false);
               return ({
                 border: '1px solid',
                 borderColor: color.borderColor,
@@ -216,7 +205,7 @@ const buildMaintenanceCards = (
           {
             label: 'Expires',
             icon: <CalendarIconOutlined />,
-            value: formatDate(motExpiryDate),
+            value: Asset.formatDate(motExpiryDate),
           },
           {
             label: 'Remaining days',
@@ -262,7 +251,7 @@ const buildMaintenanceCards = (
                     ? `Expiring soon`
                     : undefined,
                   customSx: () => {
-                    const color = getStatusColors(taxIsExpired, taxIsExpiringSoon);
+                    const color = Asset.getStatusColors(taxIsExpired, taxIsExpiringSoon);
                     return ({
                       border: '1px solid',
                       borderColor: color.borderColor,
@@ -277,7 +266,7 @@ const buildMaintenanceCards = (
           {
             label: t('expires'),
             icon: <CalendarIconOutlined />,
-            value: formatDate(taxExpiry),
+            value: Asset.formatDate(taxExpiry),
           },
           {
             label: 'Remaining days',

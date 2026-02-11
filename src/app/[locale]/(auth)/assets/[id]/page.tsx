@@ -71,4 +71,3 @@ export default async function AssetDetailPage(props: {
 
   return <AssetDetail asset={asset} locale={locale} />;
 }
-

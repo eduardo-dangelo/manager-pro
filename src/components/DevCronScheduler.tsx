@@ -11,7 +11,9 @@ const CRON_INTERVAL_MS = 60 * 1000; // 1 minute
  */
 export function DevCronScheduler() {
   useEffect(() => {
-    if (process.env.NODE_ENV !== 'development') return;
+    if (process.env.NODE_ENV !== 'development') {
+      return;
+    }
 
     const tick = () => {
       fetch('/api/cron/check-event-reminders').catch(() => {

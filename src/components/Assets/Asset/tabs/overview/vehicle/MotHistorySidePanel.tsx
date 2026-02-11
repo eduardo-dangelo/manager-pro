@@ -1,6 +1,6 @@
 'use client';
 
-import type { MotTest } from '@/components/Assets/vehicle/utils';
+import type { MotTest } from '@/entities';
 import {
   Cancel as CancelIcon,
   CheckCircle as CheckCircleIconOutlinedIcon,

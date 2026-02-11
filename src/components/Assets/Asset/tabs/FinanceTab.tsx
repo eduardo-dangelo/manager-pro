@@ -44,4 +44,3 @@ export function FinanceTab({ asset }: FinanceTabProps) {
     </Box>
   );
 }
-

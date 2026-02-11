@@ -28,57 +28,13 @@ import { TransitionGroup } from 'react-transition-group';
 import { AssetActions } from '@/components/Assets/AssetActions';
 import { MotChip } from '@/components/Assets/MotChip';
 import { TaxChip } from '@/components/Assets/TaxChip';
-import { formatVehicleInfo } from '@/components/Assets/utils';
+import type { AssetData } from '@/entities';
+import { Asset } from '@/entities';
 import { RegistrationPlate } from '@/components/common/RegistrationPlate';
 import { useHoverSound } from '@/hooks/useHoverSound';
 
-type Asset = {
-  id: number;
-  name: string | null;
-  description: string;
-  color: string;
-  status: string;
-  type: string;
-  createdAt: Date;
-  updatedAt: Date;
-  registrationNumber?: string | null;
-  metadata?: {
-    specs?: {
-      registration?: string;
-      make?: string;
-      model?: string;
-      year?: string;
-      yearOfManufacture?: string;
-      color?: string;
-      colour?: string;
-      mileage?: string | number;
-    };
-    maintenance?: {
-      mot?: {
-        expires?: string;
-      };
-      tax?: {
-        expires?: string;
-      };
-    };
-    mot?: {
-      motTests?: Array<{
-        testResult?: string;
-        expiryDate?: string;
-        odometerValue?: number;
-        odometerUnit?: string;
-      }>;
-      motExpiryDate?: string;
-    };
-    dvla?: {
-      taxStatus?: string;
-      taxDueDate?: string;
-    };
-  } | null;
-};
-
 type AssetListViewProps = {
-  assets: Asset[];
+  assets: AssetData[];
   locale: string;
   onAssetDeleted?: (assetId: number) => void;
 };
@@ -92,19 +48,6 @@ const assetTypeIcons = {
   project: WorkIcon,
   trip: FlightIcon,
   custom: CategoryIcon,
-};
-
-// Helper function to pluralize asset types for routes
-const pluralizeType = (type: string): string => {
-  const pluralMap: Record<string, string> = {
-    vehicle: 'vehicles',
-    property: 'properties',
-    person: 'persons',
-    project: 'projects',
-    trip: 'trips',
-    custom: 'customs',
-  };
-  return pluralMap[type] || `${type}s`;
 };
 
 export function AssetListView({ assets, locale, onAssetDeleted }: AssetListViewProps) {
@@ -174,7 +117,7 @@ export function AssetListView({ assets, locale, onAssetDeleted }: AssetListViewP
                   >
                     <TableRow
                       onMouseEnter={playHoverSound}
-                      onClick={() => router.push(`/${locale}/assets/${pluralizeType(asset.type)}/${asset.id}`)}
+                      onClick={() => router.push(`/${locale}/assets/${new Asset(asset).getPluralizedRoute()}/${asset.id}`)}
                       sx={{
                         'bgcolor': index % 2 === 1 ? theme.palette.action.hover : 'inherit',
                         'transition': 'box-shadow 0.2s ease',
@@ -212,14 +155,14 @@ export function AssetListView({ assets, locale, onAssetDeleted }: AssetListViewP
                                     {[asset.metadata?.specs?.make, asset.metadata?.specs?.model].filter(Boolean).join(' ')}
                                   </Typography>
                                 )}
-                                {formatVehicleInfo(asset) && (
+                                {new Asset(asset).formatVehicleInfo() && (
                                   <Typography
                                     variant="caption"
                                     sx={{
                                       color: theme.palette.text.secondary,
                                     }}
                                   >
-                                    {`(${formatVehicleInfo(asset)})`}
+                                    {`(${new Asset(asset).formatVehicleInfo()})`}
                                   </Typography>
                                 )}
                                 <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>

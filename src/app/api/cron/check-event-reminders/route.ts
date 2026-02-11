@@ -32,21 +32,29 @@ export async function GET(request: Request) {
 
     for (const event of events) {
       const reminders = event.reminders as { useDefault: boolean; overrides: { method: string; minutes: number }[] } | null;
-      if (!reminders?.overrides?.length) continue;
+      if (!reminders?.overrides?.length) {
+        continue;
+      }
 
       const eventStart = new Date(event.start);
-      if (eventStart.getTime() < now.getTime() - GRACE_MS) continue;
+      if (eventStart.getTime() < now.getTime() - GRACE_MS) {
+        continue;
+      }
 
       for (const override of reminders.overrides) {
         const triggerTime = new Date(eventStart.getTime() - override.minutes * 60 * 1000);
-        if (now.getTime() < triggerTime.getTime()) continue;
+        if (now.getTime() < triggerTime.getTime()) {
+          continue;
+        }
 
         const alreadySent = await NotificationService.existsEventReminder(
           event.userId,
           event.id,
           override.minutes,
         );
-        if (alreadySent) continue;
+        if (alreadySent) {
+          continue;
+        }
 
         const title = `Reminder: "${event.name}" in ${override.minutes} minutes`;
         await NotificationService.create({

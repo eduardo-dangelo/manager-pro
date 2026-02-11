@@ -17,11 +17,12 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
+import { useQueryClient } from '@tanstack/react-query';
 import { endOfDay, format } from 'date-fns';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import { ConfirmPopover } from '@/components/common/ConfirmPopover';
-import { useNotificationsRefetch } from '@/contexts/NotificationsRefetchContext';
+import { notificationKeys } from '@/queries/keys';
 import { DEFAULT_EVENT_COLOR, EVENT_COLORS } from './constants';
 import { TimePickerPopover } from './TimePickerPopover';
 
@@ -118,7 +119,7 @@ export function CreateEventForm({
 }: CreateEventFormProps & { mode?: 'create' | 'edit'; event?: CalendarEvent | null }) {
   const t = useTranslations('Calendar');
   const tAssets = useTranslations('Assets');
-  const { refetchNotifications } = useNotificationsRefetch();
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState('');
@@ -287,7 +288,7 @@ export function CreateEventForm({
         );
       }
       const { event: savedEvent } = (await res.json()) as { event: CalendarEvent };
-      refetchNotifications();
+      queryClient.invalidateQueries({ queryKey: notificationKeys.all });
       onSuccess(savedEvent);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create event');
@@ -314,6 +315,7 @@ export function CreateEventForm({
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error ?? 'Failed to delete event');
       }
+      queryClient.invalidateQueries({ queryKey: notificationKeys.all });
       onDeleteSuccess(event.id);
       setDeleteConfirmAnchor(null);
       onCancel();
