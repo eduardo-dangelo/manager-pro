@@ -109,7 +109,7 @@ export function CalendarView({
   events,
   onDayClick: onDayClickProp,
   locale,
-  defaultView = 'schedule',
+  defaultView = 'month',
   initialDate,
   assetId,
   assets,

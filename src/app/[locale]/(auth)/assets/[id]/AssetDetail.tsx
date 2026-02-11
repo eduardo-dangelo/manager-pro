@@ -7,6 +7,19 @@ import { AssetHeader } from '@/components/Assets/Asset/AssetHeader';
 import { AssetTabs } from '@/components/Assets/Asset/AssetTabs';
 import { useSetBreadcrumb } from '@/components/BreadcrumbContext';
 
+// Pluralize asset type for routes (matches app routes like /assets/vehicles)
+const pluralizeType = (type: string): string => {
+  const pluralMap: Record<string, string> = {
+    vehicle: 'vehicles',
+    property: 'properties',
+    person: 'persons',
+    project: 'projects',
+    trip: 'trips',
+    custom: 'customs',
+  };
+  return pluralMap[type] || `${type}s`;
+};
+
 type Todo = {
   id: number;
   name: string;
@@ -81,6 +94,14 @@ export function AssetDetail({
       : [
           { label: dashboardT('menu_dashboard'), href: `/${locale}/dashboard` },
           { label: t('page_title'), href: `/${locale}/assets` },
+          ...(asset.type
+            ? [
+                {
+                  label: dashboardT(`menu_${asset.type}` as any),
+                  href: `/${locale}/assets/${pluralizeType(asset.type)}`,
+                },
+              ]
+            : []),
           { label: getBreadcrumbLabel() },
         ],
   );

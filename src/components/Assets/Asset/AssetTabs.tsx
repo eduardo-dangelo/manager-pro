@@ -54,6 +54,7 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -303,7 +304,10 @@ export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
   const t = useTranslations('Assets');
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const [currentTab, setCurrentTab] = useState(0);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
   const [addTabDialogOpen, setAddTabDialogOpen] = useState(false);
   const [removeTabDialogOpen, setRemoveTabDialogOpen] = useState(false);
   const [tabToRemove, setTabToRemove] = useState<string | null>(null);
@@ -322,6 +326,29 @@ export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
 
   // Get asset's current tabs (default to ['overview'] if not set)
   const assetTabs = asset.tabs || ['overview'];
+
+  // Derive current tab from URL
+  const tabFromUrl = searchParams.get('tab');
+  const currentTabIndex = assetTabs.includes(tabFromUrl ?? '')
+    ? assetTabs.indexOf(tabFromUrl!)
+    : 0;
+
+  const updateUrlForTab = useCallback(
+    (tabName: string) => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set('tab', tabName || 'overview');
+      const query = params.toString();
+      router.replace(pathname + (query ? `?${query}` : ''));
+    },
+    [pathname, router, searchParams],
+  );
+
+  // Redirect to overview tab when no tab param is provided
+  useEffect(() => {
+    if (!searchParams.has('tab')) {
+      updateUrlForTab('overview');
+    }
+  }, [searchParams, updateUrlForTab]);
 
   // State for hidden tabs and menu
   const [hiddenTabs, setHiddenTabs] = useState<string[]>([]);
@@ -458,7 +485,10 @@ export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
   );
 
   const handleTabChange = (_event: React.SyntheticEvent | null, newValue: number) => {
-    setCurrentTab(newValue);
+    const tabName = assetTabs[newValue];
+    if (tabName) {
+      updateUrlForTab(tabName);
+    }
   };
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -472,7 +502,7 @@ export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
   const handleMenuTabClick = (tabName: string) => {
     const index = assetTabs.indexOf(tabName);
     if (index !== -1) {
-      setCurrentTab(index);
+      updateUrlForTab(tabName);
 
       // Scroll the tab into view
       setTimeout(() => {
@@ -553,14 +583,7 @@ export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
     // Optimistic update: Update UI immediately
     onUpdateAsset({ ...asset, tabs: newTabs });
 
-    // Adjust current tab index immediately
-    if (currentTab === oldIndex) {
-      setCurrentTab(newIndex);
-    } else if (currentTab > oldIndex && currentTab <= newIndex) {
-      setCurrentTab(currentTab - 1);
-    } else if (currentTab < oldIndex && currentTab >= newIndex) {
-      setCurrentTab(currentTab + 1);
-    }
+    // Tab index is derived from URL; no need to update when reordering (tab name stays the same)
 
     // Sync with API in the background
     try {
@@ -585,15 +608,6 @@ export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
       console.error('Error reordering tabs:', error);
       // Revert to original order on error
       onUpdateAsset({ ...asset, tabs: assetTabs });
-
-      // Revert tab index
-      if (currentTab === newIndex) {
-        setCurrentTab(oldIndex);
-      } else if (currentTab >= newIndex && currentTab < oldIndex) {
-        setCurrentTab(currentTab + 1);
-      } else if (currentTab <= newIndex && currentTab > oldIndex) {
-        setCurrentTab(currentTab - 1);
-      }
     }
   };
 
@@ -647,7 +661,6 @@ export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
     }
 
     const newTabs = assetTabs.filter(tab => tab !== tabToRemove);
-    const removedIndex = assetTabs.indexOf(tabToRemove);
 
     // Close dialog
     setRemoveTabDialogOpen(false);
@@ -656,13 +669,9 @@ export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
     // Optimistic update: Update UI immediately
     onUpdateAsset({ ...asset, tabs: newTabs });
 
-    // Adjust current tab index if needed
-    if (removedIndex <= currentTab) {
-      if (currentTab > 0) {
-        setCurrentTab(currentTab - 1);
-      } else {
-        setCurrentTab(0);
-      }
+    // If we were viewing the removed tab, update URL to overview
+    if (tabToRemove === assetTabs[currentTabIndex]) {
+      updateUrlForTab('overview');
     }
 
     // Sync with API in the background
@@ -792,7 +801,7 @@ export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
             strategy={horizontalListSortingStrategy}
           >
             <Tabs
-              value={currentTab}
+              value={currentTabIndex}
               onChange={handleTabChange}
               variant="scrollable"
               scrollButtons="auto"
@@ -900,7 +909,7 @@ export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
           <MenuItem
             key={tabName}
             onClick={() => handleMenuTabClick(tabName)}
-            selected={assetTabs[currentTab] === tabName}
+            selected={assetTabs[currentTabIndex] === tabName}
           >
             <ListItemIcon sx={{ minWidth: 40 }}>
               {getTabIcon(tabName, { fontSize: 20 })}
@@ -929,7 +938,7 @@ export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
 
       <Box>
         {assetTabs.map((tabName, index) => (
-          <Box key={tabName} sx={{ display: currentTab === index ? 'block' : 'none' }}>
+          <Box key={tabName} sx={{ display: currentTabIndex === index ? 'block' : 'none' }}>
             {renderTabContent(tabName)}
           </Box>
         ))}
