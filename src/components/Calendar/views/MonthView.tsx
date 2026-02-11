@@ -291,6 +291,7 @@ function MonthGrid({ monthDate, events, onDayClick, onEventClick }: MonthGridPro
                       const isFirstDayOfEvent = format(day, 'yyyy-MM-dd') === format(startDate, 'yyyy-MM-dd');
                       const showTitle = !multiDay || isFirstDayOfEvent || isWeekStart;
                       const isLastDayOfEvent = format(day, 'yyyy-MM-dd') === format(endDate, 'yyyy-MM-dd');
+                      const oneDayAllDayEvent = allDay && isSameDay(startDate, endDate);
                       return (
                         <Box
                           key={ev.id}
@@ -300,11 +301,10 @@ function MonthGrid({ monthDate, events, onDayClick, onEventClick }: MonthGridPro
                             onEventClick?.(ev, e.currentTarget as HTMLElement);
                           }}
                           sx={{
-                            'display': 'inline-block',
-                            'cursor': onEventClick ? 'pointer' : 'default',
-                            'alignSelf': 'flex-start',
-                            '&:hover': onEventClick ? { opacity: 0.9 } : {},
-                            'width': '100%',
+                            display: 'inline-block',
+                            cursor: onEventClick ? 'pointer' : 'default',
+                            alignSelf: 'flex-start',
+                            width: '100%',
                           }}
                         >
                           {isTimedSingleDay
@@ -361,7 +361,7 @@ function MonthGrid({ monthDate, events, onDayClick, onEventClick }: MonthGridPro
                             : (
                                 <Box
                                   sx={{
-                                    width: `calc(100% + ${!isLastDayOfEvent ? 28 : 8}px)`,
+                                    width: `calc(100% + ${!isLastDayOfEvent ? 28 : oneDayAllDayEvent ? 0 : 8}px)`,
                                     marginLeft: !showTitle ? -1.15 : 0,
                                     borderRadius: showTitle || isLastDayOfEvent ? 1 : undefined,
                                     bgcolor: color,
