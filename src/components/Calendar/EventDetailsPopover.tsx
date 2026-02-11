@@ -2,13 +2,13 @@
 
 import type { CalendarEvent } from './types';
 import type { Asset } from '@/components/Assets/utils';
-import { pluralizeType } from '@/components/Assets/utils';
-import { AssetCard } from '@/components/Assets/AssetCard';
 import { Close as CloseIcon, EditOutlined as EditIcon, OpenInNewOutlined as OpenInNewIcon } from '@mui/icons-material';
 import { Box, Button, IconButton, Typography } from '@mui/material';
 import { format } from 'date-fns';
-import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import Link from 'next/link';
+import { AssetCard } from '@/components/Assets/AssetCard';
+import { pluralizeType } from '@/components/Assets/utils';
 import { Popover } from '@/components/common/Popover';
 import { COLOR_MAP } from './constants';
 
@@ -42,7 +42,9 @@ function isTaxReminderEvent(event: CalendarEvent): boolean {
 
 function hasUserVisibleDescription(event: CalendarEvent): boolean {
   const d = event.description?.trim();
-  if (!d) return false;
+  if (!d) {
+    return false;
+  }
   return d !== TAX_REMINDER_MARKER && d !== MOT_REMINDER_MARKER;
 }
 
@@ -70,9 +72,9 @@ export function EventDetailsPopover({
   const isSameDay = format(startDate, 'yyyy-MM-dd') === format(endDate, 'yyyy-MM-dd');
   const isAllDay
     = startDate.getHours() === 0
-    && startDate.getMinutes() === 0
-    && ((endDate.getHours() === 23 && endDate.getMinutes() === 59)
-      || (endDate.getHours() === 0 && endDate.getMinutes() === 0));
+      && startDate.getMinutes() === 0
+      && ((endDate.getHours() === 23 && endDate.getMinutes() === 59)
+        || (endDate.getHours() === 0 && endDate.getMinutes() === 0));
   const asset = assets?.find(a => a.id === event.assetId) ?? null;
   const assetName = asset?.name ?? null;
 
@@ -128,9 +130,9 @@ export function EventDetailsPopover({
             component={Link}
             href={`/${locale}/assets/${pluralizeType(asset.type)}/${asset.id}`}
             sx={{
-              display: 'block',
-              textDecoration: 'none',
-              mb: 2,
+              'display': 'block',
+              'textDecoration': 'none',
+              'mb': 2,
               '&:hover .folder-body': {
                 boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.1)',
               },
@@ -154,7 +156,10 @@ export function EventDetailsPopover({
 
           <Box>
             <Typography variant="caption" color="text.secondary" display="block">
-              {t('event_start_time')} – {t('event_end_time')}
+              {t('event_start_time')}
+              {' '}
+              –
+              {t('event_end_time')}
             </Typography>
             <Typography variant="body2">
               {isAllDay ? t('all_day') : `${format(startDate, 'HH:mm')} – ${format(endDate, 'HH:mm')}`}

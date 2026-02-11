@@ -52,14 +52,14 @@ type CalendarViewProps = {
   onEventsChange?: (events: CalendarEvent[]) => void;
 };
 
-function getHeaderText(viewMode: CalendarViewMode, currentDate: Date, t: (key: string) => string): string {
+function getHeaderText(viewMode: CalendarViewMode, currentDate: Date, _t: (key: string) => string): string {
   switch (viewMode) {
     case 'month':
       return format(currentDate, 'MMMM yyyy');
     case 'year':
       return format(currentDate, 'yyyy');
     case 'schedule':
-      return t('view_schedule');
+      return format(currentDate, 'yyyy');
     default:
       return format(currentDate, 'PPP');
   }
@@ -237,6 +237,13 @@ export function CalendarView({
           justifyContent: 'space-between',
           gap: 2,
           mb: 2,
+          position: 'sticky',
+          top: 68,
+          zIndex: 100,
+          backdropFilter: 'blur(2px)',
+          bgcolor: theme.palette.mode === 'light'
+            ? 'rgba(248, 249, 250, 0.8)'
+            : 'rgba(37, 37, 38, 0.8)',
         }}
       >
         <Box
@@ -246,6 +253,7 @@ export function CalendarView({
             flex: 1,
             minWidth: 0,
             justifyContent: 'flex-start',
+
           }}
         >
           {(viewMode === 'year' || viewMode === 'month')

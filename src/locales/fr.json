@@ -338,6 +338,7 @@
     "reminder_unit_days": "jours",
     "reminder_unit_weeks": "semaines",
     "reminder_before_at": "avant à",
+    "reminder_before": "avant",
     "reminder_remove": "Supprimer la notification",
     "reminder_add": "Ajouter une notification"
   }

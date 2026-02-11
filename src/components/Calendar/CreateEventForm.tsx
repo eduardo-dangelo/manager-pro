@@ -20,8 +20,8 @@ import {
 import { endOfDay, format } from 'date-fns';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
-import { useNotificationsRefetch } from '@/contexts/NotificationsRefetchContext';
 import { ConfirmPopover } from '@/components/common/ConfirmPopover';
+import { useNotificationsRefetch } from '@/contexts/NotificationsRefetchContext';
 import { DEFAULT_EVENT_COLOR, EVENT_COLORS } from './constants';
 import { TimePickerPopover } from './TimePickerPopover';
 
@@ -72,7 +72,9 @@ const MINUTES_PER: Record<ReminderUnit, number> = {
 };
 
 function reminderRowToMinutes(_eventStart: Date, row: ReminderRow): number {
-  if (row.amount <= 0) return 0;
+  if (row.amount <= 0) {
+    return 0;
+  }
   return row.amount * MINUTES_PER[row.unit];
 }
 
@@ -133,6 +135,7 @@ export function CreateEventForm({
   const [startTimeAnchor, setStartTimeAnchor] = useState<HTMLElement | null>(null);
   const [endTimeAnchor, setEndTimeAnchor] = useState<HTMLElement | null>(null);
   const [deleteConfirmAnchor, setDeleteConfirmAnchor] = useState<HTMLElement | null>(null);
+  const [notificationPopoverAnchor, setNotificationPopoverAnchor] = useState<HTMLElement | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [reminderRows, setReminderRows] = useState<ReminderRow[]>([]);
   const colorInputRef = useRef<HTMLInputElement>(null);
@@ -300,7 +303,9 @@ export function CreateEventForm({
   };
 
   const handleConfirmDelete = async () => {
-    if (!event || !onDeleteSuccess) return;
+    if (!event || !onDeleteSuccess) {
+      return;
+    }
     setDeleting(true);
     setError(null);
     try {
@@ -621,62 +626,90 @@ export function CreateEventForm({
               onChange={setEndTime}
             />
           </Box>
-          {/* Reminders (relative to event start) */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            {reminderRows.map((row) => (
-              <Box
-                key={row.id}
-                sx={{
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  alignItems: 'center',
-                  gap: 1,
-                }}
-              >
-                <TextField
-                  type="number"
-                  size="small"
-                  value={row.amount}
-                  onChange={e => setReminderRows(prev =>
-                    prev.map(r => r.id === row.id ? { ...r, amount: Math.max(0, Number(e.target.value) || 0) } : r))}
-                  inputProps={{ min: 0 }}
-                  sx={{ width: 64 }}
-                />
-                <FormControl size="small" sx={{ minWidth: 100 }}>
-                  <Select
-                    value={row.unit}
-                    onChange={e => setReminderRows(prev =>
-                      prev.map(r => r.id === row.id ? { ...r, unit: e.target.value as ReminderUnit } : r))}
+          {/* Reminders (relative to event start) - config in popover */}
+          <Button
+            type="button"
+            variant="outlined"
+            size="small"
+            fullWidth
+            onClick={e => setNotificationPopoverAnchor(e.currentTarget)}
+            sx={{ textTransform: 'none' }}
+          >
+            {(() => {
+              const validCount = reminderRows.filter(r => r.amount > 0).length;
+              return validCount === 0
+                ? t('reminder_add')
+                : `Notifications (${validCount})`;
+            })()}
+          </Button>
+          <Popover
+            open={Boolean(notificationPopoverAnchor)}
+            anchorEl={notificationPopoverAnchor}
+            onClose={() => setNotificationPopoverAnchor(null)}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+            transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+          >
+            <Box sx={{ p: 2, minWidth: 280 }}>
+              <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600 }}>
+                {t('reminders_section')}
+              </Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                {reminderRows.map(row => (
+                  <Box
+                    key={row.id}
+                    sx={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      alignItems: 'center',
+                      gap: 1,
+                    }}
                   >
-                    <MenuItem value="minutes">{t('reminder_unit_minutes')}</MenuItem>
-                    <MenuItem value="hours">{t('reminder_unit_hours')}</MenuItem>
-                    <MenuItem value="days">{t('reminder_unit_days')}</MenuItem>
-                    <MenuItem value="weeks">{t('reminder_unit_weeks')}</MenuItem>
-                  </Select>
-                </FormControl>
-                <IconButton
-                  size="small"
-                  onClick={() => setReminderRows(prev => prev.filter(r => r.id !== row.id))}
-                  aria-label={t('reminder_remove')}
-                >
-                  <CloseIcon fontSize="small" />
-                </IconButton>
+                    <TextField
+                      type="number"
+                      size="small"
+                      value={row.amount}
+                      onChange={e => setReminderRows(prev =>
+                        prev.map(r => r.id === row.id ? { ...r, amount: Math.max(0, Number(e.target.value) || 0) } : r))}
+                      inputProps={{ min: 0 }}
+                      sx={{ width: 64 }}
+                    />
+                    <FormControl size="small" sx={{ minWidth: 100 }}>
+                      <Select
+                        value={row.unit}
+                        onChange={e => setReminderRows(prev =>
+                          prev.map(r => r.id === row.id ? { ...r, unit: e.target.value as ReminderUnit } : r))}
+                      >
+                        <MenuItem value="minutes">{t('reminder_unit_minutes')}</MenuItem>
+                        <MenuItem value="hours">{t('reminder_unit_hours')}</MenuItem>
+                        <MenuItem value="days">{t('reminder_unit_days')}</MenuItem>
+                        <MenuItem value="weeks">{t('reminder_unit_weeks')}</MenuItem>
+                      </Select>
+                    </FormControl>
+                    <IconButton
+                      size="small"
+                      onClick={() => setReminderRows(prev => prev.filter(r => r.id !== row.id))}
+                      aria-label={t('reminder_remove')}
+                    >
+                      <CloseIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
+                ))}
+                {reminderRows.length < 5 && (
+                  <Button
+                    type="button"
+                    size="small"
+                    onClick={() => setReminderRows(prev => [...prev, {
+                      id: `new-${Date.now()}`,
+                      amount: 1,
+                      unit: 'days',
+                    }])}
+                  >
+                    {t('reminder_add')}
+                  </Button>
+                )}
               </Box>
-            ))}
-            {reminderRows.length < 5 && (
-              <Button
-                type="button"
-                size="small"
-                onClick={() => setReminderRows(prev => [...prev, {
-                  id: `new-${Date.now()}`,
-                  amount: 1,
-                  unit: 'days',
-                }])}
-              >
-                {t('reminder_add')}
-              </Button>
-            )}
-          </Box>
+            </Box>
+          </Popover>
           <TextField
             fullWidth
             size="small"
