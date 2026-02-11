@@ -8,6 +8,16 @@ const MOT_REMINDER_MARKER = '[AUTO:vehicle_mot_reminder]';
 const TAX_REMINDER_MARKER = '[AUTO:vehicle_tax_reminder]';
 const REMINDER_COLOR = 'orange';
 
+const MINUTES_PER_DAY = 24 * 60;
+const VEHICLE_REMINDERS = {
+  useDefault: false,
+  overrides: [
+    { method: 'popup' as const, minutes: 30 * MINUTES_PER_DAY },
+    { method: 'popup' as const, minutes: 7 * MINUTES_PER_DAY },
+    { method: 'popup' as const, minutes: MINUTES_PER_DAY },
+  ],
+};
+
 function parseExpiryDate(value: string | undefined): Date | null {
   if (!value || typeof value !== 'string') {
     return null;
@@ -82,11 +92,14 @@ export const POST = async (
     if (motExpires) {
       const { start, end } = getAllDayRange(motExpires);
       if (motEvent) {
+        const motEventId = motEvent.id;
         const existingStart = new Date(motEvent.start).getTime();
-        if (existingStart !== start.getTime()) {
+        const hasFullReminders =
+          ((motEvent.reminders as { overrides?: unknown[] } | null)?.overrides?.length ?? 0) >= 3;
+        if (existingStart !== start.getTime() || !hasFullReminders) {
           await CalendarEventService.update(
-            motEvent.id,
-            { start, end },
+            motEventId,
+            { start, end, reminders: VEHICLE_REMINDERS },
             user.id,
           );
           updated++;
@@ -100,6 +113,7 @@ export const POST = async (
             color: REMINDER_COLOR,
             start,
             end,
+            reminders: VEHICLE_REMINDERS,
           },
           user.id,
         );
@@ -110,11 +124,14 @@ export const POST = async (
     if (taxExpires) {
       const { start, end } = getAllDayRange(taxExpires);
       if (taxEvent) {
+        const taxEventId = taxEvent.id;
         const existingStart = new Date(taxEvent.start).getTime();
-        if (existingStart !== start.getTime()) {
+        const hasFullReminders =
+          ((taxEvent.reminders as { overrides?: unknown[] } | null)?.overrides?.length ?? 0) >= 3;
+        if (existingStart !== start.getTime() || !hasFullReminders) {
           await CalendarEventService.update(
-            taxEvent.id,
-            { start, end },
+            taxEventId,
+            { start, end, reminders: VEHICLE_REMINDERS },
             user.id,
           );
           updated++;
@@ -128,6 +145,7 @@ export const POST = async (
             color: REMINDER_COLOR,
             start,
             end,
+            reminders: VEHICLE_REMINDERS,
           },
           user.id,
         );
