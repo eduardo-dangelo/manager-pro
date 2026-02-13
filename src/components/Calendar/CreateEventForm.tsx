@@ -1,7 +1,7 @@
 'use client';
 
 import type { CalendarEvent, EventReminders } from './types';
-import { Close as CloseIcon, DeleteOutlined as DeleteIcon, Palette as PaletteIcon } from '@mui/icons-material';
+import { Add as AddIcon, Close as CloseIcon, DeleteOutlined as DeleteIcon, Palette as PaletteIcon } from '@mui/icons-material';
 import {
   Box,
   Button,
@@ -212,6 +212,16 @@ export function CreateEventForm({
     }
   }, [open, initialDate, isGlobal, assets, mode, event]);
   /* eslint-enable react-hooks-extra/no-direct-set-state-in-use-effect */
+
+  useEffect(() => {
+    if (notificationPopoverAnchor && reminderRows.length === 0) {
+      setReminderRows([{
+        id: `new-${Date.now()}`,
+        amount: 1,
+        unit: 'days',
+      }]);
+    }
+  }, [notificationPopoverAnchor]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -634,6 +644,7 @@ export function CreateEventForm({
             variant="outlined"
             size="small"
             fullWidth
+            startIcon={<AddIcon fontSize="small" />}
             onClick={e => setNotificationPopoverAnchor(e.currentTarget)}
             sx={{ textTransform: 'none' }}
           >
@@ -651,10 +662,7 @@ export function CreateEventForm({
             anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
             transformOrigin={{ vertical: 'top', horizontal: 'left' }}
           >
-            <Box sx={{ p: 2, minWidth: 280 }}>
-              <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600 }}>
-                {t('reminders_section')}
-              </Typography>
+            <Box sx={{ p: 2 }}>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                 {reminderRows.map(row => (
                   <Box
@@ -692,14 +700,16 @@ export function CreateEventForm({
                       onClick={() => setReminderRows(prev => prev.filter(r => r.id !== row.id))}
                       aria-label={t('reminder_remove')}
                     >
-                      <CloseIcon fontSize="small" />
+                      <DeleteIcon fontSize="small" />
                     </IconButton>
                   </Box>
                 ))}
                 {reminderRows.length < 5 && (
                   <Button
                     type="button"
+                    variant="outlined"
                     size="small"
+                    startIcon={<AddIcon fontSize="small" />}
                     onClick={() => setReminderRows(prev => [...prev, {
                       id: `new-${Date.now()}`,
                       amount: 1,

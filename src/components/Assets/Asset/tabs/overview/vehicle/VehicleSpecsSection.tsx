@@ -52,7 +52,7 @@ type VehicleAsset = {
 type VehicleSpecsSectionProps = {
   asset: VehicleAsset;
   locale: string;
-  onUpdateAsset: (asset: VehicleAsset) => void;
+  onUpdateAsset: (updates: Partial<VehicleAsset>) => void;
   onCalendarRefreshRequested?: () => void;
 };
 
@@ -362,7 +362,7 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset, onCalendarRe
                 onCalendarRefreshRequested?.();
               }
               if (data.tabs) {
-                onUpdateAsset({ ...asset, tabs: data.tabs });
+                onUpdateAsset({ tabs: data.tabs });
               }
             }
           })
@@ -684,7 +684,7 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset, onCalendarRe
                 onCalendarRefreshRequested?.();
               }
               if (data.tabs) {
-                onUpdateAsset({ ...asset, tabs: data.tabs });
+                onUpdateAsset({ tabs: data.tabs });
               }
             }
           })
