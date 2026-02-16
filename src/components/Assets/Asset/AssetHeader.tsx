@@ -73,7 +73,7 @@ export function AssetHeader({
           mb: 1,
         }}
       >
-        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', flex: 1 }}>
           {registration && (
             <Box sx={{ mt: 3 }}>
               <RegistrationPlate registration={registration} size="large" />
@@ -89,7 +89,11 @@ export function AssetHeader({
             variant="standard"
             sx={{
               'flex': 1,
+              'overflow': 'visible',
               '& .MuiInput-root': {
+                // 'width': '100%',
+                // 'border': '1px solid pink',
+                'overflow': 'visible',
                 'fontSize': '2.5rem',
                 'fontWeight': 700,
                 'color': 'text.primary',
@@ -99,6 +103,7 @@ export function AssetHeader({
               },
               '& input': {
                 // padding: '8px 0',
+                overflow: 'visible',
               },
             }}
           />

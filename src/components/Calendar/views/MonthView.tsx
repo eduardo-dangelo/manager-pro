@@ -223,6 +223,7 @@ function MonthGrid({ monthDate, events, onDayClick, onEventClick }: MonthGridPro
           }
           const inMonth = isSameMonth(day, monthDate);
           const isTodayDate = isSameDay(day, today);
+          const isPastDay = format(day, 'yyyy-MM-dd') < format(today, 'yyyy-MM-dd');
           const visibleLaneCount = Math.min(maxLane + 1, MAX_VISIBLE_LANES);
           const moreCount = dayEventsEnriched.filter(
             entry => (eventToLane.get(entry.ev.id) ?? -1) >= MAX_VISIBLE_LANES,
@@ -286,6 +287,7 @@ function MonthGrid({ monthDate, events, onDayClick, onEventClick }: MonthGridPro
                       }
                       const { ev, startDate, endDate, allDay, multiDay } = entry;
                       const color = eventColor(ev.color);
+                      const displayColor = isPastDay ? `color-mix(in srgb, ${color} 55%, white)` : color;
                       const isTimedSingleDay = !allDay && !multiDay;
                       const isWeekStart = day.getDay() === 0;
                       const isFirstDayOfEvent = format(day, 'yyyy-MM-dd') === format(startDate, 'yyyy-MM-dd');
@@ -305,6 +307,7 @@ function MonthGrid({ monthDate, events, onDayClick, onEventClick }: MonthGridPro
                             cursor: onEventClick ? 'pointer' : 'default',
                             alignSelf: 'flex-start',
                             width: '100%',
+                            opacity: isPastDay && isTimedSingleDay ? 0.55 : 1,
                           }}
                         >
                           {isTimedSingleDay
@@ -329,7 +332,7 @@ function MonthGrid({ monthDate, events, onDayClick, onEventClick }: MonthGridPro
                                         width: 6,
                                         height: 6,
                                         borderRadius: '50%',
-                                        bgcolor: color,
+                                        bgcolor: displayColor,
                                         mr: 0.5,
                                         flexShrink: 0,
                                       }}
@@ -364,7 +367,7 @@ function MonthGrid({ monthDate, events, onDayClick, onEventClick }: MonthGridPro
                                     width: `calc(100% + ${!isLastDayOfEvent ? 28 : oneDayAllDayEvent ? 0 : 8}px)`,
                                     marginLeft: !showTitle ? -1.15 : 0,
                                     borderRadius: showTitle || isLastDayOfEvent ? 1 : undefined,
-                                    bgcolor: color,
+                                    bgcolor: displayColor,
                                     px: 0.5,
                                     py: 0.25,
                                     display: 'flex',
