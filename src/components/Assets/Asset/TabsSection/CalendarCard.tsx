@@ -2,6 +2,7 @@
 
 import type { CalendarEvent } from '@/components/Calendar/types';
 import { Box, CircularProgress, Typography } from '@mui/material';
+import { parseISO, startOfDay } from 'date-fns';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
 import { EventDetailsPopover } from '@/components/Calendar/EventDetailsPopover';
@@ -19,9 +20,10 @@ type CalendarCardProps = {
   asset: Asset;
   locale: string;
   onNavigateToTab: (tabName: string) => void;
+  onHasUpcomingEvents?: (has: boolean) => void;
 };
 
-export function CalendarCard({ asset, locale, onNavigateToTab }: CalendarCardProps) {
+export function CalendarCard({ asset, locale, onNavigateToTab, onHasUpcomingEvents }: CalendarCardProps) {
   const t = useTranslations('Assets');
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,11 +54,25 @@ export function CalendarCard({ asset, locale, onNavigateToTab }: CalendarCardPro
     fetchEvents();
   }, [fetchEvents]);
 
+  useEffect(() => {
+    if (!loading) {
+      const today = startOfDay(new Date());
+      const hasUpcoming = events.some(e => parseISO(e.start) >= today);
+      onHasUpcomingEvents?.(hasUpcoming);
+    }
+  }, [loading, events, onHasUpcomingEvents]);
+
   const handleEventClick = (event: CalendarEvent, anchorEl: HTMLElement, anchorPosition?: { x: number; y: number }) => {
     setEventDetailsAnchor(anchorEl);
     setEventDetailsAnchorPosition(anchorPosition ? { top: anchorPosition.y, left: anchorPosition.x } : null);
     setEventDetailsEvent(event);
   };
+
+  const today = startOfDay(new Date());
+  const hasUpcomingEvents = events.some(e => parseISO(e.start) >= today);
+  if (!loading && !error && !hasUpcomingEvents) {
+    return null;
+  }
 
   return (
     <>

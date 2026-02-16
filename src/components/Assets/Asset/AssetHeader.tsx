@@ -32,13 +32,25 @@ export function AssetHeader({
   const t = useTranslations('Assets');
   const titleRef = useRef<HTMLInputElement>(null);
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
+  const idleSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latestNameRef = useRef(asset.name);
   const [localAsset, setLocalAsset] = useState(asset);
   const [saving, setSaving] = useState(false);
 
   // Sync local state when asset prop changes
   useEffect(() => {
     setLocalAsset(asset);
+    latestNameRef.current = asset.name;
   }, [asset]);
+
+  // Cleanup idle-save timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (idleSaveTimeoutRef.current) {
+        clearTimeout(idleSaveTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleSave = async (updates: Partial<Asset>) => {
     setSaving(true);
@@ -51,6 +63,29 @@ export function AssetHeader({
       e.preventDefault();
       descriptionRef.current.focus();
     }
+  };
+
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setLocalAsset({ ...localAsset, name: value });
+    latestNameRef.current = value;
+
+    if (idleSaveTimeoutRef.current) {
+      clearTimeout(idleSaveTimeoutRef.current);
+    }
+    idleSaveTimeoutRef.current = setTimeout(() => {
+      idleSaveTimeoutRef.current = null;
+      handleSave({ name: latestNameRef.current });
+      titleRef.current?.blur();
+    }, 2500);
+  };
+
+  const handleTitleBlur = () => {
+    if (idleSaveTimeoutRef.current) {
+      clearTimeout(idleSaveTimeoutRef.current);
+      idleSaveTimeoutRef.current = null;
+    }
+    handleSave({ name: localAsset.name });
   };
 
   // Get placeholder text - show "New {{asset type}}" if name is empty and type exists
@@ -82,8 +117,8 @@ export function AssetHeader({
           <TextField
             inputRef={titleRef}
             value={localAsset.name}
-            onChange={e => setLocalAsset({ ...localAsset, name: e.target.value })}
-            onBlur={() => handleSave({ name: localAsset.name })}
+            onChange={handleTitleChange}
+            onBlur={handleTitleBlur}
             onKeyDown={handleTitleKeyDown}
             placeholder={getPlaceholder()}
             variant="standard"

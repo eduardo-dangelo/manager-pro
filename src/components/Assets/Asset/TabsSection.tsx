@@ -1,6 +1,7 @@
 'use client';
 
 import { Box } from '@mui/material';
+import { useState } from 'react';
 import { CalendarCard } from '@/components/Assets/Asset/TabsSection/CalendarCard';
 
 type Asset = {
@@ -18,8 +19,13 @@ type TabsSectionProps = {
 
 export function TabsSection({ asset, locale, onNavigateToTab }: TabsSectionProps) {
   const hasCalendar = asset.tabs?.includes('calendar') ?? false;
+  const [hasUpcomingEvents, setHasUpcomingEvents] = useState<boolean | null>(null);
 
   if (!hasCalendar) {
+    return null;
+  }
+
+  if (hasUpcomingEvents === false) {
     return null;
   }
 
@@ -31,6 +37,7 @@ export function TabsSection({ asset, locale, onNavigateToTab }: TabsSectionProps
             asset={asset}
             locale={locale}
             onNavigateToTab={onNavigateToTab}
+            onHasUpcomingEvents={setHasUpcomingEvents}
           />
         </Box>
       </Box>
