@@ -737,6 +737,7 @@ export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
             locale={locale}
             onUpdateAsset={onUpdateAsset}
             onCalendarRefreshRequested={() => calendarRefreshRef.current?.()}
+            onNavigateToTab={updateUrlForTab}
           />
         );
       case 'todos':

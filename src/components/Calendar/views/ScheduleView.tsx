@@ -7,12 +7,14 @@ import { useTranslations } from 'next-intl';
 import { CalendarEvent as CalendarEventItem } from '../CalendarEvent';
 
 type ScheduleViewProps = {
-  currentDate: Date;
-  onCurrentDateChange: (_d: Date) => void;
+  currentDate?: Date;
+  onCurrentDateChange?: (_d: Date) => void;
   events: CalendarEvent[];
-  onDayClick: (date: Date, anchorEl?: HTMLElement) => void;
+  onDayClick?: (date: Date, anchorEl?: HTMLElement) => void;
   onEventClick?: (event: CalendarEvent, anchorEl: HTMLElement, anchorPosition?: { x: number; y: number }) => void;
-  locale: string;
+  locale?: string;
+  variant?: 'full' | 'compact';
+  maxEvents?: number;
 };
 
 function groupEventsByDay(events: CalendarEvent[]): { date: string; events: CalendarEvent[] }[] {
@@ -34,19 +36,36 @@ export function ScheduleView({
   events,
   onDayClick,
   onEventClick,
+  variant = 'full',
+  maxEvents,
 }: ScheduleViewProps) {
   const t = useTranslations('Calendar');
   const today = startOfDay(new Date());
   const upcomingEvents = events.filter(e => parseISO(e.start) >= today);
-  const grouped = groupEventsByDay(upcomingEvents);
+  const limitedEvents = maxEvents != null
+    ? upcomingEvents.slice(0, maxEvents)
+    : upcomingEvents;
+  const grouped = groupEventsByDay(limitedEvents);
+  const isCompact = variant === 'compact';
+
+  const emptyContent = isCompact
+    ? (
+        <Typography variant="body2" color="text.secondary">
+          {t('no_events')}
+        </Typography>
+      )
+    : (
+        <Paper sx={{ p: 4, textAlign: 'center' }} elevation={1}>
+          <Typography color="text.secondary">{t('no_events')}</Typography>
+        </Paper>
+      );
 
   if (grouped.length === 0) {
-    return (
-      <Paper sx={{ p: 4, textAlign: 'center' }} elevation={1}>
-        <Typography color="text.secondary">{t('no_events')}</Typography>
-      </Paper>
-    );
+    return isCompact ? <Box sx={{ py: 1 }}>{emptyContent}</Box> : emptyContent;
   }
+
+  const noop = () => {};
+  const handleDayClick = onDayClick ?? noop;
 
   return (
     <Box sx={{ position: 'relative' }}>
@@ -55,7 +74,7 @@ export function ScheduleView({
         const currentYear = d.getFullYear();
         const prevItem = index > 0 ? grouped[index - 1] : undefined;
         const prevYear = prevItem ? parseISO(prevItem.date).getFullYear() : null;
-        const showYearHeader = prevYear !== null && currentYear !== prevYear;
+        const showYearHeader = !isCompact && prevYear !== null && currentYear !== prevYear;
         const isLastDay = index === grouped.length - 1;
 
         return (
@@ -93,7 +112,7 @@ export function ScheduleView({
                 display: 'flex',
                 alignItems: 'stretch',
                 gap: 1,
-                pb: 0.5,
+                pb: isCompact ? 0.25 : 0.5,
               }}
             >
               {/* Timeline left column: circle + vertical line */}
@@ -110,25 +129,22 @@ export function ScheduleView({
                 <Box
                   component="button"
                   type="button"
-                  onClick={e => onDayClick(d, e.currentTarget)}
+                  onClick={e => handleDayClick(d, e.currentTarget)}
                   sx={{
-                    'width': 34,
+                    'width': isCompact ? 28 : 34,
                     'color': 'text.primary',
                     'display': 'flex',
                     'alignItems': 'center',
                     'justifyContent': 'center',
                     'zIndex': 1,
-                    'cursor': 'pointer',
-                    '&:hover': {
-                      opacity: 0.8,
-                    },
-                    'position': 'sticky',
-                    'top': 100,
+                    'cursor': isCompact ? 'default' : 'pointer',
+                    '&:hover': isCompact ? {} : { opacity: 0.8 },
+                    'position': isCompact ? 'relative' : 'sticky',
+                    'top': isCompact ? undefined : 100,
                     'backgroundColor': 'background.default',
-                    // 'zIndex': 100,
                   }}
                 >
-                  <Typography variant="body2" fontWeight={600} sx={{ fontSize: 30 }}>
+                  <Typography variant="body2" fontWeight={600} sx={{ fontSize: isCompact ? 20 : 30 }}>
                     {format(d, 'd')}
                   </Typography>
                 </Box>
@@ -147,26 +163,25 @@ export function ScheduleView({
                 <Box
                   component="button"
                   type="button"
-                  onClick={e => onDayClick(d, e.currentTarget)}
+                  onClick={e => handleDayClick(d, e.currentTarget)}
                   sx={{
                     'width': '100%',
                     'p': 0,
                     'mb': 0.5,
                     'border': 'none',
                     'bgcolor': 'transparent',
-                    'cursor': 'pointer',
+                    'cursor': isCompact ? 'default' : 'pointer',
                     'textAlign': 'left',
-                    '&:hover': { opacity: 0.8 },
-                    'mt': 1.3,
-
+                    '&:hover': isCompact ? {} : { opacity: 0.8 },
+                    'mt': isCompact ? 0.5 : 1.3,
                   }}
                 >
-                  <Typography variant="subtitle2" fontWeight={600}>
+                  <Typography variant="subtitle2" fontWeight={600} sx={isCompact ? { fontSize: '0.75rem' } : undefined}>
                     {format(d, 'MMMM yyyy')}
                   </Typography>
                 </Box>
 
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 1, mb: 2 }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: isCompact ? 0.5 : 1, mt: isCompact ? 0.5 : 1, mb: isCompact ? 0.5 : 2 }}>
                   {dayEvents.map(ev => (
                     <Box
                       key={ev.id}
@@ -187,7 +202,7 @@ export function ScheduleView({
                         '&:hover': onEventClick ? { opacity: 0.9 } : {},
                       }}
                     >
-                      <CalendarEventItem event={ev} variant="inline" />
+                      <CalendarEventItem event={ev} variant={isCompact ? 'compact' : 'inline'} showEndTime={!isCompact} />
                     </Box>
                   ))}
                 </Box>

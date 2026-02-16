@@ -1,6 +1,7 @@
 'use client';
 
 import { Box } from '@mui/material';
+import { TabsSection } from '@/components/Assets/Asset/TabsSection';
 import { GenericOverviewSection } from '@/components/Assets/Asset/tabs/overview/GenericOverviewSection';
 import { PropertyInfoSection } from '@/components/Assets/Asset/tabs/overview/PropertyInfoSection';
 import { PropertyQuickLinksSection } from '@/components/Assets/Asset/tabs/overview/PropertyQuickLinksSection';
@@ -54,9 +55,10 @@ type OverviewTabProps = {
   locale: string;
   onUpdateAsset: (asset: Partial<Asset> | Asset) => void;
   onCalendarRefreshRequested?: () => void;
+  onNavigateToTab?: (tabName: string) => void;
 };
 
-export function OverviewTab({ asset, locale, onUpdateAsset, onCalendarRefreshRequested }: OverviewTabProps) {
+export function OverviewTab({ asset, locale, onUpdateAsset, onCalendarRefreshRequested, onNavigateToTab }: OverviewTabProps) {
   const renderContent = () => {
     switch (asset.type) {
       case 'vehicle':
@@ -111,5 +113,16 @@ export function OverviewTab({ asset, locale, onUpdateAsset, onCalendarRefreshReq
     }
   };
 
-  return <Box>{renderContent()}</Box>;
+  return (
+    <Box>
+      {renderContent()}
+      {onNavigateToTab && (
+        <TabsSection
+          asset={asset}
+          locale={locale}
+          onNavigateToTab={onNavigateToTab}
+        />
+      )}
+    </Box>
+  );
 }
