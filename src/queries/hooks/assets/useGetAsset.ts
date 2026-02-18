@@ -5,7 +5,11 @@ import { useQuery } from '@tanstack/react-query';
 import { Asset } from '@/entities';
 import { assetKeys } from '@/queries/keys';
 
-export function useGetAsset(locale: string, assetId: number | null | undefined) {
+export function useGetAsset(
+  locale: string,
+  assetId: number | null | undefined,
+  options?: { initialData?: Asset },
+) {
   return useQuery({
     queryKey: assetKeys.detail(assetId ?? 0),
     queryFn: async () => {
@@ -17,5 +21,6 @@ export function useGetAsset(locale: string, assetId: number | null | undefined) 
       return Asset.fromApi(asset);
     },
     enabled: typeof assetId === 'number' && assetId > 0,
+    initialData: options?.initialData,
   });
 }

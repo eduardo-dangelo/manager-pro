@@ -24,8 +24,8 @@ import moment from 'moment';
 import { useTranslations } from 'next-intl';
 
 import { useState } from 'react';
-import { Asset } from '@/entities';
 import { Card } from '@/components/common/Card';
+import { Asset } from '@/entities';
 import { useHoverSound } from '@/hooks/useHoverSound';
 import { MotHistorySidePanel } from './MotHistorySidePanel';
 import { VehicleMileageChart } from './VehicleMileageChart';

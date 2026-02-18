@@ -94,8 +94,8 @@ export const POST = async (
       if (motEvent) {
         const motEventId = motEvent.id;
         const existingStart = new Date(motEvent.start).getTime();
-        const hasFullReminders =
-          ((motEvent.reminders as { overrides?: unknown[] } | null)?.overrides?.length ?? 0) >= 3;
+        const hasFullReminders
+          = ((motEvent.reminders as { overrides?: unknown[] } | null)?.overrides?.length ?? 0) >= 3;
         if (existingStart !== start.getTime() || !hasFullReminders) {
           await CalendarEventService.update(
             motEventId,
@@ -126,8 +126,8 @@ export const POST = async (
       if (taxEvent) {
         const taxEventId = taxEvent.id;
         const existingStart = new Date(taxEvent.start).getTime();
-        const hasFullReminders =
-          ((taxEvent.reminders as { overrides?: unknown[] } | null)?.overrides?.length ?? 0) >= 3;
+        const hasFullReminders
+          = ((taxEvent.reminders as { overrides?: unknown[] } | null)?.overrides?.length ?? 0) >= 3;
         if (existingStart !== start.getTime() || !hasFullReminders) {
           await CalendarEventService.update(
             taxEventId,

@@ -1,12 +1,12 @@
 'use client';
 
 import { Box } from '@mui/material';
-import { TabsSection } from '@/components/Assets/Asset/TabsSection';
 import { GenericOverviewSection } from '@/components/Assets/Asset/tabs/overview/GenericOverviewSection';
 import { PropertyInfoSection } from '@/components/Assets/Asset/tabs/overview/PropertyInfoSection';
 import { PropertyQuickLinksSection } from '@/components/Assets/Asset/tabs/overview/PropertyQuickLinksSection';
 import { VehicleMaintenanceSection } from '@/components/Assets/Asset/tabs/overview/vehicle/VehicleMaintenanceSection';
 import { VehicleSpecsSection } from '@/components/Assets/Asset/tabs/overview/vehicle/VehicleSpecsSection';
+import { TabsSection } from '@/components/Assets/Asset/TabsSection';
 
 type Objective = {
   id: number;

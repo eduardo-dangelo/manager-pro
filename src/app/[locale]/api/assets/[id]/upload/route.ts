@@ -1,9 +1,9 @@
-import { put } from '@vercel/blob';
-import { currentUser } from '@clerk/nextjs/server';
-import { mkdir, writeFile } from 'node:fs/promises';
-import { NextResponse } from 'next/server';
-import path from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { mkdir, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import { currentUser } from '@clerk/nextjs/server';
+import { put } from '@vercel/blob';
+import { NextResponse } from 'next/server';
 import { logger } from '@/libs/Logger';
 import { AssetService } from '@/services/assetService';
 
@@ -71,8 +71,7 @@ export async function POST(
           { status: 400 },
         );
       }
-    }
-    else if (type === 'gallery') {
+    } else if (type === 'gallery') {
       if (!GALLERY_ACCEPT.includes(mimeType)) {
         return NextResponse.json(
           { error: 'Invalid file type. Gallery accepts PNG, JPG, GIF, WebP only' },
@@ -95,8 +94,7 @@ export async function POST(
       });
       url = blob.url;
       logger.info('File uploaded', { assetId, type, pathname });
-    }
-    else {
+    } else {
       // Local fallback: store in public/uploads/ (works without Vercel Blob token)
       const dir = path.join(process.cwd(), UPLOADS_DIR, path.dirname(pathname));
       await mkdir(dir, { recursive: true });
@@ -116,8 +114,7 @@ export async function POST(
       mimeType,
       createdAt: new Date().toISOString(),
     });
-  }
-  catch (error) {
+  } catch (error) {
     logger.error(`Error uploading file: ${error instanceof Error ? error.message : String(error)}`);
     return NextResponse.json(
       { error: 'Failed to upload file', details: error instanceof Error ? error.message : String(error) },

@@ -1,5 +1,6 @@
 'use client';
 
+import type { AssetData } from '@/entities';
 import {
   Category as CategoryIcon,
   DirectionsCar as DirectionsCarIcon,
@@ -28,9 +29,8 @@ import { TransitionGroup } from 'react-transition-group';
 import { AssetActions } from '@/components/Assets/AssetActions';
 import { MotChip } from '@/components/Assets/MotChip';
 import { TaxChip } from '@/components/Assets/TaxChip';
-import type { AssetData } from '@/entities';
-import { Asset } from '@/entities';
 import { RegistrationPlate } from '@/components/common/RegistrationPlate';
+import { Asset } from '@/entities';
 import { useHoverSound } from '@/hooks/useHoverSound';
 
 type AssetListViewProps = {

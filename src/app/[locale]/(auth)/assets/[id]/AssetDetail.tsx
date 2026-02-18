@@ -2,10 +2,12 @@
 
 import { Box } from '@mui/material';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
 import { AssetHeader } from '@/components/Assets/Asset/AssetHeader';
 import { AssetTabs } from '@/components/Assets/Asset/AssetTabs';
 import { useSetBreadcrumb } from '@/components/BreadcrumbContext';
+import { Asset } from '@/entities';
+import { useGetAsset } from '@/queries/hooks/assets/useGetAsset';
+import { useUpdateAsset } from '@/queries/hooks/assets/useUpdateAsset';
 
 // Pluralize asset type for routes (matches app routes like /assets/vehicles)
 const pluralizeType = (type: string): string => {
@@ -48,7 +50,7 @@ type Sprint = {
   endDate: Date | null;
 };
 
-type Asset = {
+type AssetDetailAsset = {
   id: number;
   name: string | null;
   description: string | null;
@@ -56,7 +58,7 @@ type Asset = {
   status: string | null;
   type?: string | null;
   tabs?: string[];
-  metadata?: Record<string, any>;
+  metadata?: unknown;
   objectives: Objective[];
   todos: Todo[];
   sprints: Sprint[];
@@ -68,7 +70,7 @@ export function AssetDetail({
   hideBreadcrumb,
   headerActions,
 }: {
-  asset: Asset;
+  asset: AssetDetailAsset;
   locale: string;
   hideBreadcrumb?: boolean;
   headerActions?: React.ReactNode;
@@ -76,7 +78,12 @@ export function AssetDetail({
   const t = useTranslations('Assets');
   const dashboardT = useTranslations('DashboardLayout');
 
-  const [asset, setAsset] = useState(initialAsset);
+  const { data: assetEntity } = useGetAsset(locale, initialAsset.id, {
+    initialData: Asset.fromApi(initialAsset as Parameters<typeof Asset.fromApi>[0]),
+  });
+  const updateMutation = useUpdateAsset(locale, initialAsset.id);
+
+  const asset = (assetEntity?.data ?? initialAsset) as AssetDetailAsset;
 
   // Get breadcrumb label - show "New {{asset type}}" if name is empty and type exists
   const getBreadcrumbLabel = () => {
@@ -106,51 +113,38 @@ export function AssetDetail({
         ],
   );
 
-  const updateAsset = async (updates: Partial<Asset>) => {
+  const updateAsset = async (updates: Partial<AssetDetailAsset>) => {
     try {
-      const response = await fetch(`/${locale}/api/assets/${asset.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update asset');
-      }
-
-      const { asset: updatedAsset } = await response.json();
-      setAsset(prev => ({
-        ...prev,
-        ...updatedAsset,
-        tabs: updatedAsset?.tabs ?? prev.tabs ?? ['overview'],
-      }));
+      await updateMutation.mutateAsync({
+        ...updates,
+        tabs: (updates as AssetDetailAsset).tabs ?? asset.tabs ?? ['overview'],
+      } as Parameters<typeof updateMutation.mutateAsync>[0]);
     } catch (error) {
       console.error('Error updating asset:', error);
     }
   };
 
   // Wrapper that preserves tabs when merging updates (e.g. from vehicle refresh)
-  const handleAssetUpdate = (updates: Partial<Asset> | Asset) => {
-    setAsset(prev => ({
-      ...prev,
+  const handleAssetUpdate = (updates: Partial<AssetDetailAsset> | AssetDetailAsset) => {
+    void updateAsset({
       ...updates,
-      tabs: (updates as Asset).tabs ?? prev.tabs ?? ['overview'],
-    }));
+      tabs: (updates as AssetDetailAsset).tabs ?? asset.tabs ?? ['overview'],
+    });
   };
 
   return (
     <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
       <Box sx={{ width: '100%', px: 0 }}>
         <AssetHeader
-          asset={asset}
+          asset={asset as { id: number; name: string; description: string; color: string; status: string; type?: string | null }}
           locale={locale}
           onUpdate={updateAsset}
           actions={headerActions}
-          registration={asset.type === 'vehicle' ? asset.metadata?.specs?.registration : undefined}
+          registration={asset.type === 'vehicle' ? (asset.metadata as { specs?: { registration?: string } })?.specs?.registration : undefined}
         />
 
         <AssetTabs
-          asset={asset}
+          asset={asset as Parameters<typeof AssetTabs>[0]['asset']}
           locale={locale}
           onUpdateAsset={handleAssetUpdate}
         />

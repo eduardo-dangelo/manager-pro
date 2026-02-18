@@ -2,11 +2,11 @@
 
 import type { ChipProps } from '@mui/material';
 import type { AssetData } from '@/entities';
-import { Asset } from '@/entities';
 import CancelIcon from '@mui/icons-material/Cancel';
 import CheckIcon from '@mui/icons-material/CheckCircle';
 import WarningIcon from '@mui/icons-material/Warning';
 import { Box, Chip, Tooltip, Typography } from '@mui/material';
+import { Asset } from '@/entities';
 
 type TaxChipProps = ChipProps & {
   asset: AssetData;

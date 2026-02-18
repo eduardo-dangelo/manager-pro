@@ -1,6 +1,7 @@
 'use client';
 
 import type { FilePreviewItem } from './FilePreviewPopover';
+import type { FileItem, FolderItem } from './types';
 import {
   Add as AddIcon,
   ChevronLeft as ChevronLeftIcon,
@@ -29,7 +30,11 @@ import { useTheme } from '@mui/material/styles';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { Popover } from '@/components/common/Popover';
+import { useUpdateAsset } from '@/queries/hooks/assets/useUpdateAsset';
+import { useUploadAssetFile } from '@/queries/hooks/assets/useUploadAssetFile';
 import { getButtonGroupSx } from '@/utils/buttonGroupStyles';
+import { FolderTreeView } from './FolderTreeView';
+import { normalizeGalleryMetadata } from './types';
 
 type Asset = {
   id: number;
@@ -77,22 +82,35 @@ const navButtonSx = (side: 'left' | 'right') => ({
   },
 });
 
-export function GalleryTab({ asset, locale, onUpdateAsset }: GalleryTabProps) {
+export function GalleryTab({ asset, locale, onUpdateAsset: _onUpdateAsset }: GalleryTabProps) {
   const t = useTranslations('Assets');
   const theme = useTheme();
   const inputRef = useRef<HTMLInputElement>(null);
   const buttonGroupSx = getButtonGroupSx(theme);
 
-  const [uploading, setUploading] = useState(false);
+  const updateMutation = useUpdateAsset(locale, asset.id);
+  const uploadMutation = useUploadAssetFile(locale, asset.id);
+
   const [gridSize, setGridSize] = useState<GridSize>('medium');
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewItem, setPreviewItem] = useState<FilePreviewItem | null>(null);
   const [deleteConfirmAnchor, setDeleteConfirmAnchor] = useState<HTMLElement | null>(null);
-  const [deleteConfirmItem, setDeleteConfirmItem] = useState<FilePreviewItem | null>(null);
+  const [deleteConfirmItem, setDeleteConfirmItem] = useState<FileItem | null>(null);
 
-  const gallery = useMemo(
-    () => (asset.metadata?.gallery as FilePreviewItem[] | undefined) ?? [],
+  const { folders, files } = useMemo(
+    () => normalizeGalleryMetadata(asset.metadata?.gallery),
     [asset.metadata?.gallery],
+  );
+
+  const updateGalleryMetadata = useCallback(
+    (newFolders: FolderItem[], newFiles: FileItem[]) => {
+      const metadata = {
+        ...asset.metadata,
+        gallery: { folders: newFolders, files: newFiles },
+      };
+      void updateMutation.mutateAsync({ metadata });
+    },
+    [asset.metadata, updateMutation],
   );
 
   const handleUpload = useCallback(
@@ -102,50 +120,18 @@ export function GalleryTab({ asset, locale, onUpdateAsset }: GalleryTabProps) {
         return;
       }
 
-      setUploading(true);
       try {
-        const formData = new FormData();
-        formData.set('file', file);
-        formData.set('type', 'gallery');
-
-        const res = await fetch(`/${locale}/api/assets/${asset.id}/upload`, {
-          method: 'POST',
-          body: formData,
-        });
-
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.error ?? 'Upload failed');
-        }
-
-        const data = (await res.json()) as FilePreviewItem;
-
-        const updatedGallery = [...gallery, data];
-        const metadata = { ...asset.metadata, gallery: updatedGallery };
-
-        const putRes = await fetch(`/${locale}/api/assets/${asset.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ metadata }),
-        });
-
-        if (!putRes.ok) {
-          throw new Error('Failed to save');
-        }
-
-        const { asset: updatedAsset } = await putRes.json();
-        onUpdateAsset({
-          ...asset,
-          metadata: updatedAsset?.metadata ?? metadata,
-        });
+        const data = await uploadMutation.mutateAsync({ file, type: 'gallery' });
+        const newFile: FileItem = { ...data, folderId: null };
+        const newFiles = [...files, newFile];
+        updateGalleryMetadata(folders, newFiles);
       } catch (error) {
         console.error('Gallery upload error:', error);
       } finally {
-        setUploading(false);
         e.target.value = '';
       }
     },
-    [asset, gallery, locale, onUpdateAsset],
+    [files, folders, uploadMutation, updateGalleryMetadata],
   );
 
   const handleImageClick = (_e: React.MouseEvent<HTMLElement>, item: FilePreviewItem) => {
@@ -153,27 +139,28 @@ export function GalleryTab({ asset, locale, onUpdateAsset }: GalleryTabProps) {
     setPreviewOpen(true);
   };
 
+  const allFiles = useMemo(() => files, [files]);
   const previewIndex = previewItem
-    ? gallery.findIndex((f: FilePreviewItem) => f.id === previewItem.id)
+    ? allFiles.findIndex((f: FileItem) => f.id === previewItem.id)
     : -1;
 
   const goToPrev = () => {
-    if (gallery.length === 0) {
+    if (allFiles.length === 0) {
       return;
     }
-    const nextIndex = previewIndex <= 0 ? gallery.length - 1 : previewIndex - 1;
-    const item = gallery[nextIndex];
+    const nextIndex = previewIndex <= 0 ? allFiles.length - 1 : previewIndex - 1;
+    const item = allFiles[nextIndex];
     if (item) {
       setPreviewItem(item);
     }
   };
 
   const goToNext = () => {
-    if (gallery.length === 0) {
+    if (allFiles.length === 0) {
       return;
     }
-    const nextIndex = previewIndex >= gallery.length - 1 ? 0 : previewIndex + 1;
-    const item = gallery[nextIndex];
+    const nextIndex = previewIndex >= allFiles.length - 1 ? 0 : previewIndex + 1;
+    const item = allFiles[nextIndex];
     if (item) {
       setPreviewItem(item);
     }
@@ -184,7 +171,7 @@ export function GalleryTab({ asset, locale, onUpdateAsset }: GalleryTabProps) {
     setPreviewItem(null);
   };
 
-  const handleDeleteClick = (e: React.MouseEvent<HTMLElement>, item: FilePreviewItem) => {
+  const handleDeleteClick = (e: React.MouseEvent<HTMLElement>, item: FileItem) => {
     e.stopPropagation();
     setDeleteConfirmAnchor(e.currentTarget);
     setDeleteConfirmItem(item);
@@ -200,36 +187,119 @@ export function GalleryTab({ asset, locale, onUpdateAsset }: GalleryTabProps) {
       return;
     }
 
-    const updatedGallery = gallery.filter((f: FilePreviewItem) => f.id !== deleteConfirmItem.id);
-    const metadata = { ...asset.metadata, gallery: updatedGallery };
+    const newFiles = files.filter(f => f.id !== deleteConfirmItem.id);
+    updateGalleryMetadata(folders, newFiles);
+    handleDeleteConfirmClose();
+  }, [deleteConfirmItem, files, folders, updateGalleryMetadata]);
 
-    try {
-      const res = await fetch(`/${locale}/api/assets/${asset.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ metadata }),
-      });
-
-      if (!res.ok) {
-        throw new Error('Failed to remove');
+  const handleMove = useCallback(
+    (itemId: string, itemType: 'file' | 'folder', targetFolderId: string | null) => {
+      if (itemType === 'file') {
+        const newFiles = files.map(f =>
+          f.id === itemId ? { ...f, folderId: targetFolderId } : f,
+        );
+        updateGalleryMetadata(folders, newFiles);
+      } else {
+        const newFolders = folders.map(f =>
+          f.id === itemId ? { ...f, parentId: targetFolderId } : f,
+        );
+        updateGalleryMetadata(newFolders, files);
       }
+    },
+    [files, folders, updateGalleryMetadata],
+  );
 
-      const { asset: updatedAsset } = await res.json();
-      onUpdateAsset({
-        ...asset,
-        metadata: updatedAsset?.metadata ?? metadata,
-      });
-      handleDeleteConfirmClose();
-    } catch (error) {
-      console.error('Remove error:', error);
-    }
-  }, [asset, deleteConfirmItem, gallery, locale, onUpdateAsset]);
+  const handleCreateFolder = useCallback(
+    (parentId: string | null, name: string) => {
+      const newFolder: FolderItem = {
+        id: crypto.randomUUID(),
+        name,
+        type: 'folder',
+        parentId,
+      };
+      updateGalleryMetadata([...folders, newFolder], files);
+    },
+    [files, folders, updateGalleryMetadata],
+  );
+
+  const handleDeleteFolder = useCallback(
+    (folderId: string) => {
+      const newFolders = folders.filter(f => f.id !== folderId);
+      updateGalleryMetadata(newFolders, files);
+    },
+    [files, folders, updateGalleryMetadata],
+  );
+
+  const handleRenameFolder = useCallback(
+    (folderId: string, name: string) => {
+      const newFolders = folders.map(f =>
+        f.id === folderId ? { ...f, name } : f,
+      );
+      updateGalleryMetadata(newFolders, files);
+    },
+    [files, folders, updateGalleryMetadata],
+  );
 
   const handleGridSizeChange = (_e: React.MouseEvent<HTMLElement>, newSize: GridSize | null) => {
     if (newSize !== null) {
       setGridSize(newSize);
     }
   };
+
+  const gridSx = useMemo(
+    () => ({
+      display: 'grid' as const,
+      gridTemplateColumns: `repeat(auto-fill, minmax(${GRID_MINMAX[gridSize]}, 1fr))`,
+      gap: 2,
+    }),
+    [gridSize],
+  );
+
+  const renderFile = (file: FileItem, { isDragging }: { isDragging: boolean }) => (
+    <Box
+      onClick={e => handleImageClick(e, file)}
+      sx={{
+        'aspectRatio': '1',
+        'borderRadius': 2,
+        'overflow': 'hidden',
+        'cursor': 'pointer',
+        'position': 'relative',
+        'opacity': isDragging ? 0.5 : 1,
+        '&:hover': { opacity: 0.9 },
+        'transition': 'width 0.3s ease',
+        '& > button': {
+          opacity: 0,
+          transition: 'opacity 0.2s',
+        },
+        '&:hover > button': {
+          opacity: 1,
+        },
+      }}
+    >
+      <Box
+        component="img"
+        src={file.url}
+        alt={file.name}
+        sx={{
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          display: 'block',
+        }}
+      />
+      <IconButton
+        size="small"
+        onClick={e => handleDeleteClick(e, file)}
+        sx={deleteButtonSx}
+        aria-label={t('gallery_delete_image' as any)}
+      >
+        <DeleteIcon fontSize="small" />
+      </IconButton>
+    </Box>
+  );
+
+  const uploading = uploadMutation.isPending;
+  const isEmpty = folders.length === 0 && files.length === 0;
 
   return (
     <Box>
@@ -277,7 +347,7 @@ export function GalleryTab({ asset, locale, onUpdateAsset }: GalleryTabProps) {
         </Box>
       </Box>
 
-      {gallery.length === 0
+      {isEmpty
         ? (
             <Box
               sx={{
@@ -303,74 +373,29 @@ export function GalleryTab({ asset, locale, onUpdateAsset }: GalleryTabProps) {
             </Box>
           )
         : (
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: `repeat(auto-fill, minmax(${GRID_MINMAX[gridSize]}, 1fr))`,
-                gap: 2,
-              }}
-            >
-              {gallery.map((item: FilePreviewItem) => (
-                <Box
-                  key={item.id}
-                  onClick={e => handleImageClick(e, item)}
-                  sx={{
-                    'aspectRatio': '1',
-                    'borderRadius': 2,
-                    'overflow': 'hidden',
-                    'cursor': 'pointer',
-                    'position': 'relative',
-                    '&:hover': { opacity: 0.9 },
-                    'transition': 'width 0.3s ease',
-                    '& > button': {
-                      opacity: 0,
-                      transition: 'opacity 0.2s',
-                    },
-                    '&:hover > button': {
-                      opacity: 1,
-                    },
-                  }}
-                >
-                  <Box
-                    component="img"
-                    src={item.url}
-                    alt={item.name}
-                    sx={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                      display: 'block',
-                    }}
-                  />
-                  <IconButton
-                    size="small"
-                    onClick={e => handleDeleteClick(e, item)}
-                    sx={deleteButtonSx}
-                    aria-label={t('gallery_delete_image' as any)}
-                  >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                </Box>
-              ))}
-            </Box>
+            <FolderTreeView
+              folders={folders}
+              files={files}
+              onMove={handleMove}
+              onCreateFolder={handleCreateFolder}
+              onDeleteFolder={handleDeleteFolder}
+              onRenameFolder={handleRenameFolder}
+              renderFile={renderFile}
+              fileContainerSx={gridSx}
+            />
           )}
 
-      {/* Image preview modal */}
       <Dialog
         open={previewOpen}
         onClose={handlePreviewClose}
         maxWidth="lg"
         fullWidth
         PaperProps={{
-          sx: {
-            maxHeight: '90vh',
-            bgcolor: 'background.paper',
-          },
+          sx: { maxHeight: '90vh', bgcolor: 'background.paper' },
         }}
       >
         {previewItem && (
           <>
-            {/* Header: name left, close right */}
             <Box
               sx={{
                 display: 'flex',
@@ -390,9 +415,16 @@ export function GalleryTab({ asset, locale, onUpdateAsset }: GalleryTabProps) {
               </IconButton>
             </Box>
 
-            {/* Image with prev/next navigation */}
-            <DialogContent sx={{ py: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-              {gallery.length > 1 && (
+            <DialogContent
+              sx={{
+                py: 2,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                position: 'relative',
+              }}
+            >
+              {allFiles.length > 1 && (
                 <>
                   <IconButton
                     onClick={goToPrev}
@@ -423,7 +455,6 @@ export function GalleryTab({ asset, locale, onUpdateAsset }: GalleryTabProps) {
               />
             </DialogContent>
 
-            {/* Footer: download bottom right */}
             <DialogActions sx={{ justifyContent: 'flex-end', px: 2, pb: 2 }}>
               <Button
                 variant="outlined"
@@ -442,7 +473,6 @@ export function GalleryTab({ asset, locale, onUpdateAsset }: GalleryTabProps) {
         )}
       </Dialog>
 
-      {/* Delete confirmation popover */}
       <Popover
         open={Boolean(deleteConfirmAnchor)}
         anchorEl={deleteConfirmAnchor}

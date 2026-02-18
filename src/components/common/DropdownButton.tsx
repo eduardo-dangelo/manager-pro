@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { MoreHoriz as MoreHorizIcon, MoreVert as MoreVertIcon } from '@mui/icons-material';
+import { MoreVert as MoreVertIcon } from '@mui/icons-material';
 import {
   IconButton,
   ListItemIcon,
