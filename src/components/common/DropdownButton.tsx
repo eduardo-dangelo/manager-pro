@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { MoreVert as MoreVertIcon } from '@mui/icons-material';
+import { MoreHoriz as MoreHorizIcon, MoreVert as MoreVertIcon } from '@mui/icons-material';
 import {
   IconButton,
   ListItemIcon,
@@ -24,6 +24,8 @@ export type DropdownOption = {
 type DropdownButtonProps = {
   options: DropdownOption[];
   tooltip?: string;
+  /** Icon to show. Default MoreVert. Use MoreHoriz for horizontal dots. */
+  icon?: ReactNode;
   anchorOrigin?: {
     vertical: 'top' | 'bottom' | 'center';
     horizontal: 'left' | 'right' | 'center';
@@ -35,6 +37,7 @@ type DropdownButtonProps = {
 export function DropdownButton({
   options,
   tooltip = 'Actions',
+  icon,
   anchorOrigin = { vertical: 'bottom', horizontal: 'right' },
   onOpen,
   onClose,
@@ -68,7 +71,7 @@ export function DropdownButton({
           onMouseDown={e => e.stopPropagation()}
           sx={{ color: 'text.secondary' }}
         >
-          <MoreVertIcon fontSize="small" />
+          {icon ?? <MoreVertIcon fontSize="small" />}
         </IconButton>
       </Tooltip>
       <Menu

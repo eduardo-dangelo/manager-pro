@@ -59,7 +59,9 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { CalendarTab } from '@/components/Assets/Asset/tabs/CalendarTab';
+import { DocsTab } from '@/components/Assets/Asset/tabs/DocsTab';
 import { FinanceTab } from '@/components/Assets/Asset/tabs/FinanceTab';
+import { GalleryTab } from '@/components/Assets/Asset/tabs/GalleryTab';
 import { OverviewTab } from '@/components/Assets/Asset/tabs/OverviewTab';
 import { ReportTab } from '@/components/Assets/Asset/tabs/ReportTab';
 import { SprintsTab } from '@/components/Assets/Asset/tabs/SprintsTab';
@@ -771,7 +773,21 @@ export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
       case 'finance':
         return <FinanceTab asset={asset} />;
       case 'docs':
+        return (
+          <DocsTab
+            asset={asset}
+            locale={locale}
+            onUpdateAsset={onUpdateAsset}
+          />
+        );
       case 'gallery':
+        return (
+          <GalleryTab
+            asset={asset}
+            locale={locale}
+            onUpdateAsset={onUpdateAsset}
+          />
+        );
       case 'listing':
         return (
           <Box sx={{ p: 3, textAlign: 'center', color: 'grey.500' }}>
