@@ -23,6 +23,7 @@ type DocsFolderRowProps = {
   folderDropdownRefs: React.MutableRefObject<Record<string, HTMLElement>>;
   savingFolderId: string | null;
   newFolderId: string | null;
+  isDeleting?: boolean;
   onFolderClick: (folderId: string) => void;
   onFolderRenameSave: (folderId: string, newName: string) => Promise<void>;
   onDeleteFolder: (item: FolderItem, anchor: HTMLElement) => void;
@@ -37,6 +38,7 @@ export function DocsFolderRow({
   folderDropdownRefs,
   savingFolderId,
   newFolderId,
+  isDeleting = false,
   onFolderClick,
   onFolderRenameSave,
   onDeleteFolder,
@@ -126,7 +128,7 @@ export function DocsFolderRow({
         width: '100%',
         cursor: 'grab',
         touchAction: 'none',
-        opacity: isDragging ? 0.5 : 1,
+        opacity: isDeleting ? 0.35 : (isDragging ? 0.5 : 1),
       }}
     >
       <DroppableList areaId={droppableId(folder.id)} folderId={folder.id}>
@@ -150,7 +152,6 @@ export function DocsFolderRow({
             </ListItemIcon>
             <Box
               sx={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}
-              onClick={e => e.stopPropagation()}
             >
               {isEditing
                 ? (
@@ -180,7 +181,7 @@ export function DocsFolderRow({
                   )
                 : (
                     <>
-                      <Typography variant="body2" sx={{ minWidth: 0, mr: 1 }} noWrap>
+                      <Typography variant="body2" sx={{ minWidth: 0, mr: 1 }} noWrap onClick={handleEditClick}>
                         {folder.name}
                       </Typography>
                       <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center', flexShrink: 0, minWidth: 28 }}>

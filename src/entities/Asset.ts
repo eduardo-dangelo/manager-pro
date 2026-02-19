@@ -373,6 +373,18 @@ export class Asset {
     );
   }
 
+  static getUniqueNewFolderName(existingNames: string[], baseName: string): string {
+    const namesSet = new Set(existingNames.map(n => n.toLowerCase()));
+    if (!namesSet.has(baseName.toLowerCase())) {
+      return baseName;
+    }
+    let n = 1;
+    while (namesSet.has(`${baseName} (${n})`.toLowerCase())) {
+      n++;
+    }
+    return `${baseName} (${n})`;
+  }
+
   static buildMileageOverTimeSeries(motTests: MotTest[]): MileagePoint[] {
     if (!motTests || motTests.length === 0) {
       return [];

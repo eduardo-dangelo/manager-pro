@@ -29,6 +29,7 @@ type DocsFileRowProps = {
   savingFileId: string | null;
   rowDropdownRefs: React.MutableRefObject<Record<string, HTMLElement>>;
   isPdf: (item: FilePreviewItem) => boolean;
+  isDeleting?: boolean;
   onDocClick: (e: React.MouseEvent<HTMLElement>, item: FilePreviewItem) => void;
   onFileRenameSave: (fileId: string, newName: string) => Promise<void>;
   onDeleteFile: (item: FileItem, anchor: HTMLElement) => void;
@@ -41,6 +42,7 @@ export function DocsFileRow({
   savingFileId,
   rowDropdownRefs,
   isPdf,
+  isDeleting = false,
   onDocClick,
   onFileRenameSave,
   onDeleteFile,
@@ -102,7 +104,7 @@ export function DocsFileRow({
         width: '100%',
         cursor: 'grab',
         touchAction: 'none',
-        opacity: isDragging ? 0.5 : 1,
+        opacity: isDeleting ? 0.35 : (isDragging ? 0.5 : 1),
       }}
     >
       <ListItem disablePadding sx={{ ...listItemSx, width: '100%' }}>
@@ -125,7 +127,6 @@ export function DocsFileRow({
             sx={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
-            onClick={e => e.stopPropagation()}
           >
             {isEditing
               ? (
@@ -156,7 +157,7 @@ export function DocsFileRow({
                 )
               : (
                   <>
-                    <Typography variant="body2" sx={{ minWidth: 0, mr: 1 }} noWrap>
+                    <Typography variant="body2" sx={{ minWidth: 0, mr: 1 }} noWrap onClick={handleEditClick}>
                       {file.name}
                     </Typography>
                     <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center', flexShrink: 0, minWidth: 28 }}>

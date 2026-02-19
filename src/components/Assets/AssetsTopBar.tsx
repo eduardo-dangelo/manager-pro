@@ -5,7 +5,6 @@ import {
   ViewModule as LargeIcon,
   ViewList as ListIcon,
   ViewModule as MediumIcon,
-  Search as SearchIcon,
   ViewModule as SmallIcon,
   SwapVert as SortIcon,
 } from '@mui/icons-material';
@@ -19,15 +18,15 @@ import {
   MenuList,
   Paper,
   Popper,
-  TextField,
   ToggleButton,
   ToggleButtonGroup,
   Tooltip,
   useMediaQuery,
   useTheme,
 } from '@mui/material';
+import { CollapsibleSearch } from '@/components/common/CollapsibleSearch';
 import { useTranslations } from 'next-intl';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSetBreadcrumb } from '@/components/BreadcrumbContext';
 import { useGlobalTopbarContent } from '@/components/GlobalTopbarContentContext';
 import { getButtonGroupSx } from '@/utils/buttonGroupStyles';
@@ -63,9 +62,7 @@ export function AssetsTopBar({
   assetType,
 }: AssetsTopBarProps) {
   const theme = useTheme();
-  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [sortAnchorEl, setSortAnchorEl] = useState<null | HTMLElement>(null);
-  const searchFieldRef = useRef<HTMLInputElement>(null);
   const sortOpen = Boolean(sortAnchorEl);
   const t = useTranslations('Assets');
   const dashboardT = useTranslations('DashboardLayout');
@@ -150,30 +147,6 @@ export function AssetsTopBar({
   const handleSortSelect = (value: SortBy) => {
     handleSortByChange(value);
     handleSortClose();
-  };
-
-  // Collapsible search handlers
-  const handleSearchFocus = () => {
-    setIsSearchExpanded(true);
-  };
-
-  const handleSearchBlur = () => {
-    setIsSearchExpanded(false);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      setIsSearchExpanded(false);
-      onSearchChange('');
-      if (searchFieldRef.current) {
-        searchFieldRef.current.blur();
-      }
-    }
-    if (e.key === 'Enter') {
-      if (!searchQuery.length) {
-        setIsSearchExpanded(false);
-      }
-    }
   };
 
   const buttonGroupSx = getButtonGroupSx(theme);
@@ -356,94 +329,12 @@ export function AssetsTopBar({
       />
       <NewAssetButton locale={locale} iconButtonSx={iconButtonSx} />
 
-      {/* Collapsible Search */}
-      <Box
-        sx={{
-          width: isSearchExpanded ? 200 : 30,
-          height: 45,
-          // overflow: 'hidden',
-          transition: 'width 0.3s ease',
-          display: 'flex',
-          alignItems: 'center',
-        }}
-      >
-        {!isSearchExpanded
-          ? (
-              <Tooltip title="Search assets">
-                <Badge
-                  badgeContent="1"
-                  invisible={!searchQuery.length}
-                  overlap="circular"
-                  anchorOrigin={{
-                    vertical: 'bottom',
-                    horizontal: 'right',
-                  }}
-                  onClick={() => {
-                    setIsSearchExpanded(true);
-                    setTimeout(() => searchFieldRef.current?.focus(), 0);
-                  }}
-                  sx={{
-                    'cursor': 'pointer',
-                    '& .MuiBadge-badge': {
-                      bgcolor: 'primary.main',
-                      color: 'white',
-                      fontSize: '0.625rem',
-                      fontWeight: 600,
-                      width: 14,
-                      height: 14,
-                      minWidth: 16,
-                      cursor: 'pointer',
-                    },
-                  }}
-                >
-                  <IconButton
-                    size="small"
-                    onClick={() => {
-                      setIsSearchExpanded(true);
-                      setTimeout(() => searchFieldRef.current?.focus(), 0);
-                    }}
-                    sx={iconButtonSx}
-                  >
-                    <SearchIcon sx={{ color: 'grey.700', fontSize: 18 }} />
-                  </IconButton>
-                </Badge>
-              </Tooltip>
-            )
-          : (
-              <TextField
-                inputRef={searchFieldRef}
-                label="Search assets"
-                value={searchQuery}
-                onChange={e => onSearchChange(e.target.value)}
-                onKeyDown={handleKeyDown}
-                size="small"
-                variant="outlined"
-                sx={{
-                  'width': '100%',
-                  'height': 35,
-                  '& .MuiInputBase-root': {
-                    height: 40,
-                  },
-                }}
-                InputLabelProps={{
-                  shrink: searchQuery.length > 0,
-                  sx: {
-                    left: searchQuery.length > 0 ? 0 : 22,
-                  },
-                }}
-                onFocus={handleSearchFocus}
-                onBlur={handleSearchBlur}
-                InputProps={{
-                  startAdornment: (
-                    <Box sx={{ display: 'flex', alignItems: 'center', pr: 0.5 }}>
-                      <SearchIcon sx={{ color: 'grey.500', fontSize: 18 }} />
-                    </Box>
-                  ),
-                }}
-              />
-            )}
-
-      </Box>
+      <CollapsibleSearch
+        value={searchQuery}
+        onChange={onSearchChange}
+        placeholder="Search assets"
+        iconButtonSx={iconButtonSx}
+      />
     </Box>
   );
 
@@ -456,7 +347,7 @@ export function AssetsTopBar({
       };
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isDesktop, viewMode, cardSize, sortBy, searchQuery, isSearchExpanded, setRightContent]);
+  }, [isDesktop, viewMode, cardSize, sortBy, searchQuery, setRightContent]);
 
   // On mobile, don't render the controls here (they're in GlobalTopbar)
   if (!isDesktop) {

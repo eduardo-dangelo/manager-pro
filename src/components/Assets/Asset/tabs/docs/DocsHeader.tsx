@@ -2,15 +2,18 @@
 
 import {
   ArrowBack as ArrowBackIcon,
-  CreateNewFolder as CreateFolderIcon,
+  CreateNewFolderOutlined as CreateFolderIcon,
   FileUploadOutlined as FileUploadOutlinedIcon,
 } from '@mui/icons-material';
 import { Box, Button, CircularProgress, IconButton, Tooltip, Typography } from '@mui/material';
 import { useTranslations } from 'next-intl';
+import { CollapsibleSearch } from '@/components/common/CollapsibleSearch';
 
 type DocsHeaderProps = {
   currentFolderId: string | null;
   currentFolderName: string;
+  searchQuery: string;
+  onSearchChange: (query: string) => void;
   onBack: () => void;
   onCreateFolder: () => void;
   onUploadClick: () => void;
@@ -23,6 +26,8 @@ type DocsHeaderProps = {
 export function DocsHeader({
   currentFolderId,
   currentFolderName,
+  searchQuery,
+  onSearchChange,
   onBack,
   onCreateFolder,
   onUploadClick,
@@ -34,22 +39,28 @@ export function DocsHeader({
   const t = useTranslations('Assets');
 
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        {currentFolderId !== null && (
-          <>
-            <Tooltip title={t('folder_back')}>
-              <IconButton size="small" onClick={onBack} aria-label={t('folder_back')}>
-                <ArrowBackIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Typography variant="body2" color="text.secondary" noWrap sx={{ maxWidth: 200 }}>
-              {currentFolderName}
-            </Typography>
-          </>
-        )}
+        {currentFolderId !== null
+          && (
+            <>
+              <Tooltip title={t('folder_back')}>
+                <IconButton size="small" onClick={onBack} aria-label={t('folder_back')}>
+                  <ArrowBackIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+              <Typography variant="title" color="text.secondary" noWrap sx={{ maxWidth: 200 }}>
+                {currentFolderName}
+              </Typography>
+            </>
+          )}
       </Box>
-      <Box sx={{ display: 'flex', gap: 1 }}>
+      <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', height: '30px' }}>
+        <CollapsibleSearch
+          value={searchQuery}
+          onChange={onSearchChange}
+          placeholder={t('docs_search')}
+        />
         <Button
           variant="outlined"
           size="small"

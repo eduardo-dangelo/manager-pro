@@ -18,6 +18,8 @@ export type DocsFlatListProps = {
   savingFileId: string | null;
   savingFolderId: string | null;
   newFolderId: string | null;
+  deletingFileId: string | null;
+  deletingFolderId: string | null;
   rowDropdownRefs: React.MutableRefObject<Record<string, HTMLElement>>;
   folderDropdownRefs: React.MutableRefObject<Record<string, HTMLElement>>;
   isPdf: (item: FilePreviewItem) => boolean;
@@ -38,6 +40,8 @@ export function DocsFlatList({
   savingFileId,
   savingFolderId,
   newFolderId,
+  deletingFileId,
+  deletingFolderId,
   rowDropdownRefs,
   folderDropdownRefs,
   isPdf,
@@ -65,6 +69,7 @@ export function DocsFlatList({
                     folderDropdownRefs={folderDropdownRefs}
                     savingFolderId={savingFolderId}
                     newFolderId={newFolderId}
+                    isDeleting={deletingFolderId === item.id}
                     onFolderClick={onFolderClick}
                     onFolderRenameSave={onFolderRenameSave}
                     onDeleteFolder={onDeleteFolder}
@@ -82,6 +87,7 @@ export function DocsFlatList({
                   savingFileId={savingFileId}
                   rowDropdownRefs={rowDropdownRefs}
                   isPdf={isPdf}
+                  isDeleting={deletingFileId === file.id}
                   onDocClick={onDocClick}
                   onFileRenameSave={onFileRenameSave}
                   onDeleteFile={onDeleteFile}

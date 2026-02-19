@@ -7,10 +7,8 @@ import {
   ViewModule as LargeIcon,
   ViewList as ListIcon,
   ViewModule as MediumIcon,
-  Search as SearchIcon,
   ViewModule as SmallIcon,
   SwapVert as SortIcon,
-
 } from '@mui/icons-material';
 import {
   Badge,
@@ -22,7 +20,6 @@ import {
   MenuList,
   Paper,
   Popper,
-  TextField,
   ToggleButton,
   ToggleButtonGroup,
   Tooltip,
@@ -30,7 +27,8 @@ import {
   useTheme,
 } from '@mui/material';
 import { useTranslations } from 'next-intl';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
+import { CollapsibleSearch } from '@/components/common/CollapsibleSearch';
 import { useSetBreadcrumb } from '@/components/BreadcrumbContext';
 
 // no-op
@@ -67,9 +65,7 @@ export function ProjectsTopBar({
   projectType,
 }: ProjectsTopBarProps) {
   const theme = useTheme();
-  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [sortAnchorEl, setSortAnchorEl] = useState<null | HTMLElement>(null);
-  const searchFieldRef = useRef<HTMLInputElement>(null);
   const sortOpen = Boolean(sortAnchorEl);
   const t = useTranslations('Projects');
   const dashboardT = useTranslations('DashboardLayout');
@@ -152,30 +148,6 @@ export function ProjectsTopBar({
   const handleSortSelect = (value: SortBy) => {
     handleSortByChange(value);
     handleSortClose();
-  };
-
-  // Collapsible search handlers
-  const handleSearchFocus = () => {
-    setIsSearchExpanded(true);
-  };
-
-  const handleSearchBlur = () => {
-    setIsSearchExpanded(false);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      setIsSearchExpanded(false);
-      onSearchChange('');
-      if (searchFieldRef.current) {
-        searchFieldRef.current.blur();
-      }
-    }
-    if (e.key === 'Enter') {
-      if (!searchQuery.length) {
-        setIsSearchExpanded(false);
-      }
-    }
   };
 
   // Button group styling
@@ -418,94 +390,12 @@ export function ProjectsTopBar({
           </IconButton>
         </Tooltip>
 
-        {/* Collapsible Search */}
-        <Box
-          sx={{
-            width: isSearchExpanded ? 200 : 30,
-            height: 45,
-            // overflow: 'hidden',
-            transition: 'width 0.3s ease',
-            display: 'flex',
-            alignItems: 'center',
-          }}
-        >
-          {!isSearchExpanded
-            ? (
-                <Tooltip title="Search projects">
-                  <Badge
-                    badgeContent="1"
-                    invisible={!searchQuery.length}
-                    overlap="circular"
-                    anchorOrigin={{
-                      vertical: 'bottom',
-                      horizontal: 'right',
-                    }}
-                    onClick={() => {
-                      setIsSearchExpanded(true);
-                      setTimeout(() => searchFieldRef.current?.focus(), 0);
-                    }}
-                    sx={{
-                      'cursor': 'pointer',
-                      '& .MuiBadge-badge': {
-                        bgcolor: 'primary.main',
-                        color: 'white',
-                        fontSize: '0.625rem',
-                        fontWeight: 600,
-                        width: 14,
-                        height: 14,
-                        minWidth: 16,
-                        cursor: 'pointer',
-                      },
-                    }}
-                  >
-                    <IconButton
-                      size="small"
-                      onClick={() => {
-                        setIsSearchExpanded(true);
-                        setTimeout(() => searchFieldRef.current?.focus(), 0);
-                      }}
-                      sx={iconButtonSx}
-                    >
-                      <SearchIcon sx={{ color: 'grey.700', fontSize: 18 }} />
-                    </IconButton>
-                  </Badge>
-                </Tooltip>
-              )
-            : (
-                <TextField
-                  inputRef={searchFieldRef}
-                  label="Search projects"
-                  value={searchQuery}
-                  onChange={e => onSearchChange(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  size="small"
-                  variant="outlined"
-                  sx={{
-                    'width': '100%',
-                    'height': 35,
-                    '& .MuiInputBase-root': {
-                      height: 40,
-                    },
-                  }}
-                  InputLabelProps={{
-                    shrink: searchQuery.length > 0,
-                    sx: {
-                      left: searchQuery.length > 0 ? 0 : 22,
-                    },
-                  }}
-                  onFocus={handleSearchFocus}
-                  onBlur={handleSearchBlur}
-                  InputProps={{
-                    startAdornment: (
-                      <Box sx={{ display: 'flex', alignItems: 'center', pr: 0.5 }}>
-                        <SearchIcon sx={{ color: 'grey.500', fontSize: 18 }} />
-                      </Box>
-                    ),
-                  }}
-                />
-              )}
-
-        </Box>
+        <CollapsibleSearch
+          value={searchQuery}
+          onChange={onSearchChange}
+          placeholder="Search projects"
+          iconButtonSx={iconButtonSx}
+        />
       </Box>
     </Box>
   );

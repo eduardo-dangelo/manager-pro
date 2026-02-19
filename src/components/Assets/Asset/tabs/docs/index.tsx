@@ -6,12 +6,13 @@ import type { FileItem, FolderItem } from '../types';
 import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { Add as AddIcon } from '@mui/icons-material';
 import { Box, Button, Typography } from '@mui/material';
+import { useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { assetKeys } from '@/queries/keys';
+import { Asset as AssetEntity } from '@/entities';
 import { useUpdateAsset } from '@/queries/hooks/assets/useUpdateAsset';
 import { useUploadAssetFile } from '@/queries/hooks/assets/useUploadAssetFile';
+import { assetKeys } from '@/queries/keys';
 import { canMoveFolderTo, getItemsInFolder, normalizeDocsMetadata } from '../types';
 import { DOCS_ACCEPT, DROPPABLE_ROOT } from './constants';
 import { DeleteFilePopover } from './DeleteFilePopover';
@@ -50,6 +51,9 @@ export function DocsTabContent({ asset, locale }: DocsTabContentProps) {
   const [deleteFileItem, setDeleteFileItem] = useState<FileItem | null>(null);
   const [deleteFolderAnchor, setDeleteFolderAnchor] = useState<HTMLElement | null>(null);
   const [deleteFolderItem, setDeleteFolderItem] = useState<FolderItem | null>(null);
+  const [deletingFileId, setDeletingFileId] = useState<string | null>(null);
+  const [deletingFolderId, setDeletingFolderId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const rowDropdownRefs = useRef<Record<string, HTMLElement>>({});
   const folderDropdownRefs = useRef<Record<string, HTMLElement>>({});
 
@@ -63,10 +67,14 @@ export function DocsTabContent({ asset, locale }: DocsTabContentProps) {
     [folders, files, currentFolderId],
   );
 
-  const items = useMemo(
-    () => [...subfolders, ...folderFiles] as (FolderItem | FileItem)[],
-    [subfolders, folderFiles],
-  );
+  const items = useMemo(() => {
+    const all = [...subfolders, ...folderFiles] as (FolderItem | FileItem)[];
+    if (!searchQuery.trim()) {
+      return all;
+    }
+    const q = searchQuery.toLowerCase().trim();
+    return all.filter(item => item.name.toLowerCase().includes(q));
+  }, [subfolders, folderFiles, searchQuery]);
 
   const updateDocsMetadata = useCallback(
     (newFolders: FolderItem[], newFiles: FileItem[]) => {
@@ -82,7 +90,9 @@ export function DocsTabContent({ asset, locale }: DocsTabContentProps) {
   const handleUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
-      if (!file) return;
+      if (!file) {
+        return;
+      }
       try {
         const data = await uploadMutation.mutateAsync({ file, type: 'docs' });
         const newFile: FileItem = { ...data, folderId: currentFolderId };
@@ -98,7 +108,9 @@ export function DocsTabContent({ asset, locale }: DocsTabContentProps) {
   );
 
   const handleBack = useCallback(() => {
-    if (currentFolderId === null) return;
+    if (currentFolderId === null) {
+      return;
+    }
     const parent = folders.find(f => f.id === currentFolderId);
     setCurrentFolderId(parent?.parentId ?? null);
   }, [currentFolderId, folders]);
@@ -121,7 +133,9 @@ export function DocsTabContent({ asset, locale }: DocsTabContentProps) {
     async (fileId: string, newName: string) => {
       const trimmed = newName.trim();
       const item = files.find(d => d.id === fileId);
-      if (!item || item.name === trimmed) return;
+      if (!item || item.name === trimmed) {
+        return;
+      }
       setSavingFileId(fileId);
       const newFiles = files.map(d =>
         d.id === fileId ? { ...d, name: trimmed } : d,
@@ -154,7 +168,9 @@ export function DocsTabContent({ asset, locale }: DocsTabContentProps) {
       const isNewFolder = folderId === newFolderId;
       const folder = folders.find(f => f.id === folderId);
       if (!folder || folder.name === trimmed) {
-        if (isNewFolder) setNewFolderId(null);
+        if (isNewFolder) {
+          setNewFolderId(null);
+        }
         return;
       }
       setSavingFolderId(folderId);
@@ -174,7 +190,9 @@ export function DocsTabContent({ asset, locale }: DocsTabContentProps) {
       });
       try {
         await updateDocsMetadata(newFolders, files);
-        if (isNewFolder) setNewFolderId(null);
+        if (isNewFolder) {
+          setNewFolderId(null);
+        }
       } catch {
         queryClient.setQueryData(assetKeys.detail(asset.id), previous);
       } finally {
@@ -185,30 +203,46 @@ export function DocsTabContent({ asset, locale }: DocsTabContentProps) {
   );
 
   const handleCreateFolderOpen = useCallback(() => {
+    const baseName = t('folder_new_default');
+    const existingNames = subfolders.map(f => f.name);
+    const name = AssetEntity.getUniqueNewFolderName(existingNames, baseName);
     const newFolder: FolderItem = {
       id: crypto.randomUUID(),
-      name: t('folder_new_default'),
+      name,
       type: 'folder',
       parentId: currentFolderId,
     };
     updateDocsMetadata([newFolder, ...folders], files);
     setNewFolderId(newFolder.id);
-  }, [currentFolderId, files, folders, t, updateDocsMetadata]);
+  }, [currentFolderId, files, folders, subfolders, t, updateDocsMetadata]);
 
-  const handleDeleteFileConfirm = useCallback(async () => {
-    if (!deleteFileItem) return;
-    const newFiles = files.filter(d => d.id !== deleteFileItem.id);
-    updateDocsMetadata(folders, newFiles);
+  const handleDeleteFileConfirm = useCallback(() => {
+    if (!deleteFileItem) {
+      return;
+    }
+    const fileId = deleteFileItem.id;
+    setDeletingFileId(fileId);
     setDeleteFileAnchor(null);
     setDeleteFileItem(null);
+    setTimeout(() => {
+      const newFiles = files.filter(d => d.id !== fileId);
+      updateDocsMetadata(folders, newFiles);
+    }, 180);
   }, [deleteFileItem, files, folders, updateDocsMetadata]);
 
-  const handleDeleteFolderConfirm = useCallback(async () => {
-    if (!deleteFolderItem) return;
-    const newFolders = folders.filter(f => f.id !== deleteFolderItem.id);
-    updateDocsMetadata(newFolders, files);
+  const handleDeleteFolderConfirm = useCallback(() => {
+    if (!deleteFolderItem) {
+      return;
+    }
+    const folderId = deleteFolderItem.id;
+    setDeletingFolderId(folderId);
     setDeleteFolderAnchor(null);
     setDeleteFolderItem(null);
+    setTimeout(() => {
+      const newFolders = folders.filter(f => f.id !== folderId);
+      updateDocsMetadata(newFolders, files);
+      // setDeletingFolderId(null);
+    }, 280);
   }, [deleteFolderItem, files, folders, updateDocsMetadata]);
 
   const handleMove = useCallback(
@@ -235,7 +269,9 @@ export function DocsTabContent({ asset, locale }: DocsTabContentProps) {
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       const { active, over } = event;
-      if (!over) return;
+      if (!over) {
+        return;
+      }
 
       const activeId = String(active.id);
       const overId = String(over.id);
@@ -280,20 +316,19 @@ export function DocsTabContent({ asset, locale }: DocsTabContentProps) {
   );
 
   const isPdf = useCallback((item: FilePreviewItem) =>
-    item.mimeType === 'application/pdf' || item.name.toLowerCase().endsWith('.pdf'),
-  []);
+    item.mimeType === 'application/pdf' || item.name.toLowerCase().endsWith('.pdf'), []);
 
   const uploading = uploadMutation.isPending;
   const isEmpty = folders.length === 0 && files.length === 0;
   const currentFolderName = folders.find(f => f.id === currentFolderId)?.name ?? '';
 
   const listItemSx = {
-    mb: 1,
-    display: 'flex',
-    alignItems: 'center',
-    borderRadius: 1,
-    border: 1,
-    borderColor: 'divider',
+    'mb': 1,
+    'display': 'flex',
+    'alignItems': 'center',
+    'borderRadius': 1,
+    'border': 1,
+    'borderColor': 'divider',
     '&:hover': { bgcolor: 'action.hover' },
   };
 
@@ -302,6 +337,8 @@ export function DocsTabContent({ asset, locale }: DocsTabContentProps) {
       <DocsHeader
         currentFolderId={currentFolderId}
         currentFolderName={currentFolderName}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
         onBack={handleBack}
         onCreateFolder={handleCreateFolderOpen}
         onUploadClick={() => inputRef.current?.click()}
@@ -346,6 +383,8 @@ export function DocsTabContent({ asset, locale }: DocsTabContentProps) {
                 savingFileId={savingFileId}
                 savingFolderId={savingFolderId}
                 newFolderId={newFolderId}
+                deletingFileId={deletingFileId}
+                deletingFolderId={deletingFolderId}
                 rowDropdownRefs={rowDropdownRefs}
                 folderDropdownRefs={folderDropdownRefs}
                 isPdf={isPdf}
