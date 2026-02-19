@@ -69,6 +69,7 @@ export function DocsPreviewDialog({ open, item, onClose, t }: DocsPreviewDialogP
               download={item.name}
               target="_blank"
               rel="noopener noreferrer"
+              sx={{ textTransform: 'none' }}
             >
               {t('file_download')}
             </Button>

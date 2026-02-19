@@ -1,11 +1,12 @@
 'use client';
 
 import type { FilePreviewItem } from '@/components/Assets/Asset/tabs/FilePreviewPopover';
-import { getItemsInFolder, normalizeDocsMetadata } from '@/components/Assets/Asset/tabs/types';
+import { getItemsInFolder, normalizeDocsMetadata, normalizeGalleryMetadata } from '@/components/Assets/Asset/tabs/types';
 import { Box } from '@mui/material';
 import { useMemo, useState } from 'react';
 import { CalendarCard } from './CalendarCard';
 import { DocsCard } from './DocsCard';
+import { GalleryCard } from './GalleryCard';
 
 type Asset = {
   id: number;
@@ -25,6 +26,7 @@ type TabsSectionProps = {
 export function TabsSection({ asset, locale, onNavigateToTab, onOpenFilePreview }: TabsSectionProps) {
   const hasCalendar = asset.tabs?.includes('calendar') ?? false;
   const hasDocs = asset.tabs?.includes('docs') ?? false;
+  const hasGallery = asset.tabs?.includes('gallery') ?? false;
   const [hasUpcomingEvents, setHasUpcomingEvents] = useState<boolean | null>(null);
 
   const hasDocsItems = useMemo(() => {
@@ -34,7 +36,15 @@ export function TabsSection({ asset, locale, onNavigateToTab, onOpenFilePreview 
     return subfolders.length + folderFiles.length > 0;
   }, [hasDocs, asset.metadata?.docs]);
 
-  const showSection = (hasCalendar && hasUpcomingEvents !== false) || (hasDocs && hasDocsItems);
+  const hasGalleryItems = useMemo(
+    () => normalizeGalleryMetadata(asset.metadata?.gallery).files.length > 0,
+    [asset.metadata?.gallery],
+  );
+
+  const showSection =
+    (hasCalendar && hasUpcomingEvents !== false) ||
+    (hasDocs && hasDocsItems) ||
+    (hasGallery && hasGalleryItems);
   if (!showSection) {
     return null;
   }
@@ -55,6 +65,16 @@ export function TabsSection({ asset, locale, onNavigateToTab, onOpenFilePreview 
         {hasDocs && hasDocsItems && onOpenFilePreview && (
           <Box sx={{ width: { xs: '100%', sm: '50%', md: '33.33%' }, p: 1 }}>
             <DocsCard
+              asset={asset}
+              locale={locale}
+              onNavigateToTab={onNavigateToTab}
+              onOpenFilePreview={onOpenFilePreview}
+            />
+          </Box>
+        )}
+        {hasGallery && hasGalleryItems && (
+          <Box sx={{ width: { xs: '100%', sm: '50%', md: '33.33%' }, p: 1 }}>
+            <GalleryCard
               asset={asset}
               locale={locale}
               onNavigateToTab={onNavigateToTab}

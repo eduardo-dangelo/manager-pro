@@ -3,7 +3,6 @@
 import type { useTranslations } from 'next-intl';
 import type { FilePreviewItem } from '../FilePreviewPopover';
 import type { FileItem } from '../types';
-import { useDraggable } from '@dnd-kit/core';
 import {
   Check as CheckIcon,
   DeleteOutlined as DeleteIcon,
@@ -11,6 +10,7 @@ import {
   Edit as EditIcon,
   InsertDriveFile as FileIcon,
   MoreHoriz as MoreHorizIcon,
+  DriveFileMove as MoveIcon,
   OpenInNew as OpenInNewIcon,
   PictureAsPdf as PdfIcon,
 } from '@mui/icons-material';
@@ -19,7 +19,6 @@ import { useEffect, useRef, useState } from 'react';
 import { DropdownButton } from '@/components/common/DropdownButton';
 import { useHoverSound } from '@/hooks/useHoverSound';
 import { InlineEditableName } from '../InlineEditableName';
-import { draggableFileId } from './constants';
 
 const HOVER_DELAY_MS = 500;
 
@@ -33,6 +32,7 @@ type DocsFileRowProps = {
   onDocClick: (e: React.MouseEvent<HTMLElement>, item: FilePreviewItem) => void;
   onFileRenameSave: (fileId: string, newName: string) => Promise<void>;
   onDeleteFile: (item: FileItem, anchor: HTMLElement) => void;
+  onMoveClick: (item: FileItem, anchor: HTMLElement, onDropdownClose?: () => void) => void;
   t: ReturnType<typeof useTranslations<'Assets'>>;
 };
 
@@ -46,6 +46,7 @@ export function DocsFileRow({
   onDocClick,
   onFileRenameSave,
   onDeleteFile,
+  onMoveClick,
   t,
 }: DocsFileRowProps) {
   const { playHoverSound } = useHoverSound();
@@ -55,12 +56,9 @@ export function DocsFileRow({
   const [showCheckIcon, setShowCheckIcon] = useState(false);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const checkIconTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const closeDropdownRef = useRef<(() => void) | null>(null);
 
   const saving = savingFileId === file.id;
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: draggableFileId(file.id),
-    data: { type: 'file' as const, id: file.id },
-  });
 
   useEffect(() => {
     if (hoverTimeoutRef.current) {
@@ -95,16 +93,11 @@ export function DocsFileRow({
 
   return (
     <Box
-      ref={setNodeRef}
-      {...listeners}
-      {...attributes}
       onMouseEnter={playHoverSound}
       sx={{
         mb: 1,
         width: '100%',
-        cursor: 'grab',
-        touchAction: 'none',
-        opacity: isDeleting ? 0.35 : (isDragging ? 0.5 : 1),
+        opacity: isDeleting ? 0.35 : 1,
       }}
     >
       <ListItem disablePadding sx={{ ...listItemSx, width: '100%' }}>
@@ -209,6 +202,9 @@ export function DocsFileRow({
           <DropdownButton
             icon={<MoreHorizIcon fontSize="small" />}
             tooltip={t('docs_actions')}
+            registerClose={(close) => {
+              closeDropdownRef.current = close;
+            }}
             options={[
               {
                 label: t('docs_open'),
@@ -223,6 +219,17 @@ export function DocsFileRow({
                   a.href = file.url;
                   a.download = file.name;
                   a.click();
+                },
+              },
+              {
+                label: t('docs_move'),
+                icon: <MoveIcon fontSize="small" />,
+                keepOpenOnClick: true,
+                onClick: (event?: React.MouseEvent<HTMLElement>) => {
+                  const anchor = event?.currentTarget ?? rowDropdownRefs.current[file.id];
+                  if (anchor) {
+                    onMoveClick(file, anchor, () => closeDropdownRef.current?.());
+                  }
                 },
               },
               {

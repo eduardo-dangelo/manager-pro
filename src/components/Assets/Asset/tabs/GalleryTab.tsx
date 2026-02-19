@@ -3,12 +3,12 @@
 import type { FilePreviewItem } from './FilePreviewPopover';
 import type { FileItem, FolderItem } from './types';
 import {
-  Add as AddIcon,
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
   Close as CloseIcon,
   DeleteOutlined as DeleteIcon,
   Download as DownloadIcon,
+  FileUploadOutlined as FileUploadOutlinedIcon,
   ViewModule as LargeIcon,
   ViewModule as MediumIcon,
   ViewModule as SmallIcon,
@@ -33,7 +33,6 @@ import { Popover } from '@/components/common/Popover';
 import { useUpdateAsset } from '@/queries/hooks/assets/useUpdateAsset';
 import { useUploadAssetFile } from '@/queries/hooks/assets/useUploadAssetFile';
 import { getButtonGroupSx } from '@/utils/buttonGroupStyles';
-import { FolderTreeView } from './FolderTreeView';
 import { normalizeGalleryMetadata } from './types';
 
 type Asset = {
@@ -192,54 +191,6 @@ export function GalleryTab({ asset, locale, onUpdateAsset: _onUpdateAsset }: Gal
     handleDeleteConfirmClose();
   }, [deleteConfirmItem, files, folders, updateGalleryMetadata]);
 
-  const handleMove = useCallback(
-    (itemId: string, itemType: 'file' | 'folder', targetFolderId: string | null) => {
-      if (itemType === 'file') {
-        const newFiles = files.map(f =>
-          f.id === itemId ? { ...f, folderId: targetFolderId } : f,
-        );
-        updateGalleryMetadata(folders, newFiles);
-      } else {
-        const newFolders = folders.map(f =>
-          f.id === itemId ? { ...f, parentId: targetFolderId } : f,
-        );
-        updateGalleryMetadata(newFolders, files);
-      }
-    },
-    [files, folders, updateGalleryMetadata],
-  );
-
-  const handleCreateFolder = useCallback(
-    (parentId: string | null, name: string) => {
-      const newFolder: FolderItem = {
-        id: crypto.randomUUID(),
-        name,
-        type: 'folder',
-        parentId,
-      };
-      updateGalleryMetadata([...folders, newFolder], files);
-    },
-    [files, folders, updateGalleryMetadata],
-  );
-
-  const handleDeleteFolder = useCallback(
-    (folderId: string) => {
-      const newFolders = folders.filter(f => f.id !== folderId);
-      updateGalleryMetadata(newFolders, files);
-    },
-    [files, folders, updateGalleryMetadata],
-  );
-
-  const handleRenameFolder = useCallback(
-    (folderId: string, name: string) => {
-      const newFolders = folders.map(f =>
-        f.id === folderId ? { ...f, name } : f,
-      );
-      updateGalleryMetadata(newFolders, files);
-    },
-    [files, folders, updateGalleryMetadata],
-  );
-
   const handleGridSizeChange = (_e: React.MouseEvent<HTMLElement>, newSize: GridSize | null) => {
     if (newSize !== null) {
       setGridSize(newSize);
@@ -255,7 +206,7 @@ export function GalleryTab({ asset, locale, onUpdateAsset: _onUpdateAsset }: Gal
     [gridSize],
   );
 
-  const renderFile = (file: FileItem, { isDragging }: { isDragging: boolean }) => (
+  const renderFile = (file: FileItem) => (
     <Box
       onClick={e => handleImageClick(e, file)}
       sx={{
@@ -264,7 +215,6 @@ export function GalleryTab({ asset, locale, onUpdateAsset: _onUpdateAsset }: Gal
         'overflow': 'hidden',
         'cursor': 'pointer',
         'position': 'relative',
-        'opacity': isDragging ? 0.5 : 1,
         '&:hover': { opacity: 0.9 },
         'transition': 'width 0.3s ease',
         '& > button': {
@@ -299,7 +249,7 @@ export function GalleryTab({ asset, locale, onUpdateAsset: _onUpdateAsset }: Gal
   );
 
   const uploading = uploadMutation.isPending;
-  const isEmpty = folders.length === 0 && files.length === 0;
+  const isEmpty = files.length === 0;
 
   return (
     <Box>
@@ -338,11 +288,14 @@ export function GalleryTab({ asset, locale, onUpdateAsset: _onUpdateAsset }: Gal
           />
           <Button
             variant="contained"
-            startIcon={uploading ? <CircularProgress size={16} color="inherit" /> : <AddIcon />}
+            size="small"
+            disableElevation
+            startIcon={uploading ? <CircularProgress size={16} color="inherit" /> : <FileUploadOutlinedIcon />}
             onClick={() => inputRef.current?.click()}
             disabled={uploading}
+            sx={{ textTransform: 'none' }}
           >
-            {t('gallery_upload')}
+            {t('docs_upload')}
           </Button>
         </Box>
       </Box>
@@ -363,26 +316,26 @@ export function GalleryTab({ asset, locale, onUpdateAsset: _onUpdateAsset }: Gal
                 {t('gallery_empty')}
               </Typography>
               <Button
-                variant="outlined"
-                startIcon={<AddIcon />}
+                variant="contained"
+                size="small"
+                disableElevation
+                startIcon={uploading ? <CircularProgress size={16} color="inherit" /> : <FileUploadOutlinedIcon />}
                 onClick={() => inputRef.current?.click()}
                 disabled={uploading}
+                sx={{ textTransform: 'none' }}
               >
-                {t('gallery_upload')}
+                {t('docs_upload')}
               </Button>
             </Box>
           )
         : (
-            <FolderTreeView
-              folders={folders}
-              files={files}
-              onMove={handleMove}
-              onCreateFolder={handleCreateFolder}
-              onDeleteFolder={handleDeleteFolder}
-              onRenameFolder={handleRenameFolder}
-              renderFile={renderFile}
-              fileContainerSx={gridSx}
-            />
+            <Box sx={gridSx}>
+              {files.map(file => (
+                <Box key={file.id}>
+                  {renderFile(file)}
+                </Box>
+              ))}
+            </Box>
           )}
 
       <Dialog
@@ -465,6 +418,7 @@ export function GalleryTab({ asset, locale, onUpdateAsset: _onUpdateAsset }: Gal
                 download={previewItem.name}
                 target="_blank"
                 rel="noopener noreferrer"
+                sx={{ textTransform: 'none' }}
               >
                 {t('file_download')}
               </Button>

@@ -1,9 +1,7 @@
 'use client';
 
-import type { DragEndEvent } from '@dnd-kit/core';
 import type { FilePreviewItem } from '../FilePreviewPopover';
 import type { FileItem, FolderItem } from '../types';
-import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { Add as AddIcon } from '@mui/icons-material';
 import { Box, Button, Typography } from '@mui/material';
 import { useQueryClient } from '@tanstack/react-query';
@@ -13,13 +11,14 @@ import { Asset as AssetEntity } from '@/entities';
 import { useUpdateAsset } from '@/queries/hooks/assets/useUpdateAsset';
 import { useUploadAssetFile } from '@/queries/hooks/assets/useUploadAssetFile';
 import { assetKeys } from '@/queries/keys';
-import { canMoveFolderTo, getItemsInFolder, normalizeDocsMetadata } from '../types';
-import { DOCS_ACCEPT, DROPPABLE_ROOT } from './constants';
+import { getItemsInFolder, normalizeDocsMetadata } from '../types';
+import { DOCS_ACCEPT } from './constants';
 import { DeleteFilePopover } from './DeleteFilePopover';
 import { DeleteFolderPopover } from './DeleteFolderPopover';
 import { DocsFlatList } from './DocsFlatList';
 import { DocsHeader } from './DocsHeader';
 import { DocsPreviewDialog } from './DocsPreviewDialog';
+import { MovePopover } from './MovePopover';
 
 type Asset = {
   id: number;
@@ -53,6 +52,10 @@ export function DocsTabContent({ asset, locale }: DocsTabContentProps) {
   const [deleteFolderItem, setDeleteFolderItem] = useState<FolderItem | null>(null);
   const [deletingFileId, setDeletingFileId] = useState<string | null>(null);
   const [deletingFolderId, setDeletingFolderId] = useState<string | null>(null);
+  const [movePopoverAnchor, setMovePopoverAnchor] = useState<HTMLElement | null>(null);
+  const [movePopoverItem, setMovePopoverItem] = useState<FileItem | FolderItem | null>(null);
+  const [movePopoverItemType, setMovePopoverItemType] = useState<'file' | 'folder' | null>(null);
+  const movePopoverCloseDropdownRef = useRef<(() => void) | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const rowDropdownRefs = useRef<Record<string, HTMLElement>>({});
   const folderDropdownRefs = useRef<Record<string, HTMLElement>>({});
@@ -262,59 +265,6 @@ export function DocsTabContent({ asset, locale }: DocsTabContentProps) {
     [files, folders, updateDocsMetadata],
   );
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-  );
-
-  const handleDragEnd = useCallback(
-    (event: DragEndEvent) => {
-      const { active, over } = event;
-      if (!over) {
-        return;
-      }
-
-      const activeId = String(active.id);
-      const overId = String(over.id);
-
-      let itemId: string;
-      let itemType: 'file' | 'folder';
-
-      if (activeId.startsWith('file-')) {
-        itemId = activeId.slice(5);
-        itemType = 'file';
-      } else if (activeId.startsWith('folder-')) {
-        itemId = activeId.slice(7);
-        itemType = 'folder';
-      } else {
-        return;
-      }
-
-      let targetFolderId: string | null;
-      if (overId === DROPPABLE_ROOT) {
-        targetFolderId = null;
-      } else if (overId.startsWith('droppable-')) {
-        targetFolderId = overId.slice(10) || null;
-      } else {
-        return;
-      }
-
-      if (itemType === 'file') {
-        const file = files.find(f => f.id === itemId);
-        if (file && (file.folderId ?? null) !== targetFolderId) {
-          handleMove(itemId, 'file', targetFolderId);
-        }
-      } else {
-        const folder = folders.find(f => f.id === itemId);
-        if (folder && canMoveFolderTo(targetFolderId, itemId, folders)) {
-          if (folder.parentId !== targetFolderId) {
-            handleMove(itemId, 'folder', targetFolderId);
-          }
-        }
-      }
-    },
-    [files, folders, handleMove],
-  );
-
   const isPdf = useCallback((item: FilePreviewItem) =>
     item.mimeType === 'application/pdf' || item.name.toLowerCase().endsWith('.pdf'), []);
 
@@ -374,35 +324,39 @@ export function DocsTabContent({ asset, locale }: DocsTabContentProps) {
             </Box>
           )
         : (
-            <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-              <DocsFlatList
-                items={items}
-                folders={folders}
-                files={files}
-                listItemSx={listItemSx}
-                savingFileId={savingFileId}
-                savingFolderId={savingFolderId}
-                newFolderId={newFolderId}
-                deletingFileId={deletingFileId}
-                deletingFolderId={deletingFolderId}
-                rowDropdownRefs={rowDropdownRefs}
-                folderDropdownRefs={folderDropdownRefs}
-                isPdf={isPdf}
-                onFolderClick={handleFolderClick}
-                onDocClick={handleDocClick}
-                onFileRenameSave={handleFileRenameSave}
-                onFolderRenameSave={handleFolderRenameSave}
-                onDeleteFile={(item, anchor) => {
-                  setDeleteFileItem(item);
-                  setDeleteFileAnchor(anchor);
-                }}
-                onDeleteFolder={(item, anchor) => {
-                  setDeleteFolderItem(item);
-                  setDeleteFolderAnchor(anchor);
-                }}
-                t={t}
-              />
-            </DndContext>
+            <DocsFlatList
+              items={items}
+              folders={folders}
+              files={files}
+              listItemSx={listItemSx}
+              savingFileId={savingFileId}
+              savingFolderId={savingFolderId}
+              newFolderId={newFolderId}
+              deletingFileId={deletingFileId}
+              deletingFolderId={deletingFolderId}
+              rowDropdownRefs={rowDropdownRefs}
+              folderDropdownRefs={folderDropdownRefs}
+              isPdf={isPdf}
+              onFolderClick={handleFolderClick}
+              onDocClick={handleDocClick}
+              onFileRenameSave={handleFileRenameSave}
+              onFolderRenameSave={handleFolderRenameSave}
+              onDeleteFile={(item, anchor) => {
+                setDeleteFileItem(item);
+                setDeleteFileAnchor(anchor);
+              }}
+              onDeleteFolder={(item, anchor) => {
+                setDeleteFolderItem(item);
+                setDeleteFolderAnchor(anchor);
+              }}
+              onMoveClick={(item, itemType, anchor, onDropdownClose) => {
+                setMovePopoverItem(item);
+                setMovePopoverItemType(itemType);
+                setMovePopoverAnchor(anchor);
+                movePopoverCloseDropdownRef.current = onDropdownClose ?? null;
+              }}
+              t={t}
+            />
           )}
 
       <DocsPreviewDialog
@@ -433,6 +387,24 @@ export function DocsTabContent({ asset, locale }: DocsTabContentProps) {
           setDeleteFolderItem(null);
         }}
         onConfirm={handleDeleteFolderConfirm}
+        t={t}
+      />
+
+      <MovePopover
+        open={Boolean(movePopoverAnchor)}
+        anchorEl={movePopoverAnchor}
+        item={movePopoverItem}
+        itemType={movePopoverItemType}
+        folders={folders}
+        currentFolderId={currentFolderId}
+        onClose={() => {
+          movePopoverCloseDropdownRef.current?.();
+          movePopoverCloseDropdownRef.current = null;
+          setMovePopoverAnchor(null);
+          setMovePopoverItem(null);
+          setMovePopoverItemType(null);
+        }}
+        onMove={handleMove}
         t={t}
       />
     </Box>
