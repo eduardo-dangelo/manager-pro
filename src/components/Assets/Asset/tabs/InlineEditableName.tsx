@@ -2,7 +2,19 @@
 
 import { Box, TextField, Typography } from '@mui/material';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+function getBaseFromValue(value: string, lockedSuffix: string): string {
+  const suffix = lockedSuffix.toLowerCase();
+  if (value.toLowerCase().endsWith(suffix)) {
+    return value.slice(0, -suffix.length);
+  }
+  return value;
+}
+
+function getFullValue(base: string, lockedSuffix: string): string {
+  return base + lockedSuffix.toLowerCase();
+}
 
 export type InlineEditableNameProps = {
   value: string;
@@ -14,10 +26,11 @@ export type InlineEditableNameProps = {
   autoFocus?: boolean;
   inputRef?: React.Ref<HTMLInputElement>;
   size?: 'body2' | 'subtitle2';
+  /** When set (e.g. ".pdf"), only the base name is editable; the suffix is preserved on save. */
+  lockedSuffix?: string;
 };
 
 const IDLE_SAVE_MS = 2500;
-const HOVER_DELAY_MS = 500;
 
 export function InlineEditableName({
   value,
@@ -29,14 +42,32 @@ export function InlineEditableName({
   autoFocus = false,
   inputRef: externalInputRef,
   size = 'body2',
+  lockedSuffix,
 }: InlineEditableNameProps) {
   const t = useTranslations('Assets');
-  const [localValue, setLocalValue] = useState(value);
-  const [isHovered, setIsHovered] = useState(false);
+  const displayValue = useMemo(
+    () => (lockedSuffix ? getBaseFromValue(value, lockedSuffix) : value),
+    [value, lockedSuffix],
+  );
+  const [localValue, setLocalValue] = useState(displayValue);
+  const [, setIsHovered] = useState(false);
   const idleSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastSavedRef = useRef(value);
+  const lastSavedRef = useRef(displayValue);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const toFullValue = useCallback(
+    (base: string) => (lockedSuffix ? getFullValue(base, lockedSuffix) : base),
+    [lockedSuffix],
+  );
+
+  const saveValue = useCallback(
+    (baseOrFull: string) => {
+      const full = lockedSuffix ? getFullValue(baseOrFull, lockedSuffix) : baseOrFull;
+      onSave(full);
+    },
+    [lockedSuffix, onSave],
+  );
 
   const setInputRef = useCallback(
     (el: HTMLInputElement | null) => {
@@ -51,9 +82,9 @@ export function InlineEditableName({
   );
 
   useEffect(() => {
-    setLocalValue(value);
-    lastSavedRef.current = value;
-  }, [value]);
+    setLocalValue(displayValue);
+    lastSavedRef.current = displayValue;
+  }, [displayValue]);
 
   useEffect(() => {
     return () => {
@@ -67,17 +98,17 @@ export function InlineEditableName({
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setLocalValue(newValue);
-    onChange(newValue);
+    const newBase = e.target.value;
+    setLocalValue(newBase);
+    onChange(toFullValue(newBase));
 
     if (idleSaveTimeoutRef.current) {
       clearTimeout(idleSaveTimeoutRef.current);
     }
     idleSaveTimeoutRef.current = setTimeout(() => {
       idleSaveTimeoutRef.current = null;
-      lastSavedRef.current = newValue;
-      onSave(newValue);
+      lastSavedRef.current = newBase;
+      saveValue(newBase);
       inputRef.current?.blur();
     }, IDLE_SAVE_MS);
   };
@@ -87,7 +118,7 @@ export function InlineEditableName({
       clearTimeout(idleSaveTimeoutRef.current);
       idleSaveTimeoutRef.current = null;
     }
-    onSave(localValue);
+    saveValue(localValue);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -98,7 +129,7 @@ export function InlineEditableName({
         idleSaveTimeoutRef.current = null;
       }
       lastSavedRef.current = localValue;
-      onSave(localValue);
+      saveValue(localValue);
       (inputRef as React.RefObject<HTMLInputElement>)?.current?.blur();
     } else if (e.key === 'Escape') {
       e.preventDefault();

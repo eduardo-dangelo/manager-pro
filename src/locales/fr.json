@@ -200,6 +200,7 @@
     "folder_back": "Retour",
     "folder_create": "Créer un dossier",
     "folder_new_placeholder": "Nouveau dossier",
+    "folder_new_default": "Nouveau dossier",
     "folder_name": "Nom du dossier",
     "folder_delete": "Supprimer le dossier",
     "folder_delete_confirm": "Supprimer ce dossier ?",

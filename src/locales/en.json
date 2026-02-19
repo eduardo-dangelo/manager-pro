@@ -201,6 +201,7 @@
     "folder_back": "Back",
     "folder_create": "Create folder",
     "folder_new_placeholder": "New folder",
+    "folder_new_default": "New Folder",
     "folder_name": "Folder name",
     "folder_delete": "Delete folder",
     "folder_delete_confirm": "Delete this folder?",
