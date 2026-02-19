@@ -1,12 +1,13 @@
 'use client';
 
+import type { FilePreviewItem } from '@/components/Assets/Asset/tabs/FilePreviewPopover';
 import { Box } from '@mui/material';
 import { GenericOverviewSection } from '@/components/Assets/Asset/tabs/overview/GenericOverviewSection';
 import { PropertyInfoSection } from '@/components/Assets/Asset/tabs/overview/PropertyInfoSection';
 import { PropertyQuickLinksSection } from '@/components/Assets/Asset/tabs/overview/PropertyQuickLinksSection';
 import { VehicleMaintenanceSection } from '@/components/Assets/Asset/tabs/overview/vehicle/VehicleMaintenanceSection';
 import { VehicleSpecsSection } from '@/components/Assets/Asset/tabs/overview/vehicle/VehicleSpecsSection';
-import { TabsSection } from '@/components/Assets/Asset/TabsSection';
+import { TabsSection } from '@/components/Assets/Asset/tabs/overview/TabsSection';
 
 type Objective = {
   id: number;
@@ -56,9 +57,10 @@ type OverviewTabProps = {
   onUpdateAsset: (asset: Partial<Asset> | Asset) => void;
   onCalendarRefreshRequested?: () => void;
   onNavigateToTab?: (tabName: string) => void;
+  onOpenFilePreview?: (file: FilePreviewItem) => void;
 };
 
-export function OverviewTab({ asset, locale, onUpdateAsset, onCalendarRefreshRequested, onNavigateToTab }: OverviewTabProps) {
+export function OverviewTab({ asset, locale, onUpdateAsset, onCalendarRefreshRequested, onNavigateToTab, onOpenFilePreview }: OverviewTabProps) {
   const renderContent = () => {
     switch (asset.type) {
       case 'vehicle':
@@ -121,6 +123,7 @@ export function OverviewTab({ asset, locale, onUpdateAsset, onCalendarRefreshReq
           asset={asset}
           locale={locale}
           onNavigateToTab={onNavigateToTab}
+          onOpenFilePreview={onOpenFilePreview}
         />
       )}
     </Box>

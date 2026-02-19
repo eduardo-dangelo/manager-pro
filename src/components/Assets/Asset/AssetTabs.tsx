@@ -58,7 +58,9 @@ import { useTranslations } from 'next-intl';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import type { FilePreviewItem } from '@/components/Assets/Asset/tabs/FilePreviewPopover';
 import { CalendarTab } from '@/components/Assets/Asset/tabs/CalendarTab';
+import { DocsPreviewDialog } from '@/components/Assets/Asset/tabs/docs/DocsPreviewDialog';
 import { DocsTab } from '@/components/Assets/Asset/tabs/DocsTab';
 import { FinanceTab } from '@/components/Assets/Asset/tabs/FinanceTab';
 import { GalleryTab } from '@/components/Assets/Asset/tabs/GalleryTab';
@@ -313,6 +315,7 @@ export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
   const [addTabDialogOpen, setAddTabDialogOpen] = useState(false);
   const [removeTabDialogOpen, setRemoveTabDialogOpen] = useState(false);
   const [tabToRemove, setTabToRemove] = useState<string | null>(null);
+  const [previewFile, setPreviewFile] = useState<FilePreviewItem | null>(null);
 
   // Refs for width calculation and scrolling
   const tabsContainerRef = useRef<HTMLDivElement>(null);
@@ -740,6 +743,7 @@ export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
             onUpdateAsset={onUpdateAsset}
             onCalendarRefreshRequested={() => calendarRefreshRef.current?.()}
             onNavigateToTab={updateUrlForTab}
+            onOpenFilePreview={(file) => setPreviewFile(file)}
           />
         );
       case 'todos':
@@ -1028,6 +1032,13 @@ export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <DocsPreviewDialog
+        open={previewFile != null}
+        item={previewFile}
+        onClose={() => setPreviewFile(null)}
+        t={t}
+      />
     </Box>
   );
 }
