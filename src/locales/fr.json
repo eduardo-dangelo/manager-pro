@@ -80,7 +80,8 @@
     "loading": "Chargement…",
     "empty": "Aucune notification",
     "show_only_unread": "Non lus uniquement",
-    "no_unread": "Aucune notification non lue"
+    "no_unread": "Aucune notification non lue",
+    "mark_as_read": "Marquer comme lu"
   },
   "Settings": {
     "meta_title": "Paramètres",

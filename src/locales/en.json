@@ -81,7 +81,8 @@
     "loading": "Loading…",
     "empty": "No notifications",
     "show_only_unread": "Unread only",
-    "no_unread": "No unread notifications"
+    "no_unread": "No unread notifications",
+    "mark_as_read": "Mark as read"
   },
   "Settings": {
     "meta_title": "Settings",

@@ -7,72 +7,21 @@ import {
   Box,
   Collapse,
   FormControlLabel,
-  ListItem,
-  ListItemText,
   Switch,
   Typography,
 } from '@mui/material';
-import { formatDistanceToNow } from 'date-fns';
 import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
 import { TransitionGroup } from 'react-transition-group';
 import { CreateEventPopover } from '@/components/Calendar/CreateEventPopover';
 import { EventDetailsPopover } from '@/components/Calendar/EventDetailsPopover';
+import { NotificationItem } from './NotificationItem';
 import { Popover } from '@/components/common/Popover';
 import { useGetAssets } from '@/queries/hooks/assets';
 import { useGetNotifications, useMarkNotificationRead } from '@/queries/hooks/notifications';
 
 const POPOVER_WIDTH = 360;
-
-/** Format time until (or since) a target date for display in reminder notifications. */
-function formatTimeRemaining(eventStart: Date, now: Date = new Date()): string {
-  const ms = eventStart.getTime() - now.getTime();
-  if (ms < 0) {
-    const ago = formatDistanceToNow(eventStart, { addSuffix: true });
-    return `Started ${ago.replace(' ago', '')} ago`;
-  }
-  const totalMinutes = Math.floor(ms / (60 * 1000));
-  const prefix = 'in ';
-  if (totalMinutes < 1) {
-    return 'in less than 1 minute';
-  }
-  if (totalMinutes < 60) {
-    const text = totalMinutes === 1 ? '1 minute' : `${totalMinutes} minutes`;
-    return `${prefix}${text}`;
-  }
-  const totalHours = totalMinutes / 60;
-  if (totalHours < 24) {
-    const hours = Math.floor(totalHours);
-    const mins = Math.round(totalMinutes - hours * 60);
-    const h = hours === 1 ? '1 hour' : `${hours} hours`;
-    if (mins === 0) {
-      return `${prefix}${h}`;
-    }
-    const m = mins === 1 ? '1 minute' : `${mins} minutes`;
-    return `${prefix}${h} and ${m}`;
-  }
-  const totalDays = totalHours / 24;
-  const days = Math.floor(totalDays);
-  const hours = Math.round(totalHours - days * 24);
-  const d = days === 1 ? '1 day' : `${days} days`;
-  if (hours === 0) {
-    return `${prefix}${d}`;
-  }
-  const h = hours === 1 ? '1 hour' : `${hours} hours`;
-  return `${prefix}${d} and ${h}`;
-}
-
-function getEventNameFromNotification(n: Notification): string {
-  if (n.metadata?.eventName) {
-    return n.metadata.eventName;
-  }
-  const match = n.title.match(/Reminder:\s*"([^"]+)"/);
-  return match?.[1] ?? 'Event';
-}
-
 const POPOVER_MAX_HEIGHT = 400;
-const UNREAD_DOT_SIZE = 8;
-const UNREAD_DOT_GAP = 10;
 
 type NotificationsPopoverProps = {
   open: boolean;
@@ -218,98 +167,16 @@ export function NotificationsPopover({
               {!loading && displayedNotifications.length > 0 && (
                 <Collapse key="list" timeout={300}>
                   <TransitionGroup component={null}>
-                    {displayedNotifications.map((n, index) => {
-                      const isReminder = n.type === 'event_reminder' && n.metadata;
-                      return (
-                        <Collapse key={n.id} timeout={300}>
-                          <ListItem
-                            alignItems="flex-start"
-                            disablePadding
-                            divider={index < displayedNotifications.length - 1}
-                            sx={{
-                              'py': 1,
-                              'px': 1,
-                              'display': 'flex',
-                              'alignItems': 'flex-start',
-                              'gap': 1,
-                              'cursor': n.read ? 'default' : 'pointer',
-                              'bgcolor': !n.read ? 'transparent' : 'action.hover',
-                              '&:hover': {
-                                bgcolor: n.read ? 'action.selected' : 'action.hover',
-                              },
-                            }}
-                            onClick={() => void handleMarkAsRead(n)}
-                          >
-                            <Box
-                              sx={{
-                                width: UNREAD_DOT_SIZE + UNREAD_DOT_GAP,
-                                flexShrink: 0,
-                                display: 'flex',
-                                alignItems: 'flex-start',
-                                justifyContent: 'center',
-                                pt: 0.75,
-                                mt: 0.5,
-                              }}
-                            >
-                              {!n.read && (
-                                <Box
-                                  sx={{
-                                    width: UNREAD_DOT_SIZE,
-                                    height: UNREAD_DOT_SIZE,
-                                    borderRadius: '50%',
-                                    bgcolor: 'error.main',
-                                  }}
-                                />
-                              )}
-                            </Box>
-                            <ListItemText
-                              primary={
-                                isReminder
-                                  ? (
-                                      <>
-                                        Reminder:
-                                        {' '}
-                                        <Typography
-                                          component="span"
-                                          variant="body2"
-                                          fontWeight={600}
-                                          onClick={e => handleEventNameClick(e, n)}
-                                          sx={{ cursor: 'pointer', color: 'inherit', textDecoration: 'none' }}
-                                        >
-                                          {getEventNameFromNotification(n)}
-                                        </Typography>
-                                      </>
-                                    )
-                                  : n.title
-                              }
-                              primaryTypographyProps={{ variant: 'body2' }}
-                              secondary={
-                                isReminder && n.metadata
-                                  ? (
-                                      <>
-                                        <Typography component="span" display="block" variant="body2" color="text.secondary">
-                                          {formatTimeRemaining(
-                                            new Date(
-                                              new Date(n.createdAt).getTime()
-                                                + (n.metadata.reminderMinutes ?? 0) * 60 * 1000,
-                                            ),
-                                            new Date(n.createdAt),
-                                          )}
-                                        </Typography>
-                                        <Typography component="span" display="block" variant="caption" color="text.secondary">
-                                          {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
-                                        </Typography>
-                                      </>
-                                    )
-                                  : formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })
-                              }
-                              secondaryTypographyProps={{ variant: 'caption', color: 'text.secondary' }}
-                              sx={{ flex: 1, minWidth: 0 }}
-                            />
-                          </ListItem>
-                        </Collapse>
-                      );
-                    })}
+                    {displayedNotifications.map((n, index) => (
+                      <Collapse key={n.id} timeout={300}>
+                        <NotificationItem
+                          notification={n}
+                          divider={index < displayedNotifications.length - 1}
+                          onMarkAsRead={handleMarkAsRead}
+                          onEventNameClick={handleEventNameClick}
+                        />
+                      </Collapse>
+                    ))}
                   </TransitionGroup>
                 </Collapse>
               )}
