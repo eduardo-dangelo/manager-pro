@@ -1,4 +1,4 @@
-import type { NextFetchEvent, NextRequest } from 'next/server';
+import type { NextRequest } from 'next/server';
 import { detectBot } from '@arcjet/next';
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import createMiddleware from 'next-intl/middleware';
@@ -11,16 +11,19 @@ const handleI18nRouting = createMiddleware(routing);
 const isProtectedRoute = createRouteMatcher([
   '/dashboard(.*)',
   '/assets(.*)',
+  '/activity(.*)',
   '/calendar(.*)',
   '/settings(.*)',
   '/:locale/dashboard(.*)',
   '/:locale/assets(.*)',
+  '/:locale/activity(.*)',
   '/:locale/calendar(.*)',
   '/:locale/settings(.*)',
 ]);
 
 const isProtectedApiRoute = createRouteMatcher([
   '/api/assets(.*)',
+  '/api/activities(.*)',
   '/api/calendar-events(.*)',
   '/api/notifications(.*)',
   '/api/objectives(.*)',
@@ -29,6 +32,7 @@ const isProtectedApiRoute = createRouteMatcher([
   '/api/users(.*)',
   '/api/vehicles(.*)',
   '/:locale/api/assets(.*)',
+  '/:locale/api/activities(.*)',
   '/:locale/api/calendar-events(.*)',
   '/:locale/api/notifications(.*)',
   '/:locale/api/objectives(.*)',
@@ -59,12 +63,9 @@ const aj = arcjet.withRule(
   }),
 );
 
-export default async function middleware(
-  request: NextRequest,
-  event: NextFetchEvent,
-) {
+// Wrap in clerkMiddleware so auth() works in route handlers - Clerk requires it to run for all routes using auth()
+export default clerkMiddleware(async (auth, request: NextRequest) => {
   // Verify the request with Arcjet
-  // Use `process.env` instead of Env to reduce bundle size in middleware
   if (process.env.ARCJET_KEY) {
     const decision = await aj.protect(request);
 
@@ -78,35 +79,28 @@ export default async function middleware(
     return NextResponse.next();
   }
 
-  // Handle protected API routes (no i18n routing needed)
+  // Protected API routes: require auth
   if (isProtectedApiRoute(request)) {
-    return clerkMiddleware(async (auth) => {
-      await auth.protect();
-    })(request, event);
+    await auth.protect();
+    return NextResponse.next();
   }
 
-  // Clerk keyless mode doesn't work with i18n, this is why we need to run the middleware conditionally
-  if (
-    isAuthPage(request) || isProtectedRoute(request)
-  ) {
-    return clerkMiddleware(async (auth, req) => {
-      if (isProtectedRoute(req)) {
-        // Extract locale from pathname (e.g., /en/assets -> /en)
-        const locale = req.nextUrl.pathname.match(/^\/([a-z]{2})\//)?.[1] ? `/${req.nextUrl.pathname.match(/^\/([a-z]{2})\//)?.[1]}` : '';
-
-        const signInUrl = new URL(`${locale}/sign-in`, req.url);
-
-        await auth.protect({
-          unauthenticatedUrl: signInUrl.toString(),
-        });
-      }
-
-      return handleI18nRouting(req);
-    })(request, event);
+  // Protected pages and auth pages: protect and handle i18n
+  if (isAuthPage(request) || isProtectedRoute(request)) {
+    if (isProtectedRoute(request)) {
+      const locale = request.nextUrl.pathname.match(/^\/([a-z]{2})\//)?.[1]
+        ? `/${request.nextUrl.pathname.match(/^\/([a-z]{2})\//)?.[1]}`
+        : '';
+      const signInUrl = new URL(`${locale}/sign-in`, request.url);
+      await auth.protect({
+        unauthenticatedUrl: signInUrl.toString(),
+      });
+    }
+    return handleI18nRouting(request);
   }
 
   return handleI18nRouting(request);
-}
+});
 
 export const config = {
   // Match all pathnames except for

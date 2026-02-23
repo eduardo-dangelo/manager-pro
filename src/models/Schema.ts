@@ -160,6 +160,17 @@ export const notificationsSchema = pgTable('notifications', {
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
 });
 
+export const assetActivitiesSchema = pgTable('asset_activities', {
+  id: serial('id').primaryKey(),
+  assetId: integer('asset_id').references(() => assetsSchema.id).notNull(),
+  userId: text('user_id').references(() => usersSchema.id).notNull(),
+  action: text('action').notNull(),
+  entityType: text('entity_type'),
+  entityId: integer('entity_id'),
+  metadata: jsonb('metadata'),
+  createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+});
+
 // Define relationships
 export const userRelations = relations(usersSchema, ({ many }) => ({
   assets: many(assetsSchema),
@@ -170,6 +181,7 @@ export const userRelations = relations(usersSchema, ({ many }) => ({
   workSpaces: many(workSpacesSchema),
   calendarEvents: many(calendarEventsSchema),
   notifications: many(notificationsSchema),
+  assetActivities: many(assetActivitiesSchema),
 }));
 
 export const workSpacesRelations = relations(workSpacesSchema, ({ many }) => ({
@@ -183,6 +195,7 @@ export const assetsRelations = relations(assetsSchema, ({ many, one }) => ({
   todos: many(todosSchema),
   sprints: many(sprintsSchema),
   calendarEvents: many(calendarEventsSchema),
+  assetActivities: many(assetActivitiesSchema),
   user: one(usersSchema, {
     fields: [assetsSchema.userId],
     references: [usersSchema.id],
@@ -261,6 +274,17 @@ export const calendarEventsRelations = relations(calendarEventsSchema, ({ one })
 export const notificationsRelations = relations(notificationsSchema, ({ one }) => ({
   user: one(usersSchema, {
     fields: [notificationsSchema.userId],
+    references: [usersSchema.id],
+  }),
+}));
+
+export const assetActivitiesRelations = relations(assetActivitiesSchema, ({ one }) => ({
+  asset: one(assetsSchema, {
+    fields: [assetActivitiesSchema.assetId],
+    references: [assetsSchema.id],
+  }),
+  user: one(usersSchema, {
+    fields: [assetActivitiesSchema.userId],
     references: [usersSchema.id],
   }),
 }));

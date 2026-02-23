@@ -95,6 +95,7 @@
     "sign_out": "Sign out",
     "menu_dashboard": "Dashboard",
     "menu_calendar": "Calendar",
+    "menu_activity": "Activity",
     "menu_projects": "Assets",
     "menu_vehicle": "Vehicles",
     "menu_property": "Properties",
@@ -183,6 +184,7 @@
     "tabs_calendar": "Calendar",
     "upcoming_events": "Upcoming Events",
     "tabs_timeline": "Timeline",
+    "tabs_activity": "Activity",
     "tabs_report": "Report",
     "tabs_settings": "Settings",
     "tabs_docs": "Docs",
@@ -240,6 +242,7 @@
     "new_person": "New Person",
     "new_project": "New Asset",
     "new_trip": "New Trip",
+    "new_custom": "New Custom",
     "type_readonly_message": "Type cannot be changed once set",
     "add_tab": "Add Tab",
     "select_tab": "Select a tab to add",
@@ -372,5 +375,15 @@
     "reminder_before": "before",
     "reminder_remove": "Remove notification",
     "reminder_add": "Add notification"
+  },
+  "Activity": {
+    "no_activities": "No activity yet",
+    "asset_created": "Asset created",
+    "asset_updated": "Asset updated",
+    "event_created": "Event created",
+    "event_updated": "Event updated",
+    "event_deleted": "Event deleted",
+    "doc_uploaded": "Document uploaded",
+    "image_uploaded": "Image uploaded"
   }
 }

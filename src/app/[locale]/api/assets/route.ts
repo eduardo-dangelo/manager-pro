@@ -2,6 +2,7 @@ import { currentUser } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import z from 'zod';
 import { logger } from '@/libs/Logger';
+import { ActivityService } from '@/services/activityService';
 import { AssetService } from '@/services/assetService';
 import { AssetValidation } from '@/validations/AssetValidation';
 
@@ -58,6 +59,11 @@ export const POST = async (request: Request) => {
     if (!asset) {
       throw new Error('Failed to create asset - no asset returned');
     }
+
+    await ActivityService.create(
+      { assetId: asset.id, action: 'asset_created' },
+      user.id,
+    );
 
     logger.info('Asset has been created', { assetId: asset.id });
 

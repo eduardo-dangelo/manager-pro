@@ -2,6 +2,7 @@ import { currentUser } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import z from 'zod';
 import { logger } from '@/libs/Logger';
+import { ActivityService } from '@/services/activityService';
 import { CalendarEventService } from '@/services/calendarEventService';
 import { UpdateCalendarEventValidation } from '@/validations/CalendarEventValidation';
 
@@ -98,6 +99,17 @@ export const PUT = async (
       return NextResponse.json({ error: 'Event not found' }, { status: 404 });
     }
 
+    await ActivityService.create(
+      {
+        assetId: event.assetId,
+        action: 'event_updated',
+        entityType: 'calendar_event',
+        entityId: event.id,
+        metadata: { eventName: event.name },
+      },
+      user.id,
+    );
+
     logger.info('Calendar event updated', { eventId: event.id });
 
     return NextResponse.json({ event });
@@ -128,6 +140,20 @@ export const DELETE = async (
 
     if (Number.isNaN(eventId)) {
       return NextResponse.json({ error: 'Invalid event ID' }, { status: 400 });
+    }
+
+    const event = await CalendarEventService.getById(eventId, user.id);
+    if (event) {
+      await ActivityService.create(
+        {
+          assetId: event.assetId,
+          action: 'event_deleted',
+          entityType: 'calendar_event',
+          entityId: event.id,
+          metadata: { eventName: event.name },
+        },
+        user.id,
+      );
     }
 
     await CalendarEventService.delete(eventId, user.id);

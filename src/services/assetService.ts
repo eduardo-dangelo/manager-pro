@@ -36,7 +36,7 @@ export class AssetService {
       case 'person':
         return ['overview', 'calendar', 'finance'];
       case 'project':
-        return ['overview', 'todos', 'sprints', 'timeline', 'insights'];
+        return ['overview', 'todos', 'sprints', 'activity', 'insights'];
       case 'trip':
         return ['overview', 'calendar'];
       case 'custom':

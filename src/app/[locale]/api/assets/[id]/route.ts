@@ -2,6 +2,7 @@ import { currentUser } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import z from 'zod';
 import { logger } from '@/libs/Logger';
+import { ActivityService } from '@/services/activityService';
 import { AssetService } from '@/services/assetService';
 import { UpdateAssetValidation } from '@/validations/AssetValidation';
 
@@ -80,6 +81,11 @@ export const PUT = async (
     if (!asset) {
       return NextResponse.json({ error: 'Asset not found' }, { status: 404 });
     }
+
+    await ActivityService.create(
+      { assetId: asset.id, action: 'asset_updated' },
+      user.id,
+    );
 
     logger.info('Asset has been updated', { assetId: asset.id });
 

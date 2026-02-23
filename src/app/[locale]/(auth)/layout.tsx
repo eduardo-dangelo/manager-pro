@@ -8,6 +8,7 @@ import {
   Flight,
   Folder,
   HomeWork,
+  History as ActivityIcon,
   Person,
   Settings as SettingsIcon,
   Storage,
@@ -92,6 +93,11 @@ export default async function AuthLayout(props: {
       icon: CalendarMonth,
       label: t('menu_calendar'),
       href: `/${locale}/calendar`,
+    },
+    {
+      icon: ActivityIcon,
+      label: t('menu_activity'),
+      href: `/${locale}/activity`,
     },
     {
       icon: Storage,

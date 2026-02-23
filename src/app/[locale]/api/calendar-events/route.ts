@@ -3,6 +3,7 @@ import { currentUser } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import z from 'zod';
 import { logger } from '@/libs/Logger';
+import { ActivityService } from '@/services/activityService';
 import { CalendarEventService } from '@/services/calendarEventService';
 import { CalendarEventValidation } from '@/validations/CalendarEventValidation';
 
@@ -70,6 +71,17 @@ export const POST = async (request: Request) => {
     if (!event) {
       throw new Error('Failed to create calendar event');
     }
+
+    await ActivityService.create(
+      {
+        assetId: event.assetId,
+        action: 'event_created',
+        entityType: 'calendar_event',
+        entityId: event.id,
+        metadata: { eventName: event.name },
+      },
+      user.id,
+    );
 
     logger.info('Calendar event created', { eventId: event.id });
 

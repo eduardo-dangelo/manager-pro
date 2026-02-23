@@ -43,6 +43,13 @@
       "when": 1770664413435,
       "tag": "0005_magenta_living_tribunal",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1771803563920,
+      "tag": "0006_perfect_crusher_hogan",
+      "breakpoints": true
     }
   ]
 }

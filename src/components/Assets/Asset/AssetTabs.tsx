@@ -27,9 +27,9 @@ import {
   PhotoLibrary as GalleryIcon,
   Assessment as InsightsIcon,
   ListAlt as ListingIcon,
+  History as ActivityIcon,
   MoreHoriz as MoreHorizIcon,
   DirectionsRun as SprintsIcon,
-  ShowChart as TimelineIcon,
   CheckBox as TodosIcon,
 } from '@mui/icons-material';
 import {
@@ -59,6 +59,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { FilePreviewItem } from '@/components/Assets/Asset/tabs/FilePreviewPopover';
+import { ActivityTab } from '@/components/Assets/Asset/tabs/ActivityTab';
 import { CalendarTab } from '@/components/Assets/Asset/tabs/CalendarTab';
 import { DocsPreviewDialog } from '@/components/Assets/Asset/tabs/docs/DocsPreviewDialog';
 import { DocsTab } from '@/components/Assets/Asset/tabs/DocsTab';
@@ -67,7 +68,6 @@ import { GalleryTab } from '@/components/Assets/Asset/tabs/GalleryTab';
 import { OverviewTab } from '@/components/Assets/Asset/tabs/OverviewTab';
 import { ReportTab } from '@/components/Assets/Asset/tabs/ReportTab';
 import { SprintsTab } from '@/components/Assets/Asset/tabs/SprintsTab';
-import { TimelineTab } from '@/components/Assets/Asset/tabs/TimelineTab';
 import { TodosTab } from '@/components/Assets/Asset/tabs/TodosTab';
 
 type Todo = {
@@ -327,7 +327,7 @@ export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
   }, []);
 
   // Define all available tabs
-  const availableTabs = ['overview', 'todos', 'calendar', 'sprints', 'finance', 'docs', 'gallery', 'listing', 'timeline', 'insights'];
+  const availableTabs = ['overview', 'todos', 'calendar', 'sprints', 'finance', 'docs', 'gallery', 'listing', 'activity', 'insights'];
 
   // Get asset's current tabs (default to ['overview'] if not set)
   const assetTabs = asset.tabs || ['overview'];
@@ -724,8 +724,9 @@ export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
         return <GalleryIcon sx={props} />;
       case 'listing':
         return <ListingIcon sx={props} />;
+      case 'activity':
       case 'timeline':
-        return <TimelineIcon sx={props} />;
+        return <ActivityIcon sx={props} />;
       case 'insights':
         return <InsightsIcon sx={props} />;
       default:
@@ -770,8 +771,9 @@ export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
             registerCalendarRefresh={registerCalendarRefresh}
           />
         );
+      case 'activity':
       case 'timeline':
-        return <TimelineTab asset={asset} />;
+        return <ActivityTab asset={asset} locale={locale} />;
       case 'insights':
         return <ReportTab asset={asset} />;
       case 'finance':

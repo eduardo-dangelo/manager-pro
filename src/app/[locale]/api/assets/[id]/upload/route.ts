@@ -5,6 +5,7 @@ import { currentUser } from '@clerk/nextjs/server';
 import { put } from '@vercel/blob';
 import { NextResponse } from 'next/server';
 import { logger } from '@/libs/Logger';
+import { ActivityService } from '@/services/activityService';
 import { AssetService } from '@/services/assetService';
 
 const GALLERY_ACCEPT = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
@@ -105,6 +106,16 @@ export async function POST(
       url = `/uploads/${pathname}`;
       logger.info('File uploaded (local)', { assetId, type, pathname });
     }
+
+    const action = type === 'docs' ? 'doc_uploaded' : 'image_uploaded';
+    await ActivityService.create(
+      {
+        assetId,
+        action,
+        metadata: { fileName: name },
+      },
+      user.id,
+    );
 
     return NextResponse.json({
       id: fileId,

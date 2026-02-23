@@ -94,6 +94,7 @@
     "sign_out": "Se déconnecter",
     "menu_dashboard": "Tableau de bord",
     "menu_calendar": "Calendrier",
+    "menu_activity": "Activité",
     "menu_projects": "Actifs",
     "menu_vehicle": "Véhicules",
     "menu_property": "Propriétés",
@@ -182,6 +183,7 @@
     "tabs_calendar": "Calendrier",
     "upcoming_events": "Événements à venir",
     "tabs_timeline": "Chronologie",
+    "tabs_activity": "Activité",
     "tabs_report": "Rapport",
     "tabs_settings": "Paramètres",
     "tabs_docs": "Documents",
@@ -239,6 +241,7 @@
     "new_person": "Nouvelle Personne",
     "new_project": "Nouvel Actif",
     "new_trip": "Nouveau Voyage",
+    "new_custom": "Nouveau Personnalisé",
     "type_readonly_message": "Le type ne peut pas être modifié une fois défini",
     "add_tab": "Ajouter un Onglet",
     "select_tab": "Sélectionner un onglet à ajouter",
@@ -371,5 +374,15 @@
     "reminder_before": "avant",
     "reminder_remove": "Supprimer la notification",
     "reminder_add": "Ajouter une notification"
+  },
+  "Activity": {
+    "no_activities": "Aucune activité pour le moment",
+    "asset_created": "Actif créé",
+    "asset_updated": "Actif modifié",
+    "event_created": "Événement créé",
+    "event_updated": "Événement modifié",
+    "event_deleted": "Événement supprimé",
+    "doc_uploaded": "Document téléchargé",
+    "image_uploaded": "Image téléchargée"
   }
 }
