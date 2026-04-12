@@ -19,8 +19,6 @@ type AssetFolderViewProps = {
 export function AssetFolderView({ assets, locale, cardSize, onAssetDeleted }: AssetFolderViewProps) {
   const getGridSizes = () => {
     switch (cardSize) {
-      case 'small':
-        return { xs: '33.33%', sm: '33.33%', md: '25%', lg: '20%', xl: '16.66%' };
       case 'large':
         return { xs: '100%', sm: '100%', md: '50%', lg: '33.33%', xl: '25%' };
       case 'medium':

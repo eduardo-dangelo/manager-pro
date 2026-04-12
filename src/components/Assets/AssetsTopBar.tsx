@@ -5,7 +5,6 @@ import {
   ViewModule as LargeIcon,
   ViewList as ListIcon,
   ViewModule as MediumIcon,
-  ViewModule as SmallIcon,
   SwapVert as SortIcon,
 } from '@mui/icons-material';
 import {
@@ -33,17 +32,17 @@ import { getButtonGroupSx } from '@/utils/buttonGroupStyles';
 import { NewAssetButton } from './NewAssetButton';
 
 type ViewMode = 'folder' | 'list';
-type CardSize = 'small' | 'medium' | 'large';
+type FolderCardSize = 'medium' | 'large';
 type SortBy = 'dateCreated' | 'dateModified' | 'name' | 'type' | 'status';
 
 type AssetsTopBarProps = {
   searchQuery: string;
   viewMode: ViewMode;
-  cardSize: CardSize;
+  cardSize: FolderCardSize;
   sortBy: SortBy;
   onSearchChange: (query: string) => void;
   onViewModeChange: (mode: ViewMode) => void;
-  onCardSizeChange: (size: CardSize) => void;
+  onCardSizeChange: (size: FolderCardSize) => void;
   onSortByChange: (sort: SortBy) => void;
   locale: string;
   assetType?: string;
@@ -86,54 +85,20 @@ export function AssetsTopBar({
 
   // no-op
 
-  // Optimistic UI updates with error rollback
-  const handleViewModeChange = async (_event: React.MouseEvent<HTMLElement>, newMode: ViewMode | null) => {
+  const handleViewModeChange = (_event: React.MouseEvent<HTMLElement>, newMode: ViewMode | null) => {
     if (newMode !== null) {
-      const oldMode = viewMode;
-      onViewModeChange(newMode); // Immediate UI update
-
-      try {
-        await fetch(`/${locale}/api/users/preferences`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ projectsViewMode: newMode }),
-        });
-      } catch (error) {
-        console.error('Failed to update view mode:', error);
-        onViewModeChange(oldMode); // Rollback on error
-      }
+      onViewModeChange(newMode);
     }
   };
 
-  const handleCardSizeChange = async (_event: React.MouseEvent<HTMLElement>, newSize: CardSize | null) => {
+  const handleCardSizeChange = (_event: React.MouseEvent<HTMLElement>, newSize: FolderCardSize | null) => {
     if (newSize !== null) {
-      const oldSize = cardSize;
-      onCardSizeChange(newSize); // Immediate UI update
-
-      try {
-        await fetch(`/${locale}/api/users/preferences`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ projectsCardSize: newSize }),
-        });
-      } catch (error) {
-        console.error('Failed to update card size:', error);
-        onCardSizeChange(oldSize); // Rollback on error
-      }
+      onCardSizeChange(newSize);
     }
   };
 
-  const handleSortByChange = async (newSort: SortBy) => {
-    try {
-      await fetch(`/${locale}/api/users/preferences`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectsSortBy: newSort }),
-      });
-      onSortByChange(newSort);
-    } catch (error) {
-      console.error('Failed to update sort preference:', error);
-    }
+  const handleSortByChange = (newSort: SortBy) => {
+    onSortByChange(newSort);
   };
 
   const handleSortClick = (event: React.MouseEvent<HTMLElement>) => {
@@ -177,11 +142,6 @@ export function AssetsTopBar({
             size="small"
             sx={buttonGroupSx}
           >
-            <Tooltip title="Small cards">
-              <ToggleButton value="small" aria-label="small cards">
-                <SmallIcon sx={{ fontSize: 16 }} />
-              </ToggleButton>
-            </Tooltip>
             <Tooltip title="Medium cards">
               <ToggleButton value="medium" aria-label="medium cards">
                 <MediumIcon sx={{ fontSize: 18 }} />
@@ -346,6 +306,7 @@ export function AssetsTopBar({
         setRightContent(null);
       };
     }
+    return undefined;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDesktop, viewMode, cardSize, sortBy, searchQuery, setRightContent]);
 

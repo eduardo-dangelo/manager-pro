@@ -6,53 +6,39 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { AssetsTopBar } from '@/components/Assets/AssetsTopBar';
 import { AssetsList } from '@/components/Assets/Views/AssetsList';
-
-type Asset = {
-  id: number;
-  name: string | null;
-  description: string | null;
-  color: string | null;
-  status: string | null;
-  type: string;
-  createdAt: Date;
-  updatedAt: Date;
-  registrationNumber?: string | null;
-  metadata?: {
-    specs?: {
-      registration?: string;
-    };
-  } | null;
-};
-
-type ViewMode = 'folder' | 'list';
-type CardSize = 'small' | 'medium' | 'large';
-type SortBy = 'dateCreated' | 'dateModified' | 'name' | 'type' | 'status';
+import type { AssetData } from '@/entities';
+import type { AssetsListFolderCardSize, AssetsListSortBy, AssetsListViewMode } from './assetsListPrefs';
+import { loadAssetsListPrefs, saveAssetsListPrefs } from './assetsListPrefs';
 
 type AssetsPageClientProps = {
-  assets: Asset[];
+  assets: AssetData[];
   locale: string;
   assetType?: string;
-  userPreferences?: {
-    assetsViewMode: ViewMode;
-    assetsCardSize: CardSize;
-    assetsSortBy: SortBy;
-  };
 };
 
-export function AssetsPageClient({ assets, locale, assetType, userPreferences }: AssetsPageClientProps) {
+export function AssetsPageClient({ assets, locale, assetType }: AssetsPageClientProps) {
   const t = useTranslations('Assets');
-  const [assetsList, setAssetsList] = useState<Asset[]>(assets);
+  const [assetsList, setAssetsList] = useState<AssetData[]>(assets);
 
-  // State for view controls
   const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState<ViewMode>(userPreferences?.assetsViewMode || 'folder');
-  const [cardSize, setCardSize] = useState<CardSize>(userPreferences?.assetsCardSize || 'medium');
-  const [sortBy, setSortBy] = useState<SortBy>(userPreferences?.assetsSortBy || 'dateModified');
+  const [viewMode, setViewMode] = useState<AssetsListViewMode>(() => loadAssetsListPrefs(locale).viewMode);
+  const [cardSize, setCardSize] = useState<AssetsListFolderCardSize>(() => loadAssetsListPrefs(locale).cardSize);
+  const [sortBy, setSortBy] = useState<AssetsListSortBy>(() => loadAssetsListPrefs(locale).sortBy);
 
-  // Update local state when props change (e.g., after navigation)
+  useEffect(() => {
+    const prefs = loadAssetsListPrefs(locale);
+    setViewMode(prefs.viewMode);
+    setCardSize(prefs.cardSize);
+    setSortBy(prefs.sortBy);
+  }, [locale]);
+
   useEffect(() => {
     setAssetsList(assets);
   }, [assets]);
+
+  useEffect(() => {
+    saveAssetsListPrefs(locale, { viewMode, cardSize, sortBy });
+  }, [locale, viewMode, cardSize, sortBy]);
 
   const handleAssetDeleted = (assetId: number) => {
     setAssetsList(prev => prev.filter(a => a.id !== assetId));
@@ -62,19 +48,16 @@ export function AssetsPageClient({ assets, locale, assetType, userPreferences }:
     if (assetType) {
       return (t as any)(`new_${assetType}`);
     }
-    return t('new_asset');
+    return (t as any)('new_asset');
   };
 
-  const handleViewModeChange = (mode: ViewMode) => {
+  const handleViewModeChange = (mode: AssetsListViewMode) => {
     setViewMode(mode);
   };
 
   return (
     <>
       <Box>
-        {/* Page Header */}
-
-        {/* Assets TopBar */}
         {assetsList.length > 0 && (
           <AssetsTopBar
             searchQuery={searchQuery}
@@ -90,7 +73,6 @@ export function AssetsPageClient({ assets, locale, assetType, userPreferences }:
           />
         )}
 
-        {/* Empty State or Asset List */}
         {assetsList.length === 0
           ? (
               <Box

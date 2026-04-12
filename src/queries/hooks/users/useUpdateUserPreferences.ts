@@ -6,9 +6,6 @@ import { userKeys } from '@/queries/keys';
 
 export type UpdateUserPreferencesInput = Partial<{
   theme: string;
-  projectsViewMode: string;
-  projectsCardSize: string;
-  projectsSortBy: string;
   hoverSoundEnabled: string;
 }>;
 

@@ -1,34 +1,18 @@
 'use client';
 
+import type { AssetData } from '@/entities';
 import { AssetFolderView } from '@/components/Assets/Views/AssetFolderView';
 import { AssetListView } from '@/components/Assets/Views/AssetListView';
 
-type Asset = {
-  id: number;
-  name: string | null;
-  description: string;
-  color: string;
-  status: string;
-  type: string;
-  createdAt: Date;
-  updatedAt: Date;
-  registrationNumber?: string | null;
-  metadata?: {
-    specs?: {
-      registration?: string;
-    };
-  } | null;
-};
-
 type ViewMode = 'folder' | 'list';
-type CardSize = 'small' | 'medium' | 'large';
+type FolderCardSize = 'medium' | 'large';
 type SortBy = 'dateCreated' | 'dateModified' | 'name' | 'type' | 'status';
 
 type AssetsListProps = {
-  assets: Asset[];
+  assets: AssetData[];
   locale: string;
   viewMode: ViewMode;
-  cardSize: CardSize;
+  cardSize: FolderCardSize;
   sortBy: SortBy;
   searchQuery: string;
   onAssetDeleted?: (assetId: number) => void;

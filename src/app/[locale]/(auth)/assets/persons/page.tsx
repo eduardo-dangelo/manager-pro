@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { currentUser } from '@clerk/nextjs/server';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { redirect } from 'next/navigation';
+import type { AssetData } from '@/entities';
 import { AssetService } from '@/services/assetService';
 import { AssetsPageClient } from '../AssetsPageClient';
 
@@ -45,5 +46,5 @@ export default async function PersonAssetsPage(props: {
   const allAssets = await AssetService.getAssetsByUserId(user.id);
   const assets = allAssets.filter(a => a.type === 'person');
 
-  return <AssetsPageClient assets={assets} locale={locale} assetType="person" />;
+  return <AssetsPageClient assets={assets as AssetData[]} locale={locale} assetType="person" />;
 }

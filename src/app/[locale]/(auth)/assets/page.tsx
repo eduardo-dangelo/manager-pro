@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { currentUser } from '@clerk/nextjs/server';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { redirect } from 'next/navigation';
+import type { AssetData } from '@/entities';
 import { AssetService } from '@/services/assetService';
 import { AssetsPageClient } from './AssetsPageClient';
 
@@ -33,7 +34,7 @@ export default async function AssetsPage(props: {
 
   // Sync user with database - ensures user exists before creating assets
   const { UserService } = await import('@/services/userService');
-  const { user: dbUser } = await UserService.upsertUser({
+  await UserService.upsertUser({
     id: user.id,
     email: user.primaryEmailAddress?.emailAddress || '',
     firstName: user.firstName,
@@ -43,12 +44,5 @@ export default async function AssetsPage(props: {
 
   const assets = await AssetService.getAssetsByUserId(user.id);
 
-  // Get user preferences
-  const userPreferences = {
-    assetsViewMode: dbUser.projectsViewMode || 'folder',
-    assetsCardSize: dbUser.projectsCardSize || 'medium',
-    assetsSortBy: dbUser.projectsSortBy || 'dateModified',
-  };
-
-  return <AssetsPageClient assets={assets} locale={locale} userPreferences={userPreferences} />;
+  return <AssetsPageClient assets={assets as AssetData[]} locale={locale} />;
 }
