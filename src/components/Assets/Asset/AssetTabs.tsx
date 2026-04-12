@@ -112,10 +112,15 @@ type Asset = {
   sprints: Sprint[];
 };
 
+type AssetUpdateInput = Partial<Asset> & {
+  activityAction?: string;
+  activityMetadata?: Record<string, unknown>;
+};
+
 type AssetTabsProps = {
   asset: Asset;
   locale: string;
-  onUpdateAsset: (asset: Partial<Asset> | Asset) => void;
+  onUpdateAsset: (updates: AssetUpdateInput) => void;
 };
 
 type SortableTabProps = {
@@ -567,7 +572,7 @@ export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
   // Show original Add Tab button on desktop when there are remaining tabs
   const showAddTabButton = !isMobile && remainingTabs.length > 0;
 
-  const handleDragEnd = async (event: DragEndEvent) => {
+  const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
     // Don't allow dragging the overview tab or dropping on it
@@ -584,69 +589,22 @@ export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
     }
 
     const newTabs = arrayMove(assetTabs, oldIndex, newIndex);
-
-    // Optimistic update: Update UI immediately
-    onUpdateAsset({ ...asset, tabs: newTabs });
-
-    // Tab index is derived from URL; no need to update when reordering (tab name stays the same)
-
-    // Sync with API in the background
-    try {
-      const response = await fetch(`/${locale}/api/assets/${asset.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tabs: newTabs }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to reorder tabs');
-      }
-
-      // Optionally confirm with server response
-      const { asset: updatedAsset } = await response.json();
-
-      // If server response differs from optimistic update, sync it
-      if (JSON.stringify(updatedAsset.tabs) !== JSON.stringify(newTabs)) {
-        onUpdateAsset({ ...asset, tabs: updatedAsset.tabs });
-      }
-    } catch (error) {
-      console.error('Error reordering tabs:', error);
-      // Revert to original order on error
-      onUpdateAsset({ ...asset, tabs: assetTabs });
-    }
+    const tabName = active.id as string;
+    onUpdateAsset({
+      tabs: newTabs,
+      activityAction: 'tab_moved',
+      activityMetadata: { tabName, fromIndex: oldIndex, toIndex: newIndex },
+    });
   };
 
-  const handleAddTab = async (tabName: string) => {
+  const handleAddTab = (tabName: string) => {
     const newTabs = [...assetTabs, tabName];
-
-    // Optimistic update: Update UI immediately
-    onUpdateAsset({ ...asset, tabs: newTabs });
+    onUpdateAsset({
+      tabs: newTabs,
+      activityAction: 'tab_added',
+      activityMetadata: { tabName },
+    });
     setAddTabDialogOpen(false);
-
-    // Sync with API in the background
-    try {
-      const response = await fetch(`/${locale}/api/assets/${asset.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tabs: newTabs }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to add tab');
-      }
-
-      const { asset: updatedAsset } = await response.json();
-
-      // If server response differs from optimistic update, sync it
-      if (JSON.stringify(updatedAsset.tabs) !== JSON.stringify(newTabs)) {
-        onUpdateAsset({ ...asset, tabs: updatedAsset.tabs });
-      }
-    } catch (error) {
-      console.error('Error adding tab:', error);
-      // Revert on error
-      onUpdateAsset({ ...asset, tabs: assetTabs });
-      // Could optionally show an error message to the user here
-    }
   };
 
   const handleRemoveTab = (tabName: string) => {
@@ -660,48 +618,24 @@ export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
     setRemoveTabDialogOpen(true);
   };
 
-  const confirmRemoveTab = async () => {
+  const confirmRemoveTab = () => {
     if (!tabToRemove) {
       return;
     }
 
     const newTabs = assetTabs.filter(tab => tab !== tabToRemove);
 
-    // Close dialog
     setRemoveTabDialogOpen(false);
+
+    onUpdateAsset({
+      tabs: newTabs,
+      activityAction: 'tab_removed',
+      activityMetadata: { tabName: tabToRemove },
+    });
     setTabToRemove(null);
 
-    // Optimistic update: Update UI immediately
-    onUpdateAsset({ ...asset, tabs: newTabs });
-
-    // If we were viewing the removed tab, update URL to overview
     if (tabToRemove === assetTabs[currentTabIndex]) {
       updateUrlForTab('overview');
-    }
-
-    // Sync with API in the background
-    try {
-      const response = await fetch(`/${locale}/api/assets/${asset.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tabs: newTabs }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to remove tab');
-      }
-
-      const { asset: updatedAsset } = await response.json();
-
-      // If server response differs from optimistic update, sync it
-      if (JSON.stringify(updatedAsset.tabs) !== JSON.stringify(newTabs)) {
-        onUpdateAsset({ ...asset, tabs: updatedAsset.tabs });
-      }
-    } catch (error) {
-      console.error('Error removing tab:', error);
-      // Revert on error
-      onUpdateAsset({ ...asset, tabs: assetTabs });
-      // Could optionally show an error message to the user here
     }
   };
 

@@ -80,12 +80,20 @@ export function DocsTabContent({ asset, locale }: DocsTabContentProps) {
   }, [subfolders, folderFiles, searchQuery]);
 
   const updateDocsMetadata = useCallback(
-    (newFolders: FolderItem[], newFiles: FileItem[]) => {
+    (
+      newFolders: FolderItem[],
+      newFiles: FileItem[],
+      options?: {
+        activityAction?: string;
+        activityMetadata?: Record<string, unknown>;
+        skipActivityLog?: boolean;
+      },
+    ) => {
       const metadata = {
         ...asset.metadata,
         docs: { folders: newFolders, files: newFiles },
       };
-      void updateMutation.mutateAsync({ metadata });
+      void updateMutation.mutateAsync({ metadata, ...options });
     },
     [asset.metadata, updateMutation],
   );
@@ -100,7 +108,7 @@ export function DocsTabContent({ asset, locale }: DocsTabContentProps) {
         const data = await uploadMutation.mutateAsync({ file, type: 'docs' });
         const newFile: FileItem = { ...data, folderId: currentFolderId };
         const newFiles = [...files, newFile];
-        updateDocsMetadata(folders, newFiles);
+        updateDocsMetadata(folders, newFiles, { skipActivityLog: true });
       } catch (error) {
         console.error('Docs upload error:', error);
       } finally {
@@ -139,6 +147,8 @@ export function DocsTabContent({ asset, locale }: DocsTabContentProps) {
       if (!item || item.name === trimmed) {
         return;
       }
+      const oldName = item.name;
+      const url = item.url;
       setSavingFileId(fileId);
       const newFiles = files.map(d =>
         d.id === fileId ? { ...d, name: trimmed } : d,
@@ -155,7 +165,10 @@ export function DocsTabContent({ asset, locale }: DocsTabContentProps) {
         },
       });
       try {
-        await updateDocsMetadata(folders, newFiles);
+        await updateDocsMetadata(folders, newFiles, {
+          activityAction: 'doc_renamed',
+          activityMetadata: { oldName, newName: trimmed, fileId, url },
+        });
       } catch {
         queryClient.setQueryData(assetKeys.detail(asset.id), previous);
       } finally {
@@ -176,6 +189,7 @@ export function DocsTabContent({ asset, locale }: DocsTabContentProps) {
         }
         return;
       }
+      const oldName = folder.name;
       setSavingFolderId(folderId);
       const newFolders = folders.map(f =>
         f.id === folderId ? { ...f, name: trimmed } : f,
@@ -192,7 +206,10 @@ export function DocsTabContent({ asset, locale }: DocsTabContentProps) {
         },
       });
       try {
-        await updateDocsMetadata(newFolders, files);
+        await updateDocsMetadata(newFolders, files, {
+          activityAction: 'doc_folder_renamed',
+          activityMetadata: { oldName, newName: trimmed, folderId },
+        });
         if (isNewFolder) {
           setNewFolderId(null);
         }
@@ -215,7 +232,7 @@ export function DocsTabContent({ asset, locale }: DocsTabContentProps) {
       type: 'folder',
       parentId: currentFolderId,
     };
-    updateDocsMetadata([newFolder, ...folders], files);
+    updateDocsMetadata([newFolder, ...folders], files, { skipActivityLog: true });
     setNewFolderId(newFolder.id);
   }, [currentFolderId, files, folders, subfolders, t, updateDocsMetadata]);
 
@@ -224,12 +241,16 @@ export function DocsTabContent({ asset, locale }: DocsTabContentProps) {
       return;
     }
     const fileId = deleteFileItem.id;
+    const fileName = deleteFileItem.name;
     setDeletingFileId(fileId);
     setDeleteFileAnchor(null);
     setDeleteFileItem(null);
     setTimeout(() => {
       const newFiles = files.filter(d => d.id !== fileId);
-      updateDocsMetadata(folders, newFiles);
+      updateDocsMetadata(folders, newFiles, {
+        activityAction: 'doc_deleted',
+        activityMetadata: { fileName, fileId },
+      });
     }, 180);
   }, [deleteFileItem, files, folders, updateDocsMetadata]);
 
@@ -238,13 +259,16 @@ export function DocsTabContent({ asset, locale }: DocsTabContentProps) {
       return;
     }
     const folderId = deleteFolderItem.id;
+    const folderName = deleteFolderItem.name;
     setDeletingFolderId(folderId);
     setDeleteFolderAnchor(null);
     setDeleteFolderItem(null);
     setTimeout(() => {
       const newFolders = folders.filter(f => f.id !== folderId);
-      updateDocsMetadata(newFolders, files);
-      // setDeletingFolderId(null);
+      updateDocsMetadata(newFolders, files, {
+        activityAction: 'doc_folder_deleted',
+        activityMetadata: { folderName, folderId },
+      });
     }, 280);
   }, [deleteFolderItem, files, folders, updateDocsMetadata]);
 
@@ -254,12 +278,12 @@ export function DocsTabContent({ asset, locale }: DocsTabContentProps) {
         const newFiles = files.map(f =>
           f.id === itemId ? { ...f, folderId: targetFolderId } : f,
         );
-        updateDocsMetadata(folders, newFiles);
+        updateDocsMetadata(folders, newFiles, { skipActivityLog: true });
       } else {
         const newFolders = folders.map(f =>
           f.id === itemId ? { ...f, parentId: targetFolderId } : f,
         );
-        updateDocsMetadata(newFolders, files);
+        updateDocsMetadata(newFolders, files, { skipActivityLog: true });
       }
     },
     [files, folders, updateDocsMetadata],

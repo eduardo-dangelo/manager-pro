@@ -24,11 +24,12 @@ function isAllDayEvent(start: Date, end: Date): boolean {
 
 type CalendarEventProps = {
   event: CalendarEventType;
-  variant?: 'chip' | 'inline' | 'compact';
+  variant?: 'chip' | 'inline' | 'compact' | 'compacter';
   showEndTime?: boolean;
+  showStartTime?: boolean;
 };
 
-export function CalendarEvent({ event, variant = 'inline', showEndTime = true }: CalendarEventProps) {
+export function CalendarEvent({ event, variant = 'inline', showEndTime = true, showStartTime = true }: CalendarEventProps) {
   const t = useTranslations('Calendar');
   const color = eventColor(event.color);
   const startDate = new Date(event.start);
@@ -60,7 +61,7 @@ export function CalendarEvent({ event, variant = 'inline', showEndTime = true }:
     );
   }
 
-  if (variant === 'compact') {
+  if (variant === 'compact' || variant === 'compacter') {
     return (
       <Box
         sx={{
@@ -72,12 +73,15 @@ export function CalendarEvent({ event, variant = 'inline', showEndTime = true }:
           bgcolor: `${color}20`,
           borderLeft: '3px solid',
           borderLeftColor: color,
+          height: variant === 'compacter' ? 28 : undefined,
         }}
       >
-        <Typography variant="caption" sx={{ flexShrink: 0, color: 'text.secondary' }}>
-          {allDay ? t('all_day') : (showEndTime ? `${format(startDate, 'HH:mm')} – ${format(endDate, 'HH:mm')}` : format(startDate, 'HH:mm'))}
-        </Typography>
-        <Typography variant="body2" fontWeight={500} noWrap sx={{ minWidth: 0 }}>
+        {showStartTime && (
+          <Typography variant="caption" sx={{ flexShrink: 0, color: 'text.secondary' }}>
+            {allDay ? t('all_day') : (showEndTime ? `${format(startDate, 'HH:mm')} – ${format(endDate, 'HH:mm')}` : format(startDate, 'HH:mm'))}
+          </Typography>
+        )}
+        <Typography variant={variant === 'compacter' ? 'caption' : 'body2'} fontWeight={500} noWrap sx={{ minWidth: 0 }}>
           {event.name}
         </Typography>
         {event.location && (

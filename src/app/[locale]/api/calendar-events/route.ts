@@ -78,7 +78,10 @@ export const POST = async (request: Request) => {
         action: 'event_created',
         entityType: 'calendar_event',
         entityId: event.id,
-        metadata: { eventName: event.name },
+        metadata: {
+          eventName: event.name,
+          eventColor: event.color ?? null,
+        },
       },
       user.id,
     );

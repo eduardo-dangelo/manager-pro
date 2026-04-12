@@ -113,11 +113,18 @@ export function AssetDetail({
         ],
   );
 
-  const updateAsset = async (updates: Partial<AssetDetailAsset>) => {
+  const updateAsset = async (
+    updates: Partial<AssetDetailAsset> & {
+      activityAction?: string;
+      activityMetadata?: Record<string, unknown>;
+    },
+  ) => {
     try {
+      const { activityAction, activityMetadata, ...assetUpdates } = updates;
       await updateMutation.mutateAsync({
-        ...updates,
-        tabs: (updates as AssetDetailAsset).tabs ?? asset.tabs ?? ['overview'],
+        ...assetUpdates,
+        tabs: (assetUpdates as AssetDetailAsset).tabs ?? asset.tabs ?? ['overview'],
+        ...(activityAction && activityMetadata && { activityAction, activityMetadata }),
       } as Parameters<typeof updateMutation.mutateAsync>[0]);
     } catch (error) {
       console.error('Error updating asset:', error);
@@ -125,7 +132,12 @@ export function AssetDetail({
   };
 
   // Wrapper that preserves tabs when merging updates (e.g. from vehicle refresh)
-  const handleAssetUpdate = (updates: Partial<AssetDetailAsset> | AssetDetailAsset) => {
+  const handleAssetUpdate = (
+    updates: Partial<AssetDetailAsset> & {
+      activityAction?: string;
+      activityMetadata?: Record<string, unknown>;
+    },
+  ) => {
     void updateAsset({
       ...updates,
       tabs: (updates as AssetDetailAsset).tabs ?? asset.tabs ?? ['overview'],

@@ -116,7 +116,7 @@ export function AssetHeader({
           )}
           <TextField
             inputRef={titleRef}
-            value={localAsset.name}
+            value={localAsset.name ?? ''}
             onChange={handleTitleChange}
             onBlur={handleTitleBlur}
             onKeyDown={handleTitleKeyDown}
@@ -145,7 +145,7 @@ export function AssetHeader({
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, pt: 1 }}>
           <Select
-            value={localAsset.status}
+            value={localAsset.status ?? ''}
             onChange={(e) => {
               const newStatus = e.target.value;
               setLocalAsset({ ...localAsset, status: newStatus });

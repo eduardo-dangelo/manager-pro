@@ -1,6 +1,6 @@
 import { and, desc, eq } from 'drizzle-orm';
 import { db } from '@/libs/DB';
-import { assetActivitiesSchema, assetsSchema } from '@/models/Schema';
+import { assetActivitiesSchema, assetsSchema, usersSchema } from '@/models/Schema';
 
 /* eslint-disable style/operator-linebreak */
 export type ActivityAction =
@@ -9,8 +9,17 @@ export type ActivityAction =
   | 'event_created'
   | 'event_updated'
   | 'event_deleted'
+  | 'event_reminder_added'
   | 'doc_uploaded'
-  | 'image_uploaded';
+  | 'image_uploaded'
+  | 'doc_deleted'
+  | 'image_deleted'
+  | 'doc_renamed'
+  | 'doc_folder_renamed'
+  | 'doc_folder_deleted'
+  | 'tab_added'
+  | 'tab_moved'
+  | 'tab_removed';
 /* eslint-enable style/operator-linebreak */
 
 export type ActivityCreateData = {
@@ -41,8 +50,24 @@ export class ActivityService {
 
   static async getByAssetId(assetId: number, userId: string) {
     const activities = await db
-      .select()
+      .select({
+        id: assetActivitiesSchema.id,
+        assetId: assetActivitiesSchema.assetId,
+        userId: assetActivitiesSchema.userId,
+        action: assetActivitiesSchema.action,
+        entityType: assetActivitiesSchema.entityType,
+        entityId: assetActivitiesSchema.entityId,
+        metadata: assetActivitiesSchema.metadata,
+        createdAt: assetActivitiesSchema.createdAt,
+        assetName: assetsSchema.name,
+        assetType: assetsSchema.type,
+        assetTabs: assetsSchema.tabs,
+        userFirstName: usersSchema.firstName,
+        userLastName: usersSchema.lastName,
+      })
       .from(assetActivitiesSchema)
+      .innerJoin(assetsSchema, eq(assetActivitiesSchema.assetId, assetsSchema.id))
+      .innerJoin(usersSchema, eq(assetActivitiesSchema.userId, usersSchema.id))
       .where(
         and(
           eq(assetActivitiesSchema.assetId, assetId),
@@ -67,9 +92,13 @@ export class ActivityService {
         createdAt: assetActivitiesSchema.createdAt,
         assetName: assetsSchema.name,
         assetType: assetsSchema.type,
+        assetTabs: assetsSchema.tabs,
+        userFirstName: usersSchema.firstName,
+        userLastName: usersSchema.lastName,
       })
       .from(assetActivitiesSchema)
       .innerJoin(assetsSchema, eq(assetActivitiesSchema.assetId, assetsSchema.id))
+      .innerJoin(usersSchema, eq(assetActivitiesSchema.userId, usersSchema.id))
       .where(
         and(
           eq(assetActivitiesSchema.userId, userId),

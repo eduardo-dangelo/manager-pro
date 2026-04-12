@@ -19,6 +19,7 @@ export function CollapsibleSearch({
 }: CollapsibleSearchProps) {
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const searchFieldRef = useRef<HTMLInputElement>(null);
+  const safeValue = value ?? '';
 
   const handleExpand = () => {
     setIsSearchExpanded(true);
@@ -35,7 +36,7 @@ export function CollapsibleSearch({
       onChange('');
       searchFieldRef.current?.blur();
     }
-    if (e.key === 'Enter' && !value.length) {
+    if (e.key === 'Enter' && !safeValue.length) {
       setIsSearchExpanded(false);
     }
   };
@@ -65,7 +66,7 @@ export function CollapsibleSearch({
             <Tooltip title={placeholder}>
               <Badge
                 badgeContent="1"
-                invisible={!value.length}
+                invisible={!safeValue.length}
                 overlap="circular"
                 anchorOrigin={{
                   vertical: 'bottom',
@@ -100,7 +101,7 @@ export function CollapsibleSearch({
             <TextField
               inputRef={searchFieldRef}
               label={placeholder}
-              value={value}
+              value={safeValue}
               onChange={e => onChange(e.target.value)}
               onKeyDown={handleKeyDown}
               size="small"

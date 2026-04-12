@@ -59,16 +59,28 @@ export const PUT = async (
     }
 
     const json = await request.json();
-    const parse = UpdateAssetValidation.safeParse(json);
+
+    // Extract activity override params (not part of asset schema)
+    const activityAction = json.activityAction as string | undefined;
+    const activityMetadata = json.activityMetadata as Record<string, unknown> | undefined;
+    const skipActivityLog = json.skipActivityLog as boolean | undefined;
+
+    const assetData = { ...json };
+    delete assetData.activityAction;
+    delete assetData.activityMetadata;
+    delete assetData.skipActivityLog;
+
+    const parse = UpdateAssetValidation.safeParse(assetData);
 
     if (!parse.success) {
       return NextResponse.json(z.treeifyError(parse.error), { status: 422 });
     }
 
-    // Check if type is being changed when it's already set
-    if (parse.data.type !== undefined) {
+    // Check if type is being changed when it's already set (type comes from raw json, not validated)
+    const requestedType = json.type as string | undefined;
+    if (requestedType !== undefined) {
       const existingAsset = await AssetService.getAssetById(assetId, user.id);
-      if (existingAsset && existingAsset.type && existingAsset.type !== parse.data.type) {
+      if (existingAsset && existingAsset.type && existingAsset.type !== requestedType) {
         return NextResponse.json(
           { error: 'Asset type cannot be changed once set' },
           { status: 400 },
@@ -82,10 +94,23 @@ export const PUT = async (
       return NextResponse.json({ error: 'Asset not found' }, { status: 404 });
     }
 
-    await ActivityService.create(
-      { assetId: asset.id, action: 'asset_updated' },
-      user.id,
-    );
+    if (!skipActivityLog) {
+      if (activityAction && activityMetadata) {
+        await ActivityService.create(
+          {
+            assetId: asset.id,
+            action: activityAction as import('@/services/activityService').ActivityAction,
+            metadata: activityMetadata,
+          },
+          user.id,
+        );
+      } else {
+        await ActivityService.create(
+          { assetId: asset.id, action: 'asset_updated' },
+          user.id,
+        );
+      }
+    }
 
     logger.info('Asset has been updated', { assetId: asset.id });
 

@@ -1,5 +1,6 @@
 'use client';
 
+import type { AssetData } from '@/entities';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import { ActivityTimeline } from '@/components/Activity';
 import { useGetActivities } from '@/queries/hooks/activities/useGetActivities';
@@ -41,6 +42,7 @@ export function ActivityTab({ asset, locale }: ActivityTabProps) {
       activities={activities}
       showAssetLink={false}
       locale={locale}
+      assets={[asset as unknown as AssetData]}
     />
   );
 }

@@ -159,7 +159,7 @@ export function DocsFolderRow({
             {isEditing
               ? (
                   <InlineEditableName
-                    value={folder.name}
+                    value={folder.name ?? ''}
                     onChange={() => {}}
                     onSave={(value) => {
                       void onFolderRenameSave(folder.id, value).then(() => {

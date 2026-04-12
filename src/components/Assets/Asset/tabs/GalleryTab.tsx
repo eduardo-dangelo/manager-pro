@@ -102,12 +102,20 @@ export function GalleryTab({ asset, locale, onUpdateAsset: _onUpdateAsset }: Gal
   );
 
   const updateGalleryMetadata = useCallback(
-    (newFolders: FolderItem[], newFiles: FileItem[]) => {
+    (
+      newFolders: FolderItem[],
+      newFiles: FileItem[],
+      options?: {
+        activityAction?: string;
+        activityMetadata?: Record<string, unknown>;
+        skipActivityLog?: boolean;
+      },
+    ) => {
       const metadata = {
         ...asset.metadata,
         gallery: { folders: newFolders, files: newFiles },
       };
-      void updateMutation.mutateAsync({ metadata });
+      void updateMutation.mutateAsync({ metadata, ...options });
     },
     [asset.metadata, updateMutation],
   );
@@ -123,7 +131,7 @@ export function GalleryTab({ asset, locale, onUpdateAsset: _onUpdateAsset }: Gal
         const data = await uploadMutation.mutateAsync({ file, type: 'gallery' });
         const newFile: FileItem = { ...data, folderId: null };
         const newFiles = [...files, newFile];
-        updateGalleryMetadata(folders, newFiles);
+        updateGalleryMetadata(folders, newFiles, { skipActivityLog: true });
       } catch (error) {
         console.error('Gallery upload error:', error);
       } finally {
@@ -186,8 +194,12 @@ export function GalleryTab({ asset, locale, onUpdateAsset: _onUpdateAsset }: Gal
       return;
     }
 
-    const newFiles = files.filter(f => f.id !== deleteConfirmItem.id);
-    updateGalleryMetadata(folders, newFiles);
+    const { id: fileId, name: fileName } = deleteConfirmItem;
+    const newFiles = files.filter(f => f.id !== fileId);
+    updateGalleryMetadata(folders, newFiles, {
+      activityAction: 'image_deleted',
+      activityMetadata: { fileName, fileId },
+    });
     handleDeleteConfirmClose();
   }, [deleteConfirmItem, files, folders, updateGalleryMetadata]);
 

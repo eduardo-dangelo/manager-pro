@@ -124,7 +124,7 @@ export function DocsFileRow({
             {isEditing
               ? (
                   <InlineEditableName
-                    value={file.name}
+                    value={file.name ?? ''}
                     onChange={() => {}}
                     onSave={(value) => {
                       void onFileRenameSave(file.id, value).then(() => {

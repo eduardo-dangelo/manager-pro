@@ -112,7 +112,7 @@ export async function POST(
       {
         assetId,
         action,
-        metadata: { fileName: name },
+        metadata: { fileName: name, fileId, url },
       },
       user.id,
     );

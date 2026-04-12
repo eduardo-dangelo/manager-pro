@@ -3,7 +3,7 @@
 import type { AssetData } from '@/entities';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Asset } from '@/entities';
-import { assetKeys } from '@/queries/keys';
+import { activityKeys, assetKeys } from '@/queries/keys';
 
 export type UpdateAssetInput = Partial<{
   name: string;
@@ -14,6 +14,9 @@ export type UpdateAssetInput = Partial<{
   registrationNumber: string;
   address: string;
   metadata: Record<string, unknown>;
+  activityAction: string;
+  activityMetadata: Record<string, unknown>;
+  skipActivityLog: boolean;
 }>;
 
 export function useUpdateAsset(locale: string, assetId: number) {
@@ -33,9 +36,25 @@ export function useUpdateAsset(locale: string, assetId: number) {
       const { asset } = (await res.json()) as { asset: AssetData };
       return Asset.fromApi(asset);
     },
-    onSuccess: () => {
+    onMutate: async (variables) => {
+      const queryKey = assetKeys.detail(assetId);
+      const previousAsset = queryClient.getQueryData(queryKey) as Asset | undefined;
+      if (previousAsset) {
+        const { activityAction, activityMetadata, skipActivityLog, ...assetUpdates } = variables;
+        const mergedData = { ...previousAsset.data, ...assetUpdates } as AssetData;
+        queryClient.setQueryData(queryKey, Asset.fromApi(mergedData));
+      }
+      return { previousAsset };
+    },
+    onError: (_err, _variables, context) => {
+      if (context?.previousAsset !== undefined) {
+        queryClient.setQueryData(assetKeys.detail(assetId), context.previousAsset);
+      }
+    },
+    onSuccess: (updatedAsset) => {
+      queryClient.setQueryData(assetKeys.detail(assetId), updatedAsset);
       queryClient.invalidateQueries({ queryKey: assetKeys.all });
-      queryClient.invalidateQueries({ queryKey: assetKeys.detail(assetId) });
+      queryClient.invalidateQueries({ queryKey: activityKeys.list({ assetId }) });
     },
   });
 }

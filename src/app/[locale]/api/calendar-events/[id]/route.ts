@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import z from 'zod';
 import { logger } from '@/libs/Logger';
 import { ActivityService } from '@/services/activityService';
+import { AssetService } from '@/services/assetService';
 import { CalendarEventService } from '@/services/calendarEventService';
 import { UpdateCalendarEventValidation } from '@/validations/CalendarEventValidation';
 
@@ -63,6 +64,11 @@ export const PUT = async (
       return NextResponse.json(z.treeifyError(parse.error), { status: 422 });
     }
 
+    const existingEvent = await CalendarEventService.getById(eventId, user.id);
+    if (!existingEvent) {
+      return NextResponse.json({ error: 'Event not found' }, { status: 404 });
+    }
+
     const updates: Record<string, unknown> = {};
     if (parse.data.name !== undefined) {
       updates.name = parse.data.name;
@@ -99,16 +105,93 @@ export const PUT = async (
       return NextResponse.json({ error: 'Event not found' }, { status: 404 });
     }
 
+    const activityMetadata: Record<string, unknown> = {
+      eventName: event.name,
+      eventColor: event.color ?? null,
+    };
+    if (parse.data.name !== undefined && existingEvent.name !== parse.data.name) {
+      activityMetadata.changeType = 'renamed';
+      activityMetadata.oldName = existingEvent.name;
+      activityMetadata.newName = parse.data.name;
+    } else if (parse.data.start !== undefined) {
+      const oldStart = new Date(existingEvent.start).toISOString();
+      const newStart = new Date(parse.data.start).toISOString();
+      if (oldStart !== newStart) {
+        activityMetadata.changeType = 'start_time_changed';
+        activityMetadata.oldStart = oldStart;
+        activityMetadata.newStart = newStart;
+      }
+    }
+    if (parse.data.end !== undefined && !activityMetadata.changeType) {
+      const oldEnd = new Date(existingEvent.end).toISOString();
+      const newEnd = new Date(parse.data.end).toISOString();
+      if (oldEnd !== newEnd) {
+        activityMetadata.changeType = 'end_time_changed';
+        activityMetadata.oldEnd = oldEnd;
+        activityMetadata.newEnd = newEnd;
+      }
+    }
+    if (parse.data.description !== undefined && existingEvent.description !== parse.data.description && !activityMetadata.changeType) {
+      activityMetadata.changeType = 'description_changed';
+      activityMetadata.oldDescription = existingEvent.description ?? '';
+      activityMetadata.newDescription = parse.data.description ?? '';
+    }
+    if (parse.data.location !== undefined && existingEvent.location !== parse.data.location && !activityMetadata.changeType) {
+      activityMetadata.changeType = 'location_changed';
+      activityMetadata.oldLocation = existingEvent.location ?? '';
+      activityMetadata.newLocation = parse.data.location ?? '';
+    }
+    if (parse.data.color !== undefined && existingEvent.color !== parse.data.color && !activityMetadata.changeType) {
+      activityMetadata.changeType = 'color_changed';
+      activityMetadata.oldColor = existingEvent.color ?? '';
+      activityMetadata.newColor = parse.data.color ?? '';
+    }
+    if (parse.data.assetId !== undefined && existingEvent.assetId !== parse.data.assetId && !activityMetadata.changeType) {
+      activityMetadata.changeType = 'asset_changed';
+      activityMetadata.oldAssetId = existingEvent.assetId;
+      activityMetadata.newAssetId = parse.data.assetId;
+      const [oldAsset, newAsset] = await Promise.all([
+        existingEvent.assetId ? AssetService.getAssetById(existingEvent.assetId, user.id) : null,
+        parse.data.assetId ? AssetService.getAssetById(parse.data.assetId, user.id) : null,
+      ]);
+      activityMetadata.oldAssetName = oldAsset?.name ?? '';
+      activityMetadata.newAssetName = newAsset?.name ?? '';
+    }
+
     await ActivityService.create(
       {
         assetId: event.assetId,
         action: 'event_updated',
         entityType: 'calendar_event',
         entityId: event.id,
-        metadata: { eventName: event.name },
+        metadata: activityMetadata,
       },
       user.id,
     );
+
+    if (parse.data.reminders !== undefined) {
+      const oldOverrides = (existingEvent.reminders as { overrides?: { minutes: number }[] } | null)?.overrides ?? [];
+      const newOverrides = parse.data.reminders.overrides ?? [];
+      const oldMinutes = [...oldOverrides].map(o => o.minutes).sort((a, b) => a - b).join(',');
+      const newMinutes = [...newOverrides].map(o => o.minutes).sort((a, b) => a - b).join(',');
+      const remindersChanged = oldMinutes !== newMinutes && newOverrides.length > 0;
+      if (remindersChanged) {
+        await ActivityService.create(
+          {
+            assetId: event.assetId,
+            action: 'event_reminder_added',
+            entityType: 'calendar_event',
+            entityId: event.id,
+            metadata: {
+              eventName: event.name,
+              eventColor: event.color ?? null,
+              reminderMinutes: newOverrides.map(o => o.minutes),
+            },
+          },
+          user.id,
+        );
+      }
+    }
 
     logger.info('Calendar event updated', { eventId: event.id });
 
@@ -150,7 +233,10 @@ export const DELETE = async (
           action: 'event_deleted',
           entityType: 'calendar_event',
           entityId: event.id,
-          metadata: { eventName: event.name },
+          metadata: {
+            eventName: event.name,
+            eventColor: event.color ?? null,
+          },
         },
         user.id,
       );
