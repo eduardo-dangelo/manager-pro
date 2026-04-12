@@ -1,6 +1,7 @@
 'use client';
 
 import type { DragEndEvent, Modifier } from '@dnd-kit/core';
+import type { FilePreviewItem } from '@/components/Assets/Asset/tabs/FilePreviewPopover';
 import {
   closestCenter,
   DndContext,
@@ -17,6 +18,7 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import {
+  History as ActivityIcon,
   Add as AddIcon,
   CalendarMonth as CalendarIcon,
   Close as CloseIcon,
@@ -25,12 +27,8 @@ import {
   DragIndicator as DragIcon,
   Timeline as FinanceIcon,
   PhotoLibrary as GalleryIcon,
-  Assessment as InsightsIcon,
   ListAlt as ListingIcon,
-  History as ActivityIcon,
   MoreHoriz as MoreHorizIcon,
-  DirectionsRun as SprintsIcon,
-  CheckBox as TodosIcon,
 } from '@mui/icons-material';
 import {
   Alert,
@@ -56,9 +54,8 @@ import {
 } from '@mui/material';
 import { useTranslations } from 'next-intl';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
 
-import type { FilePreviewItem } from '@/components/Assets/Asset/tabs/FilePreviewPopover';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityTab } from '@/components/Assets/Asset/tabs/ActivityTab';
 import { CalendarTab } from '@/components/Assets/Asset/tabs/CalendarTab';
 import { DocsPreviewDialog } from '@/components/Assets/Asset/tabs/docs/DocsPreviewDialog';
@@ -66,37 +63,6 @@ import { DocsTab } from '@/components/Assets/Asset/tabs/DocsTab';
 import { FinanceTab } from '@/components/Assets/Asset/tabs/FinanceTab';
 import { GalleryTab } from '@/components/Assets/Asset/tabs/GalleryTab';
 import { OverviewTab } from '@/components/Assets/Asset/tabs/OverviewTab';
-import { ReportTab } from '@/components/Assets/Asset/tabs/ReportTab';
-import { SprintsTab } from '@/components/Assets/Asset/tabs/SprintsTab';
-import { TodosTab } from '@/components/Assets/Asset/tabs/TodosTab';
-
-type Todo = {
-  id: number;
-  name: string;
-  description: string;
-  status: string;
-  priority: string;
-  objectiveId: number | null;
-};
-
-type Objective = {
-  id: number;
-  name: string;
-  description: string;
-  status: string;
-  priority?: string;
-  startDate?: Date | null;
-  dueDate?: Date | null;
-};
-
-type Sprint = {
-  id: number;
-  name: string;
-  description: string;
-  status: string;
-  startDate: Date | null;
-  endDate: Date | null;
-};
 
 type Asset = {
   id: number;
@@ -107,9 +73,6 @@ type Asset = {
   type?: string | null;
   tabs?: string[];
   metadata?: Record<string, any>;
-  objectives: Objective[];
-  todos: Todo[];
-  sprints: Sprint[];
 };
 
 type AssetUpdateInput = Partial<Asset> & {
@@ -332,7 +295,7 @@ export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
   }, []);
 
   // Define all available tabs
-  const availableTabs = ['overview', 'todos', 'calendar', 'sprints', 'finance', 'docs', 'gallery', 'listing', 'activity', 'insights'];
+  const availableTabs = ['overview', 'calendar', 'finance', 'docs', 'gallery', 'listing', 'activity'];
 
   // Get asset's current tabs (default to ['overview'] if not set)
   const assetTabs = asset.tabs || ['overview'];
@@ -644,12 +607,8 @@ export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
     switch (tabName) {
       case 'overview':
         return <DashboardIcon sx={props} />;
-      case 'todos':
-        return <TodosIcon sx={props} />;
       case 'calendar':
         return <CalendarIcon sx={props} />;
-      case 'sprints':
-        return <SprintsIcon sx={props} />;
       case 'finance':
         return <FinanceIcon sx={props} />;
       case 'docs':
@@ -661,8 +620,6 @@ export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
       case 'activity':
       case 'timeline':
         return <ActivityIcon sx={props} />;
-      case 'insights':
-        return <InsightsIcon sx={props} />;
       default:
         return <DashboardIcon sx={props} />;
     }
@@ -678,23 +635,7 @@ export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
             onUpdateAsset={onUpdateAsset}
             onCalendarRefreshRequested={() => calendarRefreshRef.current?.()}
             onNavigateToTab={updateUrlForTab}
-            onOpenFilePreview={(file) => setPreviewFile(file)}
-          />
-        );
-      case 'todos':
-        return (
-          <TodosTab
-            asset={asset}
-            locale={locale}
-            onUpdateAsset={onUpdateAsset}
-          />
-        );
-      case 'sprints':
-        return (
-          <SprintsTab
-            asset={asset}
-            locale={locale}
-            onUpdateAsset={onUpdateAsset}
+            onOpenFilePreview={file => setPreviewFile(file)}
           />
         );
       case 'calendar':
@@ -708,8 +649,6 @@ export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
       case 'activity':
       case 'timeline':
         return <ActivityTab asset={asset} locale={locale} />;
-      case 'insights':
-        return <ReportTab asset={asset} />;
       case 'finance':
         return <FinanceTab asset={asset} />;
       case 'docs':

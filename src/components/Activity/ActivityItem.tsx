@@ -13,12 +13,9 @@ import {
   Timeline as FinanceIcon,
   PhotoLibrary as GalleryIcon,
   Image as ImageIcon,
-  Assessment as InsightsIcon,
   ListAlt as ListingIcon,
   OpenInNew as OpenInNewIcon,
   Dashboard as OverviewIcon,
-  DirectionsRun as SprintsIcon,
-  CheckBox as TodosIcon,
 } from '@mui/icons-material';
 import { Box, Button, Tooltip, Typography } from '@mui/material';
 import { format, formatDistanceToNow } from 'date-fns';
@@ -59,9 +56,6 @@ const pluralizeType = (type: string): string => {
     vehicle: 'vehicles',
     property: 'properties',
     person: 'persons',
-    project: 'projects',
-    trip: 'trips',
-    custom: 'customs',
   };
   return pluralMap[type] || `${type}s`;
 };
@@ -70,12 +64,8 @@ function getTabIcon(tabName: string) {
   switch (tabName) {
     case 'overview':
       return OverviewIcon;
-    case 'todos':
-      return TodosIcon;
     case 'calendar':
       return CalendarIcon;
-    case 'sprints':
-      return SprintsIcon;
     case 'finance':
       return FinanceIcon;
     case 'docs':
@@ -87,8 +77,6 @@ function getTabIcon(tabName: string) {
     case 'activity':
     case 'timeline':
       return ActivityIcon;
-    case 'insights':
-      return InsightsIcon;
     default:
       return OverviewIcon;
   }

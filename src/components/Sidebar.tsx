@@ -185,7 +185,7 @@ export function Sidebar({
   // Helper function to extract asset type from href
   const extractAssetTypeFromHref = (href: string, locale: string): string | null => {
     const hrefWithoutLocale = href.replace(/^\/[a-z]{2}\//, '/');
-    const assetsPattern = new RegExp(`^/assets/(vehicles|properties|persons|projects|trips|customs)$`);
+    const assetsPattern = new RegExp(`^/assets/(vehicles|properties|persons)$`);
     const match = hrefWithoutLocale.match(assetsPattern);
 
     if (match) {
@@ -195,9 +195,6 @@ export function Sidebar({
         vehicles: 'vehicle',
         properties: 'property',
         persons: 'person',
-        projects: 'project',
-        trips: 'trip',
-        customs: 'custom',
       };
       return typeMap[pluralType] || null;
     }

@@ -35,11 +35,6 @@ export class AssetService {
         return ['overview', 'gallery', 'calendar', 'listing', 'docs', 'finance'];
       case 'person':
         return ['overview', 'calendar', 'finance'];
-      case 'project':
-        return ['overview', 'todos', 'sprints', 'activity', 'insights'];
-      case 'trip':
-        return ['overview', 'calendar'];
-      case 'custom':
       default:
         return ['overview'];
     }
@@ -140,38 +135,11 @@ export class AssetService {
   }
 
   /**
-   * Get asset with all related data (objectives, tasks, sprints)
+   * Get asset for detail views (calendar and other tabs load their own data as needed).
    */
   static async getAssetWithRelations(assetId: number, userId: string) {
     try {
-      const asset = await this.getAssetById(assetId, userId);
-
-      if (!asset) {
-        return null;
-      }
-
-      // Fetch related data
-      const [objectives, todos, sprints] = await Promise.all([
-        db
-          .select()
-          .from(objectivesSchema)
-          .where(eq(objectivesSchema.assetId, assetId)),
-        db
-          .select()
-          .from(todosSchema)
-          .where(eq(todosSchema.assetId, assetId)),
-        db
-          .select()
-          .from(sprintsSchema)
-          .where(eq(sprintsSchema.assetId, assetId)),
-      ]);
-
-      return {
-        ...asset,
-        objectives,
-        todos,
-        sprints,
-      };
+      return await this.getAssetById(assetId, userId);
     } catch (error) {
       console.error('Error fetching asset with relations:', error);
       throw error;

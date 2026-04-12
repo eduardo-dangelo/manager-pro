@@ -14,9 +14,6 @@ type Asset = {
   type?: string | null;
   tabs?: string[];
   metadata?: Record<string, unknown>;
-  objectives: unknown[];
-  todos: unknown[];
-  sprints: unknown[];
 };
 
 type CalendarTabProps = {

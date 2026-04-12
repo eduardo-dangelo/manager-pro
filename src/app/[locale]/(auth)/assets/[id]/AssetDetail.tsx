@@ -15,39 +15,8 @@ const pluralizeType = (type: string): string => {
     vehicle: 'vehicles',
     property: 'properties',
     person: 'persons',
-    project: 'projects',
-    trip: 'trips',
-    custom: 'customs',
   };
   return pluralMap[type] || `${type}s`;
-};
-
-type Todo = {
-  id: number;
-  name: string;
-  description: string;
-  status: string;
-  priority: string;
-  objectiveId: number | null;
-};
-
-type Objective = {
-  id: number;
-  name: string;
-  description: string;
-  status: string;
-  priority?: string;
-  startDate?: Date | null;
-  dueDate?: Date | null;
-};
-
-type Sprint = {
-  id: number;
-  name: string;
-  description: string;
-  status: string;
-  startDate: Date | null;
-  endDate: Date | null;
 };
 
 type AssetDetailAsset = {
@@ -59,9 +28,6 @@ type AssetDetailAsset = {
   type?: string | null;
   tabs?: string[];
   metadata?: unknown;
-  objectives: Objective[];
-  todos: Todo[];
-  sprints: Sprint[];
 };
 
 export function AssetDetail({

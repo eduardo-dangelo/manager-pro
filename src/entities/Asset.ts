@@ -40,10 +40,6 @@ export type AssetData = {
   registrationNumber?: string | null;
   metadata?: AssetMetadata | null;
   tabs?: string[];
-  // Relations when fetched with getAssetWithRelations
-  objectives?: unknown[];
-  todos?: unknown[];
-  sprints?: unknown[];
 };
 
 export type MotTest = {
@@ -88,9 +84,6 @@ const PLURAL_MAP: Record<string, string> = {
   vehicle: 'vehicles',
   property: 'properties',
   person: 'persons',
-  project: 'projects',
-  trip: 'trips',
-  custom: 'customs',
 };
 
 const KM_TO_MILES = 0.621371;
@@ -144,18 +137,6 @@ export class Asset {
 
   get tabs(): string[] | undefined {
     return this.data.tabs;
-  }
-
-  get objectives(): unknown[] | undefined {
-    return this.data.objectives;
-  }
-
-  get todos(): unknown[] | undefined {
-    return this.data.todos;
-  }
-
-  get sprints(): unknown[] | undefined {
-    return this.data.sprints;
   }
 
   getPluralizedRoute(): string {

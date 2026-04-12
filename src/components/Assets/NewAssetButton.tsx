@@ -3,12 +3,9 @@
 import type { SxProps, Theme } from '@mui/material';
 import {
   Add as AddIcon,
-  Category as CategoryIcon,
   DirectionsCar as DirectionsCarIcon,
-  Flight as FlightIcon,
   Home as HomeIcon,
   Person as PersonIcon,
-  Work as WorkIcon,
 } from '@mui/icons-material';
 import {
   Box,
@@ -34,9 +31,6 @@ const pluralizeType = (type: string): string => {
     vehicle: 'vehicles',
     property: 'properties',
     person: 'persons',
-    project: 'projects',
-    trip: 'trips',
-    custom: 'customs',
   };
   return pluralMap[type] || `${type}s`;
 };
@@ -45,9 +39,6 @@ const assetTypes = [
   { value: 'vehicle', label: 'type_vehicle', icon: DirectionsCarIcon },
   { value: 'property', label: 'type_property', icon: HomeIcon },
   { value: 'person', label: 'type_person', icon: PersonIcon },
-  { value: 'project', label: 'type_project', icon: WorkIcon },
-  { value: 'trip', label: 'type_trip', icon: FlightIcon },
-  { value: 'custom', label: 'type_custom', icon: CategoryIcon },
 ];
 
 type NewAssetButtonProps = {

@@ -1,14 +1,11 @@
 import { ClerkProvider } from '@clerk/nextjs';
 import { currentUser } from '@clerk/nextjs/server';
 import {
+  History as ActivityIcon,
   CalendarMonth,
-  Category,
   Dashboard as DashboardIcon,
   DirectionsCar,
-  Flight,
-  Folder,
   HomeWork,
-  History as ActivityIcon,
   Person,
   Settings as SettingsIcon,
   Storage,
@@ -28,9 +25,6 @@ const assetTypeIcons = {
   vehicle: DirectionsCar,
   property: HomeWork,
   person: Person,
-  project: Folder,
-  trip: Flight,
-  custom: Category,
 };
 
 // Helper function to pluralize asset types for routes
@@ -39,9 +33,6 @@ const pluralizeType = (type: string): string => {
     vehicle: 'vehicles',
     property: 'properties',
     person: 'persons',
-    project: 'projects',
-    trip: 'trips',
-    custom: 'customs',
   };
   return pluralMap[type] || `${type}s`;
 };
@@ -77,9 +68,10 @@ export default async function AuthLayout(props: {
 
   if (user) {
     const assets = await AssetService.getAssetsByUserId(user.id);
-    // Get unique asset types
     const uniqueTypes = new Set(assets.map(a => a.type));
-    assetTypes = Array.from(uniqueTypes);
+    assetTypes = Array.from(uniqueTypes).filter(
+      (type): type is keyof typeof assetTypeIcons => type in assetTypeIcons,
+    );
   }
 
   // Build base menu items
@@ -110,7 +102,7 @@ export default async function AuthLayout(props: {
   assetTypes.forEach((type) => {
     const icon = assetTypeIcons[type as keyof typeof assetTypeIcons];
     // Map asset type to translation key
-    const labelKey = `menu_${type}` as 'menu_vehicle' | 'menu_property' | 'menu_person' | 'menu_project' | 'menu_trip' | 'menu_custom';
+    const labelKey = `menu_${type}` as 'menu_vehicle' | 'menu_property' | 'menu_person';
     const pluralRoute = pluralizeType(type);
     menuItems.push({
       icon,

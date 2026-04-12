@@ -2,13 +2,10 @@
 
 import type { AssetData } from '@/entities';
 import {
-  Category as CategoryIcon,
   DirectionsCar as DirectionsCarIcon,
-  Flight as FlightIcon,
   Folder as FolderIcon,
   HomeWork as HomeWorkIcon,
   Person as PersonIcon,
-  Work as WorkIcon,
 } from '@mui/icons-material';
 import {
   Box,
@@ -45,9 +42,6 @@ const assetTypeIcons = {
   vehicle: DirectionsCarIcon,
   property: HomeWorkIcon,
   person: PersonIcon,
-  project: WorkIcon,
-  trip: FlightIcon,
-  custom: CategoryIcon,
 };
 
 export function AssetListView({ assets, locale, onAssetDeleted }: AssetListViewProps) {
