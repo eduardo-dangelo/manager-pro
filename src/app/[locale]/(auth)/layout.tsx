@@ -5,6 +5,8 @@ import {
   CalendarMonth,
   Dashboard as DashboardIcon,
   DirectionsCar,
+  Folder as DocsIcon,
+  PhotoLibrary as GalleryIcon,
   HomeWork,
   Person,
   Settings as SettingsIcon,
@@ -90,6 +92,16 @@ export default async function AuthLayout(props: {
       icon: ActivityIcon,
       label: t('menu_activity'),
       href: `/${locale}/activity`,
+    },
+    {
+      icon: DocsIcon,
+      label: t('menu_docs'),
+      href: `/${locale}/docs`,
+    },
+    {
+      icon: GalleryIcon,
+      label: t('menu_gallery'),
+      href: `/${locale}/gallery`,
     },
     {
       icon: Storage,
