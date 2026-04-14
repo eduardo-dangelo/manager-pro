@@ -5,9 +5,9 @@ import { Box } from '@mui/material';
 import { GenericOverviewSection } from '@/components/Assets/Asset/tabs/overview/GenericOverviewSection';
 import { PropertyInfoSection } from '@/components/Assets/Asset/tabs/overview/PropertyInfoSection';
 import { PropertyQuickLinksSection } from '@/components/Assets/Asset/tabs/overview/PropertyQuickLinksSection';
+import { TabsSection } from '@/components/Assets/Asset/tabs/overview/TabsSection';
 import { VehicleMaintenanceSection } from '@/components/Assets/Asset/tabs/overview/vehicle/VehicleMaintenanceSection';
 import { VehicleSpecsSection } from '@/components/Assets/Asset/tabs/overview/vehicle/VehicleSpecsSection';
-import { TabsSection } from '@/components/Assets/Asset/tabs/overview/TabsSection';
 
 type Objective = {
   id: number;
@@ -40,21 +40,28 @@ type Sprint = {
 type Asset = {
   id: number;
   name: string;
-  description: string;
-  color: string;
-  status: string;
+  description: string | null;
+  color: string | null;
+  status: string | null;
   type?: string | null;
   tabs?: string[];
+  registrationNumber?: string | null;
+  address?: string | null;
   metadata?: Record<string, any>;
   objectives?: Objective[];
   todos?: Todo[];
   sprints?: Sprint[];
 };
 
+type AssetUpdatePayload = Partial<Asset> & {
+  activityAction?: string;
+  activityMetadata?: Record<string, unknown>;
+};
+
 type OverviewTabProps = {
   asset: Asset;
   locale: string;
-  onUpdateAsset: (asset: Partial<Asset> | Asset) => void;
+  onUpdateAsset: (updates: AssetUpdatePayload) => void;
   onCalendarRefreshRequested?: () => void;
   onNavigateToTab?: (tabName: string) => void;
   onOpenFilePreview?: (file: FilePreviewItem) => void;
@@ -63,7 +70,7 @@ type OverviewTabProps = {
 export function OverviewTab({ asset, locale, onUpdateAsset, onCalendarRefreshRequested, onNavigateToTab, onOpenFilePreview }: OverviewTabProps) {
   const renderContent = () => {
     switch (asset.type) {
-      case 'vehicle':
+      case 'vehicle': {
         const metadata = asset.metadata || {};
         const specs = metadata.specs || {};
         const hasSpecs = specs && Object.keys(specs).length > 0 && Object.values(specs).some(v => v !== '' && v !== null && v !== undefined);
@@ -87,6 +94,7 @@ export function OverviewTab({ asset, locale, onUpdateAsset, onCalendarRefreshReq
             )}
           </Box>
         );
+      }
       case 'property':
         return (
           <Box>

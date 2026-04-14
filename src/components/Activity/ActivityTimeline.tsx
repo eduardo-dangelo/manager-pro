@@ -3,6 +3,7 @@
 import type { Activity } from './types';
 import type { CalendarEvent } from '@/components/Calendar/types';
 import type { AssetData } from '@/entities';
+import Timeline from '@mui/lab/Timeline';
 import { Box, Paper, Typography } from '@mui/material';
 import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
@@ -67,16 +68,34 @@ export function ActivityTimeline({
 
   return (
     <Box sx={{ position: 'relative' }}>
-      {activities.map((activity, index) => (
-        <ActivityItem
-          key={activity.id}
-          activity={activity}
-          showAssetLink={showAssetLink}
-          locale={locale}
-          isLast={index === activities.length - 1}
-          onEventClick={handleEventClick}
-        />
-      ))}
+      <Timeline
+        position="right"
+        sx={{
+          p: 0,
+          m: 0,
+          maxWidth: '100%',
+          [`& .MuiTimelineItem-root:before`]: {
+            flex: 0,
+            padding: 0,
+          },
+          // @mui/lab TimelineDot uses 11.5px vertical margin by default
+          [`& .MuiTimelineDot-root`]: {
+            marginTop: 0,
+            marginBottom: 0,
+          },
+        }}
+      >
+        {activities.map((activity, index) => (
+          <ActivityItem
+            key={activity.id}
+            activity={activity}
+            showAssetLink={showAssetLink}
+            locale={locale}
+            isLast={index === activities.length - 1}
+            onEventClick={handleEventClick}
+          />
+        ))}
+      </Timeline>
 
       {eventDetailsAnchor != null && eventDetailsEvent != null && (
         <EventDetailsPopover

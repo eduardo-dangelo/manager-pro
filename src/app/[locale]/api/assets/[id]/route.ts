@@ -1,6 +1,7 @@
 import { currentUser } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import z from 'zod';
+import { diffAssetUpdate } from '@/lib/assetUpdateDiff';
 import { logger } from '@/libs/Logger';
 import { ActivityService } from '@/services/activityService';
 import { AssetService } from '@/services/assetService';
@@ -76,11 +77,15 @@ export const PUT = async (
       return NextResponse.json(z.treeifyError(parse.error), { status: 422 });
     }
 
+    const existingAsset = await AssetService.getAssetById(assetId, user.id);
+    if (!existingAsset) {
+      return NextResponse.json({ error: 'Asset not found' }, { status: 404 });
+    }
+
     // Check if type is being changed when it's already set (type comes from raw json, not validated)
     const requestedType = json.type as string | undefined;
     if (requestedType !== undefined) {
-      const existingAsset = await AssetService.getAssetById(assetId, user.id);
-      if (existingAsset && existingAsset.type && existingAsset.type !== requestedType) {
+      if (existingAsset.type && existingAsset.type !== requestedType) {
         return NextResponse.json(
           { error: 'Asset type cannot be changed once set' },
           { status: 400 },
@@ -105,10 +110,25 @@ export const PUT = async (
           user.id,
         );
       } else {
-        await ActivityService.create(
-          { assetId: asset.id, action: 'asset_updated' },
-          user.id,
+        const changes = diffAssetUpdate(
+          {
+            name: existingAsset.name,
+            description: existingAsset.description,
+            color: existingAsset.color,
+            status: existingAsset.status,
+            registrationNumber: existingAsset.registrationNumber,
+            address: existingAsset.address,
+            tabs: existingAsset.tabs,
+            metadata: (existingAsset.metadata as Record<string, unknown> | null) ?? null,
+          },
+          parse.data as Record<string, unknown>,
         );
+        if (changes.length > 0) {
+          await ActivityService.create(
+            { assetId: asset.id, action: 'asset_updated', metadata: { changes } },
+            user.id,
+          );
+        }
       }
     }
 

@@ -6,6 +6,7 @@ import { assetActivitiesSchema, assetsSchema, usersSchema } from '@/models/Schem
 export type ActivityAction =
   | 'asset_created'
   | 'asset_updated'
+  | 'vehicle_data_refreshed'
   | 'event_created'
   | 'event_updated'
   | 'event_deleted'

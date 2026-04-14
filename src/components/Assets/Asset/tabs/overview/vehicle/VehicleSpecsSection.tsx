@@ -31,18 +31,29 @@ import {
 } from '@mui/material';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
+
+/* eslint-disable perfectionist/sort-imports -- type/value @/lib vs @/hooks vs @/entities order conflicts */
 import { Card } from '@/components/common/Card';
 import { DropdownButton } from '@/components/common/DropdownButton';
 import { RegistrationPlate } from '@/components/common/RegistrationPlate';
 import { Asset } from '@/entities';
 import { useHoverSound } from '@/hooks/useHoverSound';
+import type { AssetRowForDiff } from '@/lib/assetUpdateDiff';
+import { diffAssetUpdate } from '@/lib/assetUpdateDiff';
+/* eslint-enable perfectionist/sort-imports */
+
 import { VehicleSpecItem } from './VehicleSpecItem';
 
 type VehicleAsset = {
   id: number;
   name: string;
+  description?: string | null;
+  color?: string | null;
+  status?: string | null;
   type?: string | null;
   tabs?: string[];
+  registrationNumber?: string | null;
+  address?: string | null;
   metadata?: Record<string, any>;
   objectives?: any[];
   todos?: any[];
@@ -52,7 +63,9 @@ type VehicleAsset = {
 type VehicleSpecsSectionProps = {
   asset: VehicleAsset;
   locale: string;
-  onUpdateAsset: (updates: Partial<VehicleAsset>) => void;
+  onUpdateAsset: (
+    updates: Partial<VehicleAsset> & { activityAction?: string; activityMetadata?: Record<string, unknown> },
+  ) => void;
   onCalendarRefreshRequested?: () => void;
 };
 
@@ -656,11 +669,31 @@ export function VehicleSpecsSection({ asset, locale, onUpdateAsset, onCalendarRe
       }
       updatePayload.tabs = asset.tabs ?? ['overview'];
 
+      const normalizedRegistration = currentRegistration.trim().toUpperCase().replace(/\s+/g, '');
+      const beforeForDiff: AssetRowForDiff = {
+        name: asset.name ?? null,
+        description: asset.description ?? null,
+        color: asset.color ?? null,
+        status: asset.status ?? null,
+        registrationNumber: asset.registrationNumber ?? null,
+        address: asset.address ?? null,
+        tabs: asset.tabs ?? null,
+        metadata: (asset.metadata as Record<string, unknown>) ?? null,
+      };
+      const refreshChanges = diffAssetUpdate(beforeForDiff, updatePayload as Record<string, unknown>);
+
       // Save to asset
       const saveResponse = await fetch(`/${locale}/api/assets/${asset.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatePayload),
+        body: JSON.stringify({
+          ...updatePayload,
+          activityAction: 'vehicle_data_refreshed',
+          activityMetadata: {
+            registration: refreshedSpecs.registration || normalizedRegistration,
+            changes: refreshChanges,
+          },
+        }),
       });
 
       if (!saveResponse.ok) {

@@ -16,12 +16,20 @@ import {
   ListAlt as ListingIcon,
   OpenInNew as OpenInNewIcon,
   Dashboard as OverviewIcon,
+  Refresh as RefreshIcon,
 } from '@mui/icons-material';
-import { Box, Button, Tooltip, Typography } from '@mui/material';
+import TimelineConnector from '@mui/lab/TimelineConnector';
+import TimelineContent from '@mui/lab/TimelineContent';
+import TimelineDot from '@mui/lab/TimelineDot';
+import TimelineItem from '@mui/lab/TimelineItem';
+import TimelineSeparator from '@mui/lab/TimelineSeparator';
+import { Box, Button, Paper, Popover, Stack, Tooltip, Typography } from '@mui/material';
 import { format, formatDistanceToNow } from 'date-fns';
 import { useTranslations } from 'next-intl';
 import LinkNext from 'next/link';
+import { useState } from 'react';
 import { CalendarEvent } from '@/components/Calendar/CalendarEvent';
+import { areAssetFieldValuesEqual, stableJsonForActivityKey } from '@/lib/assetUpdateDiff';
 
 const EVENT_CHANGE_DATETIME_FORMAT = 'd MMM HH:mm';
 
@@ -60,6 +68,164 @@ const pluralizeType = (type: string): string => {
   return pluralMap[type] || `${type}s`;
 };
 
+function getAssetFieldLabel(
+  field: string,
+  tActivity: (key: string) => string,
+  tAssets: (key: string) => string,
+): string {
+  const top: Record<string, string> = {
+    'address': 'field_address',
+    'color': 'field_color',
+    'description': 'field_description',
+    'metadata.dvla': 'field_metadata_dvla',
+    'metadata.maintenance': 'field_metadata_maintenance',
+    'metadata.mot': 'field_metadata_mot',
+    'name': 'field_name',
+    'registrationNumber': 'field_registrationNumber',
+    'status': 'field_status',
+    'tabs': 'field_tabs',
+  };
+  const actKey = top[field];
+  if (actKey) {
+    return tActivity(actKey);
+  }
+  if (field.startsWith('metadata.specs.')) {
+    const k = field.slice('metadata.specs.'.length);
+    const specToAssets: Record<string, string> = {
+      color: 'vehicle_color',
+      cost: 'vehicle_cost',
+      driveTrain: 'vehicle_drive_train',
+      engineNumber: 'vehicle_engine_number',
+      engineSize: 'vehicle_engine_size',
+      fuel: 'vehicle_fuel',
+      make: 'vehicle_make',
+      mileage: 'vehicle_mileage',
+      model: 'vehicle_model',
+      motStatus: 'vehicle_mot_status',
+      registration: 'vehicle_registration',
+      seats: 'vehicle_seats',
+      taxStatus: 'vehicle_tax_status',
+      transmission: 'vehicle_transmission',
+      vin: 'vehicle_vin',
+      weight: 'vehicle_weight',
+      year: 'vehicle_year',
+    };
+    const assetsKey = specToAssets[k];
+    if (assetsKey) {
+      return tAssets(assetsKey);
+    }
+    return k.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()).trim();
+  }
+  return field;
+}
+
+function isColorField(field: string): boolean {
+  return field === 'color' || field.endsWith('.color');
+}
+
+function formatScalarForActivity(value: unknown): string {
+  if (value === null || value === undefined) {
+    return '';
+  }
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
+  }
+  if (Array.isArray(value)) {
+    return value.join(', ');
+  }
+  try {
+    const s = JSON.stringify(value);
+    return s.length > 160 ? `${s.slice(0, 160)}…` : s;
+  } catch {
+    return String(value);
+  }
+}
+
+type AssetChangeRow = { field: string; before: unknown; after: unknown };
+
+function assetChangeRowKey(activity: Activity, ch: AssetChangeRow): string {
+  return `${activity.id}-${activity.createdAt}-${ch.field}-${stableJsonForActivityKey(ch.before)}-${stableJsonForActivityKey(ch.after)}`;
+}
+
+function formatAssetChangeValue(
+  value: unknown,
+  field: string,
+  tActivity: (key: string) => string,
+): React.ReactNode {
+  if (value === 'blob_updated') {
+    return tActivity('metadata_section_updated');
+  }
+  if (value === null || value === undefined || value === '') {
+    return '—';
+  }
+  if (isColorField(field) && typeof value === 'string' && value.trim().startsWith('#')) {
+    const hex = value.trim();
+    const swatchSx = {
+      width: 12,
+      height: 12,
+      borderRadius: '50%',
+      border: '1px solid',
+      borderColor: 'divider',
+      display: 'inline-block',
+      verticalAlign: 'middle',
+    } as const;
+    return (
+      <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+        <Box component="span" sx={{ ...swatchSx, bgcolor: hex }} />
+        <Box component="span">{hex}</Box>
+      </Box>
+    );
+  }
+  return formatScalarForActivity(value);
+}
+
+type AssetChangeSentenceLayout = 'inline' | 'stack';
+
+function renderAssetChangeSentence(
+  ch: AssetChangeRow,
+  tActivity: (key: string) => string,
+  tAssets: (key: string) => string,
+  layout: AssetChangeSentenceLayout,
+): React.ReactNode {
+  const propertyLabel = getAssetFieldLabel(ch.field, tActivity, tAssets);
+  const inner = (
+    <>
+      <Box component="span" sx={{ fontWeight: 600 }}>
+        {propertyLabel}
+      </Box>
+      {' '}
+      {tActivity('change_from')}
+      {' '}
+      <Box component="span" sx={{ fontWeight: 600 }}>
+        {formatAssetChangeValue(ch.before, ch.field, tActivity)}
+      </Box>
+      {' '}
+      {tActivity('change_to')}
+      {' '}
+      <Box component="span" sx={{ fontWeight: 600 }}>
+        {formatAssetChangeValue(ch.after, ch.field, tActivity)}
+      </Box>
+    </>
+  );
+
+  if (layout === 'stack') {
+    return (
+      <Typography variant="caption" component="div" color="text.primary" sx={{ fontWeight: 400 }}>
+        {inner}
+      </Typography>
+    );
+  }
+
+  return (
+    <Typography variant="caption" component="span" color="text.primary" sx={{ fontWeight: 400, display: 'inline' }}>
+      {inner}
+    </Typography>
+  );
+}
+
 function getTabIcon(tabName: string) {
   switch (tabName) {
     case 'overview':
@@ -91,6 +257,8 @@ function getActionIcon(action: Activity['action'], _tabName?: string) {
       return AddIcon;
     case 'asset_updated':
       return EditIcon;
+    case 'vehicle_data_refreshed':
+      return RefreshIcon;
     case 'event_created':
     case 'event_updated':
     case 'event_deleted':
@@ -159,6 +327,7 @@ export function ActivityItem({
 }: ActivityItemProps) {
   const t = useTranslations('Activity');
   const tAssets = useTranslations('Assets');
+  const [assetChangesAnchorEl, setAssetChangesAnchorEl] = useState<HTMLElement | null>(null);
   const Icon = getActionIcon(activity.action, (activity.metadata as { tabName?: string })?.tabName);
 
   const userDisplayName = [activity.userFirstName, activity.userLastName].filter(Boolean).join(' ');
@@ -166,6 +335,8 @@ export function ActivityItem({
   const byUserLabel = userDisplayName ? t('by_user', { userName: userDisplayName }) : null; // Line 1: "by John Doe" or just "by John Doe"
 
   const meta = activity.metadata as {
+    changes?: Array<{ field: string; before: unknown; after: unknown }>;
+    registration?: string;
     eventName?: string;
     eventColor?: string | null;
     fileName?: string;
@@ -353,6 +524,14 @@ export function ActivityItem({
     isTabClickable && meta?.tabName && Array.isArray(assetTabs) && !assetTabs.includes(meta.tabName),
   );
 
+  const tStr = t as (key: string) => string;
+  const visibleAssetChanges
+    = (activity.action === 'asset_updated' || activity.action === 'vehicle_data_refreshed') && meta?.changes
+      ? meta.changes.filter(ch => !areAssetFieldValuesEqual(ch.before, ch.after))
+      : [];
+  const assetChangeCount = visibleAssetChanges.length;
+  const tAssetsFn = tAssets as (key: string) => string;
+
   const sections: React.ReactNode[] = [];
 
   // Section 1: Action + optional "by user" with bold display name
@@ -393,6 +572,77 @@ export function ActivityItem({
     }
 
     sections.push(actionSection);
+  }
+
+  if (
+    (activity.action === 'asset_updated' || activity.action === 'vehicle_data_refreshed')
+    && assetChangeCount > 0
+  ) {
+    if (assetChangeCount === 1) {
+      const first = visibleAssetChanges[0]!;
+      sections.push(
+        <Box
+          key="asset-updates"
+          sx={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 0.5,
+            minWidth: 0,
+            maxWidth: '100%',
+          }}
+        >
+          {activity.action === 'vehicle_data_refreshed' && meta?.registration
+            ? (
+                <Typography variant="caption" color="text.secondary" component="span" sx={{ whiteSpace: 'nowrap' }}>
+                  (
+                  {meta.registration}
+                  )
+                  {' '}
+                </Typography>
+              )
+            : null}
+          {renderAssetChangeSentence(first, tStr, tAssetsFn, 'inline')}
+        </Box>,
+      );
+    } else {
+      sections.push(
+        <Box
+          key="asset-updates"
+          sx={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 0.5,
+            flexWrap: 'wrap',
+            minWidth: 0,
+            maxWidth: '100%',
+          }}
+        >
+          <Button
+            component="span"
+            variant="text"
+            size="small"
+            onClick={event => setAssetChangesAnchorEl(event.currentTarget)}
+            sx={{
+              flexShrink: 0,
+              px: 0.5,
+              py: 0,
+              textTransform: 'none',
+              fontWeight: 500,
+              verticalAlign: 'baseline',
+              typography: 'caption',
+            }}
+          >
+            {t('updates_view_changes', { count: assetChangeCount })}
+          </Button>
+        </Box>,
+      );
+    }
+  } else if (activity.action === 'vehicle_data_refreshed' && meta?.registration) {
+    sections.push(
+      <Typography key="vehicle-reg-only" variant="caption" color="text.secondary" component="span">
+        {t('registration_label', { registration: meta.registration })}
+      </Typography>,
+    );
   }
 
   // Section 2: Entity (event/doc/tab/etc.)
@@ -605,80 +855,101 @@ export function ActivityItem({
   }
 
   return (
-    <Box
+    <TimelineItem
       sx={{
-        position: 'relative',
-        display: 'flex',
-        alignItems: 'stretch',
-        gap: 1,
-        pb: 0.5,
-        // border: '1px solid',
+        'minHeight': 'auto',
+        'alignItems': 'stretch',
+        '&:before': {
+          flex: 0,
+          padding: 0,
+        },
       }}
     >
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexDirection: 'column',
-          gap: 0.5,
-        }}
-      >
-        <Box
+      <TimelineSeparator sx={{ py: 0 }}>
+        <TimelineDot
+          variant="outlined"
           sx={{
-            borderRadius: '50%',
-            color: 'text.secondary',
-            zIndex: 1,
-            // border: '1px solid',
-            // borderColor: iconColor,
-            display: 'flex',
-            alignItems: 'flex-start',
-            justifyContent: 'center',
-            p: 0.2,
-            // width: 38,
-            // height: 38,
+            // Lab default is margin 11.5px 0 — throws off vertical alignment with text
+            margin: 0,
+            boxShadow: 'none',
+            borderColor: 'divider',
+            bgcolor: 'background.paper',
+            p: 0.35,
+            alignSelf: 'center',
           }}
         >
-          <Icon sx={{ fontSize: 16 }} />
-        </Box>
-        <Box
-          sx={{
-            width: '1px',
-            height: '100%',
-            backgroundColor: isLast ? 'transparent' : 'divider',
-            borderRadius: 2,
-          }}
-        />
-      </Box>
-      <Box
+          <Icon sx={{ fontSize: 18, display: 'block' }} />
+        </TimelineDot>
+        {!isLast && <TimelineConnector sx={{ bgcolor: 'divider' }} />}
+      </TimelineSeparator>
+      <TimelineContent
         sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1,
-          flexWrap: 'wrap',
           flex: 1,
+          minWidth: 0,
           py: 0,
-          // border: '1px solid red',
-          mt: -0.6,
-          pb: 1.5,
-          // height: '40px',
+          px: 0,
+          pl: 1.5,
+          pr: 0,
+          pb: 2,
+          pt: 0.25,
+          m: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'stretch',
+          justifyContent: 'flex-start',
         }}
       >
-        {sections.map((section, index) => (
-          <Box
-            // eslint-disable-next-line react/no-array-index-key
-            key={index}
-            sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 1,
+            flexWrap: 'wrap',
+            flex: 1,
+            py: 0,
+          }}
+        >
+          {sections.map((section, index) => (
+            <Box
+              // eslint-disable-next-line react/no-array-index-key
+              key={index}
+              sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}
+            >
+              {index > 0 && (
+                <Typography variant="body2" color="text.secondary" component="span">
+                  {' • '}
+                </Typography>
+              )}
+              {section}
+            </Box>
+          ))}
+        </Box>
+        {(activity.action === 'asset_updated' || activity.action === 'vehicle_data_refreshed')
+          && assetChangeCount > 1 && (
+          <Popover
+            open={Boolean(assetChangesAnchorEl)}
+            anchorEl={assetChangesAnchorEl}
+            onClose={() => setAssetChangesAnchorEl(null)}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+            transformOrigin={{ vertical: 'top', horizontal: 'left' }}
           >
-            {index > 0 && (
-              <Typography variant="body2" color="text.secondary" component="span">
-                {' • '}
-              </Typography>
-            )}
-            {section}
-          </Box>
-        ))}
-      </Box>
-    </Box>
+            <Paper sx={{ p: 2, maxWidth: 420 }}>
+              {activity.action === 'vehicle_data_refreshed' && meta?.registration && (
+                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+                  {t('registration_label', { registration: meta.registration })}
+                </Typography>
+              )}
+              <Stack spacing={1}>
+                {visibleAssetChanges.map(ch => (
+                  <Box key={assetChangeRowKey(activity, ch)}>
+                    {renderAssetChangeSentence(ch, tStr, tAssetsFn, 'stack')}
+                  </Box>
+                ))}
+              </Stack>
+            </Paper>
+          </Popover>
+        )}
+      </TimelineContent>
+    </TimelineItem>
   );
 }

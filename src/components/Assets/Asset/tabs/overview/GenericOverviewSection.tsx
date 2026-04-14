@@ -3,8 +3,8 @@
 import { Cancel as CancelIcon, Edit as EditIcon, Save as SaveIcon } from '@mui/icons-material';
 import {
   Box,
-  Grid,
   IconButton,
+  Stack,
   TextField,
   Typography,
 } from '@mui/material';
@@ -14,7 +14,7 @@ import { useState } from 'react';
 type Asset = {
   id: number;
   name: string;
-  description: string;
+  description?: string | null;
   type?: string | null;
   metadata?: Record<string, any>;
   objectives?: any[];
@@ -25,7 +25,9 @@ type Asset = {
 type GenericOverviewSectionProps = {
   asset: Asset;
   locale: string;
-  onUpdateAsset: (asset: Asset) => void;
+  onUpdateAsset: (
+    updates: Partial<Asset> & { activityAction?: string; activityMetadata?: Record<string, unknown> },
+  ) => void;
 };
 
 export function GenericOverviewSection({
@@ -61,7 +63,7 @@ export function GenericOverviewSection({
         throw new Error('Failed to update asset');
       }
 
-      const { asset: updatedAsset } = await response.json();
+      await response.json();
       onUpdateAsset({ ...asset, metadata: updatedMetadata });
       setIsEditing(false);
     } catch (error) {
@@ -117,68 +119,62 @@ export function GenericOverviewSection({
             )}
       </Box>
 
-      <Grid container spacing={2}>
-        <Grid item xs={12}>
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
-              {t('asset_description')}
-            </Typography>
-            <Typography variant="body1">
-              {asset.description || t('no_description')}
-            </Typography>
-          </Box>
-        </Grid>
+      <Stack spacing={2}>
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
+            {t('asset_description')}
+          </Typography>
+          <Typography variant="body1">
+            {asset.description || t('no_description')}
+          </Typography>
+        </Box>
 
-        <Grid item xs={12}>
-          {isEditing
-            ? (
-                <TextField
-                  fullWidth
-                  label={t('overview_notes')}
-                  value={editedInfo.notes}
-                  onChange={e => setEditedInfo({ ...editedInfo, notes: e.target.value })}
-                  multiline
-                  rows={4}
-                  size="small"
-                />
-              )
-            : (
-                <Box>
-                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                    {t('overview_notes')}
-                  </Typography>
-                  <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
-                    {info.notes || '-'}
-                  </Typography>
-                </Box>
-              )}
-        </Grid>
+        {isEditing
+          ? (
+              <TextField
+                fullWidth
+                label={t('overview_notes')}
+                value={editedInfo.notes}
+                onChange={e => setEditedInfo({ ...editedInfo, notes: e.target.value })}
+                multiline
+                rows={4}
+                size="small"
+              />
+            )
+          : (
+              <Box>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  {t('overview_notes')}
+                </Typography>
+                <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                  {info.notes || '-'}
+                </Typography>
+              </Box>
+            )}
 
-        <Grid item xs={12}>
-          {isEditing
-            ? (
-                <TextField
-                  fullWidth
-                  label={t('overview_details')}
-                  value={editedInfo.details}
-                  onChange={e => setEditedInfo({ ...editedInfo, details: e.target.value })}
-                  multiline
-                  rows={4}
-                  size="small"
-                />
-              )
-            : (
-                <Box>
-                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                    {t('overview_details')}
-                  </Typography>
-                  <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
-                    {info.details || '-'}
-                  </Typography>
-                </Box>
-              )}
-        </Grid>
-      </Grid>
+        {isEditing
+          ? (
+              <TextField
+                fullWidth
+                label={t('overview_details')}
+                value={editedInfo.details}
+                onChange={e => setEditedInfo({ ...editedInfo, details: e.target.value })}
+                multiline
+                rows={4}
+                size="small"
+              />
+            )
+          : (
+              <Box>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  {t('overview_details')}
+                </Typography>
+                <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                  {info.details || '-'}
+                </Typography>
+              </Box>
+            )}
+      </Stack>
     </Box>
   );
 }

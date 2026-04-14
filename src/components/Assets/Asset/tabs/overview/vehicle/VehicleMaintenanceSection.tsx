@@ -30,7 +30,7 @@ import { useHoverSound } from '@/hooks/useHoverSound';
 import { MotHistorySidePanel } from './MotHistorySidePanel';
 import { VehicleMileageChart } from './VehicleMileageChart';
 
-type Asset = {
+type VehicleMaintenanceAsset = {
   id: number;
   name: string;
   type?: string | null;
@@ -41,9 +41,11 @@ type Asset = {
 };
 
 type VehicleMaintenanceSectionProps = {
-  asset: Asset;
+  asset: VehicleMaintenanceAsset;
   locale: string;
-  onUpdateAsset: (asset: Asset) => void;
+  onUpdateAsset: (
+    updates: Partial<VehicleMaintenanceAsset> & { activityAction?: string; activityMetadata?: Record<string, unknown> },
+  ) => void;
 };
 
 type MaintenanceSectionItemProps = {
@@ -143,9 +145,9 @@ const buildMaintenanceCards = (
 ): Array<{ id: string; titleKey: string; hasData: () => boolean; sections: MaintenanceSectionItemProps[] }> => {
   const mot: MaintenanceItem = maintenance.mot || {};
   const tax: MaintenanceItem = maintenance.tax || {};
-  const insurance: MaintenanceItem = maintenance.insurance || {};
-  const finance: MaintenanceItem = maintenance.finance || {};
-  const service: MaintenanceItem = maintenance.service || {};
+  const _insurance: MaintenanceItem = maintenance.insurance || {};
+  const _finance: MaintenanceItem = maintenance.finance || {};
+  const _service: MaintenanceItem = maintenance.service || {};
   const dvlaData = metadata.dvla || {};
 
   const hasMotData = Boolean(latestMotTest || mot.expires);

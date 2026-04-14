@@ -1,6 +1,8 @@
+/* eslint-disable style/operator-linebreak */
 export type ActivityAction =
   | 'asset_created'
   | 'asset_updated'
+  | 'vehicle_data_refreshed'
   | 'event_created'
   | 'event_updated'
   | 'event_deleted'
@@ -15,6 +17,7 @@ export type ActivityAction =
   | 'tab_added'
   | 'tab_moved'
   | 'tab_removed';
+/* eslint-enable style/operator-linebreak */
 
 export type Activity = {
   id: number;
@@ -26,6 +29,8 @@ export type Activity = {
   entityType?: string | null;
   entityId?: number | null;
   metadata?: {
+    changes?: Array<{ field: string; before: unknown; after: unknown }>;
+    registration?: string;
     eventName?: string;
     eventColor?: string | null;
     fileName?: string;
