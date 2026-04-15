@@ -12,6 +12,9 @@ export type ActivityAction =
   | 'doc_deleted'
   | 'image_deleted'
   | 'doc_renamed'
+  | 'doc_moved'
+  | 'doc_folder_created'
+  | 'doc_folder_moved'
   | 'doc_folder_renamed'
   | 'doc_folder_deleted'
   | 'tab_added'
@@ -56,6 +59,12 @@ export type Activity = {
     newAssetId?: number;
     oldAssetName?: string;
     newAssetName?: string;
+    folderName?: string;
+    folderId?: string;
+    fromFolderId?: string | null;
+    toFolderId?: string | null;
+    fromFolderName?: string;
+    toFolderName?: string;
     reminderMinutes?: number[];
   } | null;
   createdAt: string | Date;

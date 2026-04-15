@@ -6,16 +6,19 @@ import {
   History as ActivityIcon,
   Add as AddIcon,
   CalendarMonth as CalendarIcon,
+  DeleteOutline as DeleteIcon,
   Description as DocIcon,
   Folder as DocsIcon,
   Edit as EditIcon,
   CalendarMonth as EventIcon,
+  InsertDriveFile as FileIcon,
   Timeline as FinanceIcon,
   PhotoLibrary as GalleryIcon,
   Image as ImageIcon,
   ListAlt as ListingIcon,
   OpenInNew as OpenInNewIcon,
   Dashboard as OverviewIcon,
+  PictureAsPdf as PdfIcon,
   Refresh as RefreshIcon,
 } from '@mui/icons-material';
 import TimelineConnector from '@mui/lab/TimelineConnector';
@@ -183,6 +186,7 @@ function formatAssetChangeValue(
 }
 
 type AssetChangeSentenceLayout = 'inline' | 'stack';
+type EventChangeRow = { field: string; before: unknown; after: unknown };
 
 function renderAssetChangeSentence(
   ch: AssetChangeRow,
@@ -207,6 +211,102 @@ function renderAssetChangeSentence(
       {' '}
       <Box component="span" sx={{ fontWeight: 600 }}>
         {formatAssetChangeValue(ch.after, ch.field, tActivity)}
+      </Box>
+    </>
+  );
+
+  if (layout === 'stack') {
+    return (
+      <Typography variant="caption" component="div" color="text.primary" sx={{ fontWeight: 400 }}>
+        {inner}
+      </Typography>
+    );
+  }
+
+  return (
+    <Typography variant="caption" component="span" color="text.primary" sx={{ fontWeight: 400, display: 'inline' }}>
+      {inner}
+    </Typography>
+  );
+}
+
+function eventChangeRowKey(activity: Activity, ch: EventChangeRow): string {
+  return `${activity.id}-${activity.createdAt}-event-${ch.field}-${stableJsonForActivityKey(ch.before)}-${stableJsonForActivityKey(ch.after)}`;
+}
+
+function getEventFieldLabel(field: string, tActivity: (key: string) => string): string {
+  const labels: Record<string, string> = {
+    name: 'field_name',
+    description: 'field_description',
+    color: 'field_color',
+    location: 'event_field_location',
+    start: 'event_field_start',
+    end: 'event_field_end',
+    asset: 'event_field_asset',
+  };
+  return tActivity(labels[field] ?? field);
+}
+
+function formatEventChangeValue(
+  value: unknown,
+  field: string,
+): React.ReactNode {
+  if (value === null || value === undefined || value === '') {
+    return '—';
+  }
+  if ((field === 'start' || field === 'end') && typeof value === 'string') {
+    const date = new Date(value);
+    if (!Number.isNaN(date.getTime())) {
+      return format(date, EVENT_CHANGE_DATETIME_FORMAT);
+    }
+  }
+  if (field === 'color' && typeof value === 'string' && value.trim().startsWith('#')) {
+    const hex = value.trim();
+    const swatchSx = {
+      width: 12,
+      height: 12,
+      borderRadius: '50%',
+      border: '1px solid',
+      borderColor: 'divider',
+      display: 'inline-block',
+      verticalAlign: 'middle',
+    } as const;
+    return (
+      <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+        <Box component="span" sx={{ ...swatchSx, bgcolor: hex }} />
+        <Box component="span">{hex}</Box>
+      </Box>
+    );
+  }
+  if (field === 'description' && typeof value === 'string') {
+    const maxLen = 80;
+    return value.length > maxLen ? `${value.slice(0, maxLen)}…` : value;
+  }
+  return formatScalarForActivity(value) || '—';
+}
+
+function renderEventChangeSentence(
+  ch: EventChangeRow,
+  tActivity: (key: string) => string,
+  layout: AssetChangeSentenceLayout,
+): React.ReactNode {
+  const propertyLabel = getEventFieldLabel(ch.field, tActivity);
+  const inner = (
+    <>
+      <Box component="span" sx={{ fontWeight: 600 }}>
+        {propertyLabel}
+      </Box>
+      {' '}
+      {tActivity('change_from')}
+      {' '}
+      <Box component="span" sx={{ fontWeight: 600 }}>
+        {formatEventChangeValue(ch.before, ch.field)}
+      </Box>
+      {' '}
+      {tActivity('change_to')}
+      {' '}
+      <Box component="span" sx={{ fontWeight: 600 }}>
+        {formatEventChangeValue(ch.after, ch.field)}
       </Box>
     </>
   );
@@ -253,6 +353,12 @@ function getActionIcon(action: Activity['action'], _tabName?: string) {
   //   return getTabIcon(tabName);
   // }
   switch (action) {
+    case 'event_deleted':
+    case 'doc_deleted':
+    case 'doc_folder_deleted':
+    case 'image_deleted':
+    case 'tab_removed':
+      return DeleteIcon;
     case 'asset_created':
       return AddIcon;
     case 'asset_updated':
@@ -261,21 +367,20 @@ function getActionIcon(action: Activity['action'], _tabName?: string) {
       return RefreshIcon;
     case 'event_created':
     case 'event_updated':
-    case 'event_deleted':
     case 'event_reminder_added':
       return EventIcon;
     case 'doc_uploaded':
-    case 'doc_deleted':
     case 'doc_renamed':
-    case 'doc_folder_renamed':
-    case 'doc_folder_deleted':
+    case 'doc_moved':
       return DocIcon;
+    case 'doc_folder_created':
+    case 'doc_folder_moved':
+    case 'doc_folder_renamed':
+      return DocsIcon;
     case 'image_uploaded':
-    case 'image_deleted':
       return ImageIcon;
     case 'tab_added':
     case 'tab_moved':
-    case 'tab_removed':
       return OverviewIcon;
     default:
       return EditIcon;
@@ -328,6 +433,7 @@ export function ActivityItem({
   const t = useTranslations('Activity');
   const tAssets = useTranslations('Assets');
   const [assetChangesAnchorEl, setAssetChangesAnchorEl] = useState<HTMLElement | null>(null);
+  const [eventChangesAnchorEl, setEventChangesAnchorEl] = useState<HTMLElement | null>(null);
   const Icon = getActionIcon(activity.action, (activity.metadata as { tabName?: string })?.tabName);
 
   const userDisplayName = [activity.userFirstName, activity.userLastName].filter(Boolean).join(' ');
@@ -363,6 +469,11 @@ export function ActivityItem({
     oldAssetName?: string;
     newAssetName?: string;
     folderName?: string;
+    folderId?: string;
+    fromFolderId?: string | null;
+    toFolderId?: string | null;
+    fromFolderName?: string;
+    toFolderName?: string;
     reminderMinutes?: number[];
   } | undefined;
 
@@ -372,7 +483,7 @@ export function ActivityItem({
 
   if (meta?.eventName) {
     entityName = meta.eventName;
-    if (activity.action === 'event_updated' && meta.changeType) {
+    if (activity.action === 'event_updated' && meta.changeType && (!Array.isArray(meta.changes) || meta.changes.length === 0)) {
       const ct = meta.changeType;
       const tStr = t as (k: string) => string;
 
@@ -476,12 +587,29 @@ export function ActivityItem({
     }
   } else if (meta?.fileName) {
     entityName = meta.fileName;
-  } else if (meta?.oldName && meta?.newName && (activity.action === 'doc_renamed' || activity.action === 'doc_folder_renamed')) {
+  } else if (meta?.oldName && meta?.newName && activity.action === 'doc_renamed') {
     entityName = `${meta.oldName} → ${meta.newName}`;
   } else if (meta?.tabName) {
     entityName = tAssets(`tabs_${meta.tabName}` as any) || meta.tabName;
   } else if (meta?.folderName) {
     entityName = meta.folderName;
+  }
+
+  if (activity.action === 'doc_folder_renamed' && meta?.oldName && meta?.newName) {
+    inlineChangeContent = t.rich('from_to_bold', {
+      from: meta.oldName,
+      to: meta.newName,
+      bold: chunks => <Box component="span" sx={{ fontWeight: 600 }}>{chunks}</Box>,
+    });
+  } else if (activity.action === 'doc_moved' || activity.action === 'doc_folder_moved') {
+    const tStr = t as (k: string) => string;
+    const fromName = meta?.fromFolderName || tStr('folder_root');
+    const toName = meta?.toFolderName || tStr('folder_root');
+    inlineChangeContent = t.rich('from_to_bold', {
+      from: fromName,
+      to: toName,
+      bold: chunks => <Box component="span" sx={{ fontWeight: 600 }}>{chunks}</Box>,
+    });
   }
 
   const assetTabs = activity.assetTabs as string[] | undefined;
@@ -497,9 +625,26 @@ export function ActivityItem({
       ? `/${locale}/assets/${pluralizeType(activity.assetType)}/${activity.assetId}?tab=${meta.tabName}`
       : null;
 
-  const hasFilePreview = (activity.action === 'doc_uploaded' || activity.action === 'image_uploaded' || activity.action === 'doc_renamed')
-    && meta?.url;
+  const hasFilePreview = (
+    activity.action === 'doc_uploaded'
+    || activity.action === 'image_uploaded'
+    || activity.action === 'doc_renamed'
+    || activity.action === 'doc_moved'
+  ) && meta?.url;
   const filePreviewType = activity.action === 'image_uploaded' ? 'image' : 'pdf';
+  const isDocAction = activity.action === 'doc_uploaded'
+    || activity.action === 'doc_deleted'
+    || activity.action === 'doc_renamed'
+    || activity.action === 'doc_moved';
+  const isFolderAction = activity.action === 'doc_folder_created'
+    || activity.action === 'doc_folder_moved'
+    || activity.action === 'doc_folder_renamed'
+    || activity.action === 'doc_folder_deleted';
+  const isDocsEntityAction = isDocAction || isFolderAction;
+  const isGalleryImageChip = hasFilePreview && filePreviewType === 'image';
+  const docNameForIcon = meta?.fileName ?? meta?.newName ?? meta?.oldName ?? entityName ?? '';
+  const isPdfDoc = docNameForIcon.toLowerCase().endsWith('.pdf');
+  const docsTabHref = null;
   const isEventClickable = (activity.action === 'event_created' || activity.action === 'event_updated' || activity.action === 'event_deleted' || activity.action === 'event_reminder_added')
     && activity.entityId
     && onEventClick;
@@ -530,6 +675,20 @@ export function ActivityItem({
       ? meta.changes.filter(ch => !areAssetFieldValuesEqual(ch.before, ch.after))
       : [];
   const assetChangeCount = visibleAssetChanges.length;
+  const visibleEventChanges: EventChangeRow[]
+    = activity.action === 'event_updated' && Array.isArray(meta?.changes)
+      ? meta.changes
+          .filter((ch): ch is EventChangeRow => (
+            typeof ch === 'object'
+            && ch !== null
+            && 'field' in ch
+            && 'before' in ch
+            && 'after' in ch
+            && typeof (ch as { field?: unknown }).field === 'string'
+          ))
+          .filter(ch => !areAssetFieldValuesEqual(ch.before, ch.after))
+      : [];
+  const eventChangeCount = visibleEventChanges.length;
   const tAssetsFn = tAssets as (key: string) => string;
 
   const sections: React.ReactNode[] = [];
@@ -762,28 +921,58 @@ export function ActivityItem({
           entitySection = chip;
         }
       } else {
+        const entityIcon = (() => {
+          if (isFolderAction) {
+            return <DocsIcon sx={{ fontSize: 16, color: 'warning.main' }} />;
+          }
+          if (hasFilePreview) {
+            const EntityIcon = filePreviewType === 'image' ? ImageIcon : (isPdfDoc ? PdfIcon : FileIcon);
+            const iconColor = filePreviewType === 'image'
+              ? 'action'
+              : (isPdfDoc ? 'error' : 'action');
+            return <EntityIcon sx={{ fontSize: 16 }} color={iconColor} />;
+          }
+          if (isDocAction) {
+            const EntityIcon = isPdfDoc ? PdfIcon : FileIcon;
+            return <EntityIcon sx={{ fontSize: 16 }} color={isPdfDoc ? 'error' : 'action'} />;
+          }
+          if (isEventClickable) {
+            return <EventIcon sx={{ fontSize: 16 }} />;
+          }
+          return <Icon sx={{ fontSize: 16 }} />;
+        })();
+
         const button = (
           <Button
-            variant="outlined"
+            variant={isDocsEntityAction ? 'text' : 'outlined'}
             size="small"
             color="inherit"
-            disabled={!isEntityClickable}
+            component={docsTabHref ? LinkNext : 'button'}
+            href={docsTabHref ?? undefined}
+            disabled={isFolderAction || (!isEntityClickable && !isDocsEntityAction && !docsTabHref)}
             onClick={isEntityClickable ? handleEntityClick : undefined}
-            startIcon={(() => {
-              if (hasFilePreview) {
-                const EntityIcon = filePreviewType === 'image' ? ImageIcon : DocIcon;
-                return <EntityIcon sx={{ fontSize: 16 }} />;
-              }
-              if (isEventClickable) {
-                return <EventIcon sx={{ fontSize: 16 }} />;
-              }
-              return <Icon sx={{ fontSize: 16 }} />;
-            })()}
+            startIcon={entityIcon}
             sx={{
-              textTransform: 'none',
-              fontWeight: 500,
-              py: 0,
-              px: 0.5,
+              'textTransform': 'none',
+              'fontWeight': 500,
+              'py': isDocsEntityAction ? 0.375 : 0,
+              'px': isDocsEntityAction ? 0.75 : 0.5,
+              'color': isDocsEntityAction ? 'text.primary' : undefined,
+              'border': isDocsEntityAction || isGalleryImageChip ? '1px solid' : undefined,
+              'borderColor': (isDocsEntityAction || isGalleryImageChip) ? 'divider' : undefined,
+              'borderRadius': isDocsEntityAction || isGalleryImageChip ? 1 : undefined,
+              'backgroundColor': isDocsEntityAction ? 'transparent' : undefined,
+              'cursor': isFolderAction ? 'default' : undefined,
+              '&:hover': isDocsEntityAction
+                ? {
+                    bgcolor: 'transparent',
+                    borderColor: 'divider',
+                  }
+                : isGalleryImageChip
+                  ? {
+                      borderColor: 'divider',
+                    }
+                  : undefined,
             }}
           >
             {entityName}
@@ -807,9 +996,61 @@ export function ActivityItem({
     sections.push(entitySection);
   }
 
+  if (activity.action === 'event_updated' && eventChangeCount > 0) {
+    if (eventChangeCount === 1) {
+      const first = visibleEventChanges[0]!;
+      sections.push(
+        <Box
+          key="event-updates"
+          sx={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 0.5,
+            minWidth: 0,
+            maxWidth: '100%',
+          }}
+        >
+          {renderEventChangeSentence(first, tStr, 'inline')}
+        </Box>,
+      );
+    } else {
+      sections.push(
+        <Box
+          key="event-updates"
+          sx={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 0.5,
+            flexWrap: 'wrap',
+            minWidth: 0,
+            maxWidth: '100%',
+          }}
+        >
+          <Button
+            component="span"
+            variant="text"
+            size="small"
+            onClick={event => setEventChangesAnchorEl(event.currentTarget)}
+            sx={{
+              flexShrink: 0,
+              px: 0.5,
+              py: 0,
+              textTransform: 'none',
+              fontWeight: 500,
+              verticalAlign: 'baseline',
+              typography: 'caption',
+            }}
+          >
+            {t('updates_view_changes', { count: eventChangeCount })}
+          </Button>
+        </Box>,
+      );
+    }
+  }
+
   // Section 3: Inline change description (for event_updated details)
   let changeSection: React.ReactNode | null = null;
-  if (inlineChangeContent) {
+  if (inlineChangeContent && !(activity.action === 'event_updated' && eventChangeCount > 0)) {
     changeSection = (
       <Typography variant="caption" component="span" sx={{ fontWeight: 400, py: 0 }}>
         {inlineChangeContent}
@@ -943,6 +1184,25 @@ export function ActivityItem({
                 {visibleAssetChanges.map(ch => (
                   <Box key={assetChangeRowKey(activity, ch)}>
                     {renderAssetChangeSentence(ch, tStr, tAssetsFn, 'stack')}
+                  </Box>
+                ))}
+              </Stack>
+            </Paper>
+          </Popover>
+        )}
+        {activity.action === 'event_updated' && eventChangeCount > 1 && (
+          <Popover
+            open={Boolean(eventChangesAnchorEl)}
+            anchorEl={eventChangesAnchorEl}
+            onClose={() => setEventChangesAnchorEl(null)}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+            transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+          >
+            <Paper sx={{ p: 2, maxWidth: 420 }}>
+              <Stack spacing={1}>
+                {visibleEventChanges.map(ch => (
+                  <Box key={eventChangeRowKey(activity, ch)}>
+                    {renderEventChangeSentence(ch, tStr, 'stack')}
                   </Box>
                 ))}
               </Stack>

@@ -55,6 +55,7 @@ export function InlineEditableName({
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSavedRef = useRef(displayValue);
   const inputRef = useRef<HTMLInputElement>(null);
+  const skipNextBlurSaveRef = useRef(false);
 
   const toFullValue = useCallback(
     (base: string) => (lockedSuffix ? getFullValue(base, lockedSuffix) : base),
@@ -87,6 +88,16 @@ export function InlineEditableName({
   }, [displayValue]);
 
   useEffect(() => {
+    if (!autoFocus) {
+      return;
+    }
+    const raf = window.requestAnimationFrame(() => {
+      inputRef.current?.focus();
+    });
+    return () => window.cancelAnimationFrame(raf);
+  }, [autoFocus]);
+
+  useEffect(() => {
     return () => {
       if (idleSaveTimeoutRef.current) {
         clearTimeout(idleSaveTimeoutRef.current);
@@ -108,12 +119,17 @@ export function InlineEditableName({
     idleSaveTimeoutRef.current = setTimeout(() => {
       idleSaveTimeoutRef.current = null;
       lastSavedRef.current = newBase;
+      skipNextBlurSaveRef.current = true;
       saveValue(newBase);
       inputRef.current?.blur();
     }, IDLE_SAVE_MS);
   };
 
   const handleBlur = () => {
+    if (skipNextBlurSaveRef.current) {
+      skipNextBlurSaveRef.current = false;
+      return;
+    }
     if (idleSaveTimeoutRef.current) {
       clearTimeout(idleSaveTimeoutRef.current);
       idleSaveTimeoutRef.current = null;
@@ -129,6 +145,7 @@ export function InlineEditableName({
         idleSaveTimeoutRef.current = null;
       }
       lastSavedRef.current = localValue;
+      skipNextBlurSaveRef.current = true;
       saveValue(localValue);
       (inputRef as React.RefObject<HTMLInputElement>)?.current?.blur();
     } else if (e.key === 'Escape') {
@@ -178,7 +195,6 @@ export function InlineEditableName({
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         disabled={disabled}
-        autoFocus={autoFocus}
         variant="standard"
         fullWidth
         size="small"

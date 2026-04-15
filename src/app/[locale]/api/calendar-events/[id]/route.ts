@@ -105,69 +105,110 @@ export const PUT = async (
       return NextResponse.json({ error: 'Event not found' }, { status: 404 });
     }
 
+    const eventChanges: Array<{ field: string; before: unknown; after: unknown }> = [];
     const activityMetadata: Record<string, unknown> = {
       eventName: event.name,
       eventColor: event.color ?? null,
     };
+
     if (parse.data.name !== undefined && existingEvent.name !== parse.data.name) {
-      activityMetadata.changeType = 'renamed';
-      activityMetadata.oldName = existingEvent.name;
-      activityMetadata.newName = parse.data.name;
-    } else if (parse.data.start !== undefined) {
+      eventChanges.push({ field: 'name', before: existingEvent.name, after: parse.data.name });
+    }
+    if (parse.data.start !== undefined) {
       const oldStart = new Date(existingEvent.start).toISOString();
       const newStart = new Date(parse.data.start).toISOString();
       if (oldStart !== newStart) {
-        activityMetadata.changeType = 'start_time_changed';
-        activityMetadata.oldStart = oldStart;
-        activityMetadata.newStart = newStart;
+        eventChanges.push({ field: 'start', before: oldStart, after: newStart });
       }
     }
-    if (parse.data.end !== undefined && !activityMetadata.changeType) {
+    if (parse.data.end !== undefined) {
       const oldEnd = new Date(existingEvent.end).toISOString();
       const newEnd = new Date(parse.data.end).toISOString();
       if (oldEnd !== newEnd) {
-        activityMetadata.changeType = 'end_time_changed';
-        activityMetadata.oldEnd = oldEnd;
-        activityMetadata.newEnd = newEnd;
+        eventChanges.push({ field: 'end', before: oldEnd, after: newEnd });
       }
     }
-    if (parse.data.description !== undefined && existingEvent.description !== parse.data.description && !activityMetadata.changeType) {
-      activityMetadata.changeType = 'description_changed';
-      activityMetadata.oldDescription = existingEvent.description ?? '';
-      activityMetadata.newDescription = parse.data.description ?? '';
+    if (parse.data.description !== undefined && existingEvent.description !== parse.data.description) {
+      eventChanges.push({
+        field: 'description',
+        before: existingEvent.description ?? '',
+        after: parse.data.description ?? '',
+      });
     }
-    if (parse.data.location !== undefined && existingEvent.location !== parse.data.location && !activityMetadata.changeType) {
-      activityMetadata.changeType = 'location_changed';
-      activityMetadata.oldLocation = existingEvent.location ?? '';
-      activityMetadata.newLocation = parse.data.location ?? '';
+    if (parse.data.location !== undefined && existingEvent.location !== parse.data.location) {
+      eventChanges.push({
+        field: 'location',
+        before: existingEvent.location ?? '',
+        after: parse.data.location ?? '',
+      });
     }
-    if (parse.data.color !== undefined && existingEvent.color !== parse.data.color && !activityMetadata.changeType) {
-      activityMetadata.changeType = 'color_changed';
-      activityMetadata.oldColor = existingEvent.color ?? '';
-      activityMetadata.newColor = parse.data.color ?? '';
+    if (parse.data.color !== undefined && existingEvent.color !== parse.data.color) {
+      eventChanges.push({
+        field: 'color',
+        before: existingEvent.color ?? '',
+        after: parse.data.color ?? '',
+      });
     }
-    if (parse.data.assetId !== undefined && existingEvent.assetId !== parse.data.assetId && !activityMetadata.changeType) {
-      activityMetadata.changeType = 'asset_changed';
-      activityMetadata.oldAssetId = existingEvent.assetId;
-      activityMetadata.newAssetId = parse.data.assetId;
+    if (parse.data.assetId !== undefined && existingEvent.assetId !== parse.data.assetId) {
       const [oldAsset, newAsset] = await Promise.all([
         existingEvent.assetId ? AssetService.getAssetById(existingEvent.assetId, user.id) : null,
         parse.data.assetId ? AssetService.getAssetById(parse.data.assetId, user.id) : null,
       ]);
-      activityMetadata.oldAssetName = oldAsset?.name ?? '';
-      activityMetadata.newAssetName = newAsset?.name ?? '';
+      const oldAssetName = oldAsset?.name ?? '';
+      const newAssetName = newAsset?.name ?? '';
+      eventChanges.push({ field: 'asset', before: oldAssetName, after: newAssetName });
+      activityMetadata.oldAssetId = existingEvent.assetId;
+      activityMetadata.newAssetId = parse.data.assetId;
+      activityMetadata.oldAssetName = oldAssetName;
+      activityMetadata.newAssetName = newAssetName;
     }
 
-    await ActivityService.create(
-      {
-        assetId: event.assetId,
-        action: 'event_updated',
-        entityType: 'calendar_event',
-        entityId: event.id,
-        metadata: activityMetadata,
-      },
-      user.id,
-    );
+    if (eventChanges.length > 0) {
+      const firstChange = eventChanges[0];
+      const legacyTypeByField: Record<string, string> = {
+        name: 'renamed',
+        start: 'start_time_changed',
+        end: 'end_time_changed',
+        description: 'description_changed',
+        location: 'location_changed',
+        color: 'color_changed',
+        asset: 'asset_changed',
+      };
+
+      activityMetadata.changes = eventChanges;
+      activityMetadata.changeType = legacyTypeByField[firstChange.field] ?? 'updated';
+
+      if (firstChange.field === 'name') {
+        activityMetadata.oldName = firstChange.before;
+        activityMetadata.newName = firstChange.after;
+      } else if (firstChange.field === 'start') {
+        activityMetadata.oldStart = firstChange.before;
+        activityMetadata.newStart = firstChange.after;
+      } else if (firstChange.field === 'end') {
+        activityMetadata.oldEnd = firstChange.before;
+        activityMetadata.newEnd = firstChange.after;
+      } else if (firstChange.field === 'description') {
+        activityMetadata.oldDescription = firstChange.before;
+        activityMetadata.newDescription = firstChange.after;
+      } else if (firstChange.field === 'location') {
+        activityMetadata.oldLocation = firstChange.before;
+        activityMetadata.newLocation = firstChange.after;
+      } else if (firstChange.field === 'color') {
+        activityMetadata.oldColor = firstChange.before;
+        activityMetadata.newColor = firstChange.after;
+      }
+
+      await ActivityService.create(
+        {
+          assetId: event.assetId,
+          action: 'event_updated',
+          entityType: 'calendar_event',
+          entityId: event.id,
+          metadata: activityMetadata,
+        },
+        user.id,
+      );
+    }
 
     if (parse.data.reminders !== undefined) {
       const oldOverrides = (existingEvent.reminders as { overrides?: { minutes: number }[] } | null)?.overrides ?? [];

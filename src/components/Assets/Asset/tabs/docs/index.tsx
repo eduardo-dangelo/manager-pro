@@ -232,7 +232,13 @@ export function DocsTabContent({ asset, locale }: DocsTabContentProps) {
       type: 'folder',
       parentId: currentFolderId,
     };
-    updateDocsMetadata([newFolder, ...folders], files, { skipActivityLog: true });
+    updateDocsMetadata([newFolder, ...folders], files, {
+      activityAction: 'doc_folder_created',
+      activityMetadata: {
+        folderId: newFolder.id,
+        folderName: newFolder.name,
+      },
+    });
     setNewFolderId(newFolder.id);
   }, [currentFolderId, files, folders, subfolders, t, updateDocsMetadata]);
 
@@ -274,19 +280,61 @@ export function DocsTabContent({ asset, locale }: DocsTabContentProps) {
 
   const handleMove = useCallback(
     (itemId: string, itemType: 'file' | 'folder', targetFolderId: string | null) => {
+      const rootLabel = t('docs_move_root');
       if (itemType === 'file') {
+        const fileToMove = files.find(f => f.id === itemId);
+        if (!fileToMove || (fileToMove.folderId ?? null) === targetFolderId) {
+          return;
+        }
+        const fromFolderName = fileToMove.folderId
+          ? folders.find(f => f.id === fileToMove.folderId)?.name ?? rootLabel
+          : rootLabel;
+        const toFolderName = targetFolderId
+          ? folders.find(f => f.id === targetFolderId)?.name ?? rootLabel
+          : rootLabel;
         const newFiles = files.map(f =>
           f.id === itemId ? { ...f, folderId: targetFolderId } : f,
         );
-        updateDocsMetadata(folders, newFiles, { skipActivityLog: true });
+        updateDocsMetadata(folders, newFiles, {
+          activityAction: 'doc_moved',
+          activityMetadata: {
+            fileId: fileToMove.id,
+            fileName: fileToMove.name,
+            url: fileToMove.url,
+            fromFolderId: fileToMove.folderId ?? null,
+            fromFolderName,
+            toFolderId: targetFolderId,
+            toFolderName,
+          },
+        });
       } else {
+        const folderToMove = folders.find(f => f.id === itemId);
+        if (!folderToMove || folderToMove.parentId === targetFolderId) {
+          return;
+        }
+        const fromFolderName = folderToMove.parentId
+          ? folders.find(f => f.id === folderToMove.parentId)?.name ?? rootLabel
+          : rootLabel;
+        const toFolderName = targetFolderId
+          ? folders.find(f => f.id === targetFolderId)?.name ?? rootLabel
+          : rootLabel;
         const newFolders = folders.map(f =>
           f.id === itemId ? { ...f, parentId: targetFolderId } : f,
         );
-        updateDocsMetadata(newFolders, files, { skipActivityLog: true });
+        updateDocsMetadata(newFolders, files, {
+          activityAction: 'doc_folder_moved',
+          activityMetadata: {
+            folderId: folderToMove.id,
+            folderName: folderToMove.name,
+            fromFolderId: folderToMove.parentId ?? null,
+            fromFolderName,
+            toFolderId: targetFolderId,
+            toFolderName,
+          },
+        });
       }
     },
-    [files, folders, updateDocsMetadata],
+    [files, folders, t, updateDocsMetadata],
   );
 
   const isPdf = useCallback((item: FilePreviewItem) =>

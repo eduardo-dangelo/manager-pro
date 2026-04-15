@@ -62,18 +62,21 @@ export function CalendarEvent({ event, variant = 'inline', showEndTime = true, s
   }
 
   if (variant === 'compact' || variant === 'compacter') {
+    const isCompacter = variant === 'compacter';
     return (
       <Box
         sx={{
           display: 'flex',
           alignItems: 'center',
           gap: 1,
-          p: 1,
+          px: isCompacter ? 0.75 : 1,
+          py: isCompacter ? 0.375 : 1,
           borderRadius: 1,
           bgcolor: `${color}20`,
           borderLeft: '3px solid',
           borderLeftColor: color,
-          height: variant === 'compacter' ? 28 : undefined,
+          minHeight: isCompacter ? 24 : undefined,
+          lineHeight: 1.2,
         }}
       >
         {showStartTime && (
