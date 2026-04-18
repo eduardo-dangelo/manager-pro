@@ -650,7 +650,7 @@ export function AssetTabs({ asset, locale, onUpdateAsset }: AssetTabsProps) {
       case 'timeline':
         return <ActivityTab asset={asset} locale={locale} />;
       case 'finance':
-        return <FinanceTab asset={asset} />;
+        return <FinanceTab asset={asset} locale={locale} />;
       case 'docs':
         return (
           <DocsTab

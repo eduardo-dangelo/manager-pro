@@ -14,7 +14,7 @@ import {
   OpenInNew as OpenInNewIcon,
   PictureAsPdf as PdfIcon,
 } from '@mui/icons-material';
-import { Box, Fade, IconButton, ListItem, ListItemIcon, Tooltip, Typography } from '@mui/material';
+import { Box, Chip, Fade, IconButton, ListItem, ListItemIcon, Tooltip, Typography } from '@mui/material';
 import { useEffect, useRef, useState } from 'react';
 import { DropdownButton } from '@/components/common/DropdownButton';
 import { useHoverSound } from '@/hooks/useHoverSound';
@@ -153,6 +153,21 @@ export function DocsFileRow({
                     <Typography variant="body2" sx={{ minWidth: 0, mr: 1 }} noWrap onClick={handleEditClick}>
                       {file.name}
                     </Typography>
+                    {file.financeEntryId != null && (
+                      <Tooltip title={t('docs_finance_entry_tooltip')}>
+                        <Chip
+                          component="span"
+                          label={t('docs_finance_entry')}
+                          size="small"
+                          variant="outlined"
+                          sx={{
+                            'height': 22,
+                            'flexShrink': 0,
+                            '& .MuiChip-label': { px: 0.75, fontSize: '0.7rem' },
+                          }}
+                        />
+                      </Tooltip>
+                    )}
                     <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center', flexShrink: 0, minWidth: 28 }}>
                       <Fade in={showCheckIcon} mountOnEnter unmountOnExit>
                         <Box sx={{ position: 'absolute', display: 'flex', alignItems: 'center' }}>

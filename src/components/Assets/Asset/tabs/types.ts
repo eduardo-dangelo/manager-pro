@@ -9,6 +9,8 @@ export type FolderItem = {
 
 export type FileItem = FilePreviewItem & {
   folderId?: string | null;
+  /** Set when the file was registered from a finance entry attachment */
+  financeEntryId?: number;
 };
 
 export type DocsMetadata = {

@@ -64,6 +64,20 @@
       "when": 1775985210173,
       "tag": "0008_breezy_la_nuit",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1776500924171,
+      "tag": "0009_faithful_adam_destine",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1776504728124,
+      "tag": "0010_cultured_electro",
+      "breakpoints": true
     }
   ]
 }

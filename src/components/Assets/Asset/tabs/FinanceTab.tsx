@@ -1,8 +1,6 @@
 'use client';
 
-import { AttachMoney as MoneyIcon } from '@mui/icons-material';
-import { Box, Typography } from '@mui/material';
-import { useTranslations } from 'next-intl';
+import { FinancePageView } from '@/components/Finance/FinancePageView';
 
 type Asset = {
   id: number;
@@ -10,37 +8,21 @@ type Asset = {
   description: string;
   color: string;
   status: string;
+  type?: string | null;
 };
 
 type FinanceTabProps = {
   asset: Asset;
+  locale: string;
 };
 
-export function FinanceTab({ asset }: FinanceTabProps) {
-  const t = useTranslations('Assets');
-
+export function FinanceTab({ asset, locale }: FinanceTabProps) {
   return (
-    <Box sx={{ p: 3 }}>
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1,
-          mb: 3,
-        }}
-      >
-        <MoneyIcon sx={{ color: 'grey.600' }} />
-        <Typography variant="h6" sx={{ fontWeight: 600, color: 'grey.800' }}>
-          {t('finance_title')}
-        </Typography>
-      </Box>
-
-      <Box sx={{ textAlign: 'center', color: 'grey.500', py: 8 }}>
-        <MoneyIcon sx={{ fontSize: 64, color: 'grey.300', mb: 2 }} />
-        <Typography variant="body1">
-          Finance tracking - Coming soon
-        </Typography>
-      </Box>
-    </Box>
+    <FinancePageView
+      locale={locale}
+      assetId={asset.id}
+      assetName={asset.name ?? undefined}
+      assetType={asset.type ?? undefined}
+    />
   );
 }

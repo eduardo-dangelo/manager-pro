@@ -147,6 +147,29 @@ export const calendarEventsSchema = pgTable('calendar_events', {
     .notNull(),
 });
 
+export const financeEntriesSchema = pgTable('finance_entries', {
+  id: serial('id').primaryKey(),
+  assetId: integer('asset_id').references(() => assetsSchema.id).notNull(),
+  userId: text('user_id').references(() => usersSchema.id).notNull(),
+  name: text('name').notNull(),
+  kind: text('kind').notNull(),
+  flow: text('flow').notNull(),
+  amountCents: integer('amount_cents').notNull(),
+  category: text('category'),
+  color: text('color'),
+  manualAmounts: jsonb('manual_amounts'),
+  attachments: jsonb('attachments'),
+  effectiveDate: timestamp('effective_date', { mode: 'date' }),
+  recurringFrequency: text('recurring_frequency'),
+  recurringStart: timestamp('recurring_start', { mode: 'date' }),
+  recurringEnd: timestamp('recurring_end', { mode: 'date' }),
+  createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { mode: 'date' })
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+});
+
 export const notificationsSchema = pgTable('notifications', {
   id: serial('id').primaryKey(),
   userId: text('user_id').references(() => usersSchema.id).notNull(),
@@ -177,6 +200,7 @@ export const userRelations = relations(usersSchema, ({ many }) => ({
   sprints: many(sprintsSchema),
   workSpaces: many(workSpacesSchema),
   calendarEvents: many(calendarEventsSchema),
+  financeEntries: many(financeEntriesSchema),
   notifications: many(notificationsSchema),
   assetActivities: many(assetActivitiesSchema),
 }));
@@ -192,6 +216,7 @@ export const assetsRelations = relations(assetsSchema, ({ many, one }) => ({
   todos: many(todosSchema),
   sprints: many(sprintsSchema),
   calendarEvents: many(calendarEventsSchema),
+  financeEntries: many(financeEntriesSchema),
   assetActivities: many(assetActivitiesSchema),
   user: one(usersSchema, {
     fields: [assetsSchema.userId],
@@ -264,6 +289,17 @@ export const calendarEventsRelations = relations(calendarEventsSchema, ({ one })
   }),
   user: one(usersSchema, {
     fields: [calendarEventsSchema.userId],
+    references: [usersSchema.id],
+  }),
+}));
+
+export const financeEntriesRelations = relations(financeEntriesSchema, ({ one }) => ({
+  asset: one(assetsSchema, {
+    fields: [financeEntriesSchema.assetId],
+    references: [assetsSchema.id],
+  }),
+  user: one(usersSchema, {
+    fields: [financeEntriesSchema.userId],
     references: [usersSchema.id],
   }),
 }));

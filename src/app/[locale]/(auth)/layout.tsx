@@ -1,6 +1,7 @@
 import { ClerkProvider } from '@clerk/nextjs';
 import { currentUser } from '@clerk/nextjs/server';
 import {
+  AccountBalanceWallet as FinanceIcon,
   History as ActivityIcon,
   CalendarMonth,
   Dashboard as DashboardIcon,
@@ -87,6 +88,11 @@ export default async function AuthLayout(props: {
       icon: CalendarMonth,
       label: t('menu_calendar'),
       href: `/${locale}/calendar`,
+    },
+    {
+      icon: FinanceIcon,
+      label: t('menu_finance'),
+      href: `/${locale}/finance`,
     },
     {
       icon: ActivityIcon,

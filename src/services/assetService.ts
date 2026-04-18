@@ -1,5 +1,7 @@
 import { and, eq } from 'drizzle-orm';
+import { mergeFinanceAttachmentsIntoDocsMetadata } from '@/lib/mergeFinanceAttachmentsIntoDocsMetadata';
 import { db } from '@/libs/DB';
+import { logger } from '@/libs/Logger';
 import {
   assetsSchema,
   calendarEventsSchema,
@@ -143,6 +145,47 @@ export class AssetService {
     } catch (error) {
       console.error('Error fetching asset with relations:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Registers finance entry PDFs in `metadata.docs.files` (Docs tab list), linked via `financeEntryId`.
+   * Does not create activity rows (upload flow already logged `doc_uploaded`).
+   */
+  static async syncFinanceAttachmentsToAssetDocs(
+    assetId: number,
+    userId: string,
+    financeEntryId: number,
+    attachments: Array<{ id: string; name: string; url: string }> | null | undefined,
+  ) {
+    if (!attachments?.length) {
+      return;
+    }
+    try {
+      const asset = await this.getAssetById(assetId, userId);
+      if (!asset) {
+        logger.warn('syncFinanceAttachmentsToAssetDocs: asset not found', { assetId });
+        return;
+      }
+      const existingMeta = asset.metadata && typeof asset.metadata === 'object'
+        ? { ...(asset.metadata as Record<string, unknown>) }
+        : {};
+      const mergedDocs = mergeFinanceAttachmentsIntoDocsMetadata(
+        asset.metadata,
+        financeEntryId,
+        attachments,
+      );
+      await this.updateAsset(
+        assetId,
+        { metadata: { ...existingMeta, docs: mergedDocs } },
+        userId,
+      );
+    } catch (error) {
+      logger.error('syncFinanceAttachmentsToAssetDocs failed', {
+        assetId,
+        financeEntryId,
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
