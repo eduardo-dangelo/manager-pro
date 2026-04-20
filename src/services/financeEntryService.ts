@@ -158,6 +158,29 @@ export class FinanceEntryService {
     return updated ?? null;
   }
 
+  static async delete(entryId: number, userId: string) {
+    const existing = await this.getById(entryId, userId);
+    if (!existing) {
+      return null;
+    }
+
+    if (existing.attachments?.length) {
+      await AssetService.syncFinanceAttachmentsToAssetDocs(
+        existing.assetId,
+        userId,
+        entryId,
+        [],
+      );
+    }
+
+    const [deleted] = await db
+      .delete(financeEntriesSchema)
+      .where(and(eq(financeEntriesSchema.id, entryId), eq(financeEntriesSchema.userId, userId)))
+      .returning();
+
+    return deleted ?? null;
+  }
+
   private static yearFilter(year: number) {
     const yearStart = new Date(year, 0, 1);
     const yearEnd = new Date(year, 11, 31, 23, 59, 59, 999);

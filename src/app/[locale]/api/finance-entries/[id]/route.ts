@@ -82,3 +82,36 @@ export const PATCH = async (
     );
   }
 };
+
+export const DELETE = async (
+  _request: Request,
+  props: { params: Promise<{ id: string }> },
+) => {
+  try {
+    const user = await currentUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { id } = await props.params;
+    const entryId = Number.parseInt(id, 10);
+    if (Number.isNaN(entryId) || entryId < 1) {
+      return NextResponse.json({ error: 'Invalid entry id' }, { status: 400 });
+    }
+
+    const entry = await FinanceEntryService.delete(entryId, user.id);
+    if (!entry) {
+      return NextResponse.json({ error: 'Finance entry not found' }, { status: 404 });
+    }
+
+    logger.info('Finance entry deleted', { financeEntryId: entry.id });
+    return NextResponse.json({ entry });
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    logger.error(`Error deleting finance entry: ${msg}`);
+    return NextResponse.json(
+      { error: 'Failed to delete finance entry' },
+      { status: 500 },
+    );
+  }
+};

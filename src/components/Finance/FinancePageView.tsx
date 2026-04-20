@@ -1,6 +1,7 @@
 'use client';
 
-import type { BarSeries } from '@mui/x-charts';
+import type { BarSeries, LineSeries } from '@mui/x-charts';
+import type { MarkElementProps } from '@mui/x-charts/LineChart';
 import type { Resolver } from 'react-hook-form';
 import type { FilePreviewItem } from '@/components/Assets/Asset/tabs/FilePreviewPopover';
 import type { CategoryOption } from '@/components/Finance/financeEntryCategories';
@@ -39,17 +40,20 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import { alpha } from '@mui/material/styles';
-import { BarChart, PieChart } from '@mui/x-charts';
+import { alpha, useTheme } from '@mui/material/styles';
+import { BarChart, LineChart, PieChart } from '@mui/x-charts';
+import { useInteractionItemProps } from '@mui/x-charts/internals';
 import { useTranslations } from 'next-intl';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { createContext, use, useCallback, useMemo, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import z from 'zod';
 import { DocsPreviewDialog } from '@/components/Assets/Asset/tabs/docs/DocsPreviewDialog';
 import { EVENT_COLORS } from '@/components/Calendar/constants';
 import { YearPickerPopover } from '@/components/Calendar/YearPickerPopover';
 import { Card } from '@/components/common/Card';
+import { ConfirmPopover } from '@/components/common/ConfirmPopover';
 import { Popover } from '@/components/common/Popover';
+import { EntryDetailsPopover } from '@/components/Finance/EntryDetailsPopover';
 import {
   aggregateMonthlyTotals,
   buildEntryMonthlySeries,
@@ -60,7 +64,7 @@ import {
 import { getDefaultFinanceColor } from '@/components/Finance/financeDefaultColors';
 import { categoryLabel, getCategoryOptions } from '@/components/Finance/financeEntryCategories';
 import { useGetAssets as useGetAssetsList } from '@/queries/hooks/assets/useGetAssets';
-import { useCreateFinanceEntry, useFinanceEntries, useUpdateFinanceEntry } from '@/queries/hooks/finance-entries';
+import { useCreateFinanceEntry, useDeleteFinanceEntry, useFinanceEntries, useUpdateFinanceEntry } from '@/queries/hooks/finance-entries';
 
 type FinancePageViewProps = {
   locale: string;
@@ -88,7 +92,73 @@ function formatDateString(value: string | null) {
 }
 
 const ATTACHMENT_NAME_MAX_LEN = 22;
-const PROJECTED_MONTH_ALPHA = 0.38;
+/** Net cumulative line series id — must match custom mark and area fill styling. */
+const LINE_NET_TOTAL_ID = 'finance-net-total';
+/** Area fill opacity for entry lines (stroke/legend stay full `s.color`). */
+const LINE_ENTRY_AREA_FILL_ALPHA = 0.22;
+
+/** Running sum of monthly cents (integer cents at each month). */
+function cumulativeCentsFromMonthlyCents(monthlyCents: number[]): number[] {
+  let sum = 0;
+  return monthlyCents.map((c) => {
+    sum += c;
+    return sum;
+  });
+}
+
+const FinanceLineNetLabelsContext = createContext<readonly number[]>([]);
+
+/** Custom line marks: default circle + cumulative net labels on the net total series. */
+function FinanceLineMark(props: MarkElementProps) {
+  const th = useTheme();
+  const cumulativeNetCents = use(FinanceLineNetLabelsContext);
+  const interactionProps = useInteractionItemProps({
+    type: 'line',
+    seriesId: props.id,
+    dataIndex: props.dataIndex,
+  });
+  const { id, x, y, color, dataIndex, hidden, isFaded, onClick } = props;
+  const cx = Number(x ?? 0);
+  const cy = Number(y ?? 0);
+  const strokeColor = color ?? th.palette.grey[600];
+  const bg = (th.vars ?? th).palette.background.paper;
+  const netAt = cumulativeNetCents[dataIndex];
+  const showLabel = id === LINE_NET_TOTAL_ID && netAt !== undefined;
+  const labelText = showLabel ? formatCurrency(netAt) : null;
+  const fadedOpacity = isFaded ? 0.3 : 1;
+
+  return (
+    <g>
+      <circle
+        cx={cx}
+        cy={cy}
+        r={5}
+        fill={bg}
+        stroke={strokeColor}
+        strokeWidth={2}
+        opacity={hidden ? 0 : fadedOpacity}
+        cursor={onClick ? 'pointer' : 'unset'}
+        pointerEvents={hidden ? 'none' : undefined}
+        data-highlighted={props.isHighlighted || undefined}
+        data-faded={isFaded || undefined}
+        onClick={onClick}
+        {...interactionProps}
+      />
+      {labelText != null && !hidden && (
+        <text
+          x={cx}
+          y={cy - 14}
+          textAnchor="middle"
+          fontSize={11}
+          fill={th.palette.text.secondary}
+          pointerEvents="none"
+        >
+          {labelText}
+        </text>
+      )}
+    </g>
+  );
+}
 
 function truncateAttachmentName(name: string, maxLen = ATTACHMENT_NAME_MAX_LEN): string {
   if (name.length <= maxLen) {
@@ -130,6 +200,17 @@ function dateInputToIso(dateStr: string | undefined | null) {
     return null;
   }
   return new Date(`${dateStr}T12:00:00`).toISOString();
+}
+
+function isoToDateInput(value: string | null | undefined) {
+  if (!value) {
+    return '';
+  }
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) {
+    return '';
+  }
+  return d.toISOString().slice(0, 10);
 }
 
 function sumManualForYear(entry: FinanceEntryData, year: number): number {
@@ -214,6 +295,7 @@ type FinanceFormValues = {
 
 export function FinancePageView({ locale, assetId, assetName: _assetName, assetType: assetTypeProp }: FinancePageViewProps) {
   const t = useTranslations('Assets');
+  const theme = useTheme();
   const [yearDate, setYearDate] = useState(() => new Date(new Date().getFullYear(), 0, 1));
   const [pickerAnchor, setPickerAnchor] = useState<HTMLElement | null>(null);
   const [addAnchor, setAddAnchor] = useState<HTMLElement | null>(null);
@@ -226,11 +308,18 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
   const [includeInitial, setIncludeInitial] = useState(false);
   const [manualMonthsPounds, setManualMonthsPounds] = useState<number[]>(() => Array.from({ length: 12 }, () => 0));
   const [chartStacked, setChartStacked] = useState(false);
+  const [showExpense, setShowExpense] = useState(true);
+  const [showIncome, setShowIncome] = useState(true);
   const [previewItem, setPreviewItem] = useState<FilePreviewItem | null>(null);
   const [monthEditEntry, setMonthEditEntry] = useState<FinanceEntryData | null>(null);
   const [monthEditValues, setMonthEditValues] = useState<number[]>(Array.from({ length: 12 }, () => 0));
   const [rowColorEntry, setRowColorEntry] = useState<FinanceEntryData | null>(null);
   const [rowColorAnchor, setRowColorAnchor] = useState<HTMLElement | null>(null);
+  const [entryDetailsEntry, setEntryDetailsEntry] = useState<FinanceEntryData | null>(null);
+  const [entryDetailsAnchor, setEntryDetailsAnchor] = useState<HTMLElement | null>(null);
+  const [entryDetailsAnchorPosition, setEntryDetailsAnchorPosition] = useState<{ top: number; left: number } | null>(null);
+  const [deleteConfirmAnchor, setDeleteConfirmAnchor] = useState<HTMLElement | null>(null);
+  const [editingEntry, setEditingEntry] = useState<FinanceEntryData | null>(null);
 
   const selectedYear = yearDate.getFullYear();
 
@@ -241,6 +330,7 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
   });
   const { data: assets = [] } = useGetAssetsList(locale);
   const createFinanceEntry = useCreateFinanceEntry(locale);
+  const deleteFinanceEntry = useDeleteFinanceEntry(locale);
   const updateFinanceEntry = useUpdateFinanceEntry(locale);
 
   const resolvedAssetIdForScope = assetId ?? globalPickedAssetId;
@@ -266,20 +356,67 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
     [entrySeries],
   );
 
-  const yearlyIncome = monthlyTotals.income.reduce((sum, value) => sum + value, 0);
-  const yearlyExpense = monthlyTotals.expense.reduce((sum, value) => sum + value, 0);
-  const netYearly = yearlyIncome - yearlyExpense;
+  const visibleEntriesForYear = useMemo(
+    () => entriesForYear.filter(entry => (entry.flow === 'income' ? showIncome : showExpense)),
+    [entriesForYear, showIncome, showExpense],
+  );
+  const visibleIncomeSeries = useMemo(
+    () => (showIncome ? incomeSeries : []),
+    [incomeSeries, showIncome],
+  );
+  const visibleExpenseSeries = useMemo(
+    () => (showExpense ? expenseSeries : []),
+    [expenseSeries, showExpense],
+  );
+  const visibleEntrySeries = useMemo(
+    () => [...visibleIncomeSeries, ...visibleExpenseSeries],
+    [visibleIncomeSeries, visibleExpenseSeries],
+  );
+  const visibleMonthlyTotals = useMemo(
+    () => ({
+      income: showIncome ? monthlyTotals.income : Array.from({ length: 12 }, () => 0),
+      expense: showExpense ? monthlyTotals.expense : Array.from({ length: 12 }, () => 0),
+    }),
+    [showIncome, showExpense, monthlyTotals.income, monthlyTotals.expense],
+  );
 
   const futureMonthFlags = useMemo(
     () => buildFutureMonthFlags(selectedYear, new Date()),
     [selectedYear],
   );
-  const yearlyIncomeYtd = sumMonthlyCentsWithFutureMask(monthlyTotals.income, futureMonthFlags, 'realized');
-  const yearlyExpenseYtd = sumMonthlyCentsWithFutureMask(monthlyTotals.expense, futureMonthFlags, 'realized');
+  const yearlyIncomeYtd = sumMonthlyCentsWithFutureMask(visibleMonthlyTotals.income, futureMonthFlags, 'realized');
+  const yearlyExpenseYtd = sumMonthlyCentsWithFutureMask(visibleMonthlyTotals.expense, futureMonthFlags, 'realized');
   const netYtd = yearlyIncomeYtd - yearlyExpenseYtd;
+  const realizedMonthCount = useMemo(
+    () => futureMonthFlags.reduce((count, isFuture) => (isFuture ? count : count + 1), 0),
+    [futureMonthFlags],
+  );
+  const avgIncomeRealized = realizedMonthCount > 0 ? Math.round(yearlyIncomeYtd / realizedMonthCount) : 0;
+  const avgExpenseRealized = realizedMonthCount > 0 ? Math.round(yearlyExpenseYtd / realizedMonthCount) : 0;
+  const avgNetRealized = realizedMonthCount > 0 ? Math.round(netYtd / realizedMonthCount) : 0;
+  const projectedMonthlyTotals = useMemo(() => {
+    const income = Array.from({ length: 12 }, (_, monthIndex) => {
+      if (!futureMonthFlags[monthIndex]) {
+        return visibleMonthlyTotals.income[monthIndex] ?? 0;
+      }
+      const hasExplicit = visibleEntrySeries.some(series => (series.monthlyCents[monthIndex] ?? 0) !== 0);
+      return hasExplicit ? (visibleMonthlyTotals.income[monthIndex] ?? 0) : avgIncomeRealized;
+    });
+    const expense = Array.from({ length: 12 }, (_, monthIndex) => {
+      if (!futureMonthFlags[monthIndex]) {
+        return visibleMonthlyTotals.expense[monthIndex] ?? 0;
+      }
+      const hasExplicit = visibleEntrySeries.some(series => (series.monthlyCents[monthIndex] ?? 0) !== 0);
+      return hasExplicit ? (visibleMonthlyTotals.expense[monthIndex] ?? 0) : avgExpenseRealized;
+    });
+    return { income, expense };
+  }, [futureMonthFlags, visibleMonthlyTotals.income, visibleMonthlyTotals.expense, visibleEntrySeries, avgIncomeRealized, avgExpenseRealized]);
+  const projectedIncome = projectedMonthlyTotals.income.reduce((sum, value) => sum + value, 0);
+  const projectedExpense = projectedMonthlyTotals.expense.reduce((sum, value) => sum + value, 0);
+  const projectedNet = projectedIncome - projectedExpense;
 
   const pieSeriesData = useMemo(
-    () => entrySeries
+    () => visibleEntrySeries
       .map(s => ({
         id: String(s.entryId),
         label: s.name,
@@ -287,7 +424,7 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
         color: s.color,
       }))
       .filter(d => d.value > 0),
-    [entrySeries],
+    [visibleEntrySeries],
   );
 
   const resolvedAssetType = useMemo(() => {
@@ -420,10 +557,92 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
       payload.recurringEnd = values.recurringEnd ? dateInputToIso(values.recurringEnd) : null;
     }
 
-    await createFinanceEntry.mutateAsync(payload);
+    if (editingEntry) {
+      const updatePayload: Parameters<typeof updateFinanceEntry.mutateAsync>[0] = {
+        id: editingEntry.id,
+        name: values.name.trim(),
+        kind: values.kind as FinanceEntryKind,
+        flow: values.flow as FinanceEntryFlow,
+        amountCents,
+        category: values.category ?? null,
+        color: colorHex,
+        attachments: attachmentsDraft.length > 0 ? attachmentsDraft : null,
+        manualAmounts: values.kind === 'manual_recurring' ? manualAmounts : null,
+      };
+      if (values.kind === 'one_time') {
+        updatePayload.effectiveDate = dateInputToIso(values.effectiveDate);
+        updatePayload.recurringFrequency = null;
+        updatePayload.recurringStart = null;
+        updatePayload.recurringEnd = null;
+      } else {
+        updatePayload.effectiveDate = null;
+        updatePayload.recurringFrequency = 'monthly';
+        updatePayload.recurringStart = dateInputToIso(values.recurringStart);
+        updatePayload.recurringEnd = values.recurringEnd ? dateInputToIso(values.recurringEnd) : null;
+      }
+      await updateFinanceEntry.mutateAsync(updatePayload);
+    } else {
+      await createFinanceEntry.mutateAsync(payload);
+    }
     setAddAnchor(null);
     setAddStep('category');
+    setEditingEntry(null);
   });
+
+  const openEntryDetails = useCallback((entry: FinanceEntryData, anchor: HTMLElement, position: { top: number; left: number }) => {
+    setEntryDetailsEntry(entry);
+    setEntryDetailsAnchor(anchor);
+    setEntryDetailsAnchorPosition(position);
+  }, []);
+
+  const closeEntryDetails = useCallback(() => {
+    setEntryDetailsEntry(null);
+    setEntryDetailsAnchor(null);
+    setEntryDetailsAnchorPosition(null);
+    setDeleteConfirmAnchor(null);
+  }, []);
+
+  const openEditEntryForm = useCallback(() => {
+    if (!entryDetailsEntry || !entryDetailsAnchor) {
+      return;
+    }
+    setEditingEntry(entryDetailsEntry);
+    setFinanceColor(entryDetailsEntry.color ?? getDefaultFinanceColor(entryDetailsEntry.flow, 0));
+    setAttachmentsDraft(entryDetailsEntry.attachments ?? []);
+    setIncludeInitial(false);
+    const nextManual = entryDetailsEntry.kind === 'manual_recurring'
+      ? Array.from({ length: 12 }, (_, m) => {
+          const key = `${selectedYear}-${String(m + 1).padStart(2, '0')}`;
+          return (entryDetailsEntry.manualAmounts?.[key] ?? 0) / 100;
+        })
+      : Array.from({ length: 12 }, () => 0);
+    setManualMonthsPounds(nextManual);
+    reset({
+      assetId: entryDetailsEntry.assetId,
+      category: entryDetailsEntry.category ?? undefined,
+      name: entryDetailsEntry.name,
+      kind: entryDetailsEntry.kind,
+      flow: entryDetailsEntry.flow,
+      amount: entryDetailsEntry.amountCents / 100,
+      effectiveDate: isoToDateInput(entryDetailsEntry.effectiveDate) || new Date().toISOString().slice(0, 10),
+      recurringStart: isoToDateInput(entryDetailsEntry.recurringStart) || new Date().toISOString().slice(0, 10),
+      recurringEnd: isoToDateInput(entryDetailsEntry.recurringEnd),
+      initialAmount: 0,
+      initialDate: new Date().toISOString().slice(0, 10),
+    });
+    setGlobalPickedAssetId(entryDetailsEntry.assetId);
+    setAddAnchor(entryDetailsAnchor);
+    setAddStep('form');
+    closeEntryDetails();
+  }, [entryDetailsEntry, entryDetailsAnchor, selectedYear, reset, closeEntryDetails]);
+
+  const confirmDeleteEntry = useCallback(async () => {
+    if (!entryDetailsEntry) {
+      return;
+    }
+    await deleteFinanceEntry.mutateAsync({ id: entryDetailsEntry.id });
+    closeEntryDetails();
+  }, [entryDetailsEntry, deleteFinanceEntry, closeEntryDetails]);
 
   const handleFilePick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -488,7 +707,6 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
     stacked: boolean,
     stackId: string,
     labelSuffix: '' | 'income' | 'expense',
-    futureFlags: boolean[],
   ): BarSeries[] => {
     const suffix = labelSuffix === '' ? '' : ` (${labelSuffix})`;
     return seriesList.map(s => ({
@@ -497,42 +715,149 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
       data: s.monthlyCents.map(c => c / 100),
       label: `${s.name}${suffix}`,
       color: s.color,
-      colorGetter: ({ dataIndex }: { dataIndex: number }) => {
-        const base = s.color;
-        if (futureFlags[dataIndex]) {
-          return alpha(base, PROJECTED_MONTH_ALPHA);
-        }
-        return base;
-      },
       stack: stacked ? stackId : undefined,
     }));
   };
 
   const combinedBarSeries = useMemo((): BarSeries[] => {
-    const bothFlows = incomeSeries.length > 0 && expenseSeries.length > 0;
+    const bothFlows = visibleIncomeSeries.length > 0 && visibleExpenseSeries.length > 0;
     return [
       ...toBarSeries(
-        incomeSeries,
+        visibleIncomeSeries,
         chartStacked,
         'incomeStack',
         bothFlows ? 'income' : '',
-        futureMonthFlags,
       ),
       ...toBarSeries(
-        expenseSeries,
+        visibleExpenseSeries,
         chartStacked,
         'expenseStack',
         bothFlows ? 'expense' : '',
-        futureMonthFlags,
       ),
     ];
-  }, [incomeSeries, expenseSeries, chartStacked, futureMonthFlags]);
+  }, [visibleIncomeSeries, visibleExpenseSeries, chartStacked]);
+
+  const netMonthlyCents = useMemo(
+    () => visibleMonthlyTotals.expense.map((e, i) => e - (visibleMonthlyTotals.income[i] ?? 0)),
+    [visibleMonthlyTotals.expense, visibleMonthlyTotals.income],
+  );
+  const cumulativeNetCents = useMemo(
+    () => cumulativeCentsFromMonthlyCents(netMonthlyCents),
+    [netMonthlyCents],
+  );
+  /** When cumulative (expense − income) is negative (profit), plot positive magnitude. */
+  const chartCumulativeNetPounds = useMemo(
+    () => cumulativeNetCents.map(c => (c < 0 ? -c : c) / 100),
+    [cumulativeNetCents],
+  );
+  const cumulativeNetCentsForChartMarks = useMemo(
+    () => cumulativeNetCents.map(c => (c < 0 ? -c : c)),
+    [cumulativeNetCents],
+  );
+  const netCumulativeLineLabel = useMemo(() => {
+    const yearEndCents = cumulativeNetCents[11] ?? 0;
+    return yearEndCents < 0 ? t('finance_line_cumulative_profit') : t('finance_line_cumulative_outflow');
+  }, [cumulativeNetCents, t]);
+
+  const combinedLineSeries = useMemo((): LineSeries[] => {
+    if (entriesForYear.length === 0) {
+      return [];
+    }
+    const yearEndCents = cumulativeNetCents[11] ?? 0;
+    const dualFlow = showIncome && showExpense;
+    const invertIncome = dualFlow && yearEndCents > 0;
+    const invertExpense = dualFlow && yearEndCents < 0;
+    const incomeStackId = chartStacked ? 'incomeFlow' : undefined;
+    const expenseStackId = chartStacked ? 'expenseFlow' : undefined;
+    const incomeLines: LineSeries[] = showIncome
+      ? visibleIncomeSeries.map(s => ({
+          type: 'line',
+          id: `linc-${s.entryId}`,
+          label: s.name,
+          data: s.monthlyCents.map(c => (invertIncome ? -c : c) / 100),
+          area: true,
+          stack: incomeStackId,
+          curve: 'catmullRom',
+          showMark: true,
+          color: s.color,
+        }))
+      : [];
+    const expenseLines: LineSeries[] = showExpense
+      ? visibleExpenseSeries.map(s => ({
+          type: 'line',
+          id: `lexp-${s.entryId}`,
+          label: s.name,
+          data: s.monthlyCents.map(c => (invertExpense ? -c : c) / 100),
+          area: true,
+          stack: expenseStackId,
+          curve: 'catmullRom',
+          showMark: true,
+          color: s.color,
+        }))
+      : [];
+    const totalLine: LineSeries = {
+      type: 'line',
+      id: LINE_NET_TOTAL_ID,
+      label: netCumulativeLineLabel,
+      data: chartCumulativeNetPounds,
+      area: true,
+      curve: 'monotoneX',
+      stack: undefined,
+      showMark: true,
+      color: theme.palette.grey[600],
+    };
+    return [...incomeLines, ...expenseLines, totalLine];
+  }, [
+    entriesForYear.length,
+    visibleIncomeSeries,
+    visibleExpenseSeries,
+    chartStacked,
+    showExpense,
+    showIncome,
+    cumulativeNetCents,
+    chartCumulativeNetPounds,
+    netCumulativeLineLabel,
+    theme.palette.grey,
+  ]);
+
+  const lineChartEntryAreaFillSx = useMemo(() => {
+    const next: Record<string, { fill: string }> = {};
+    const addFill = (seriesId: string, color: string) => {
+      next[`& path[data-series="${seriesId}"][fill]:not([fill="none"])`] = {
+        fill: `${alpha(color, LINE_ENTRY_AREA_FILL_ALPHA)} !important`,
+      };
+    };
+    if (showIncome) {
+      for (const s of visibleIncomeSeries) {
+        addFill(`linc-${s.entryId}`, s.color);
+      }
+    }
+    if (showExpense) {
+      for (const s of visibleExpenseSeries) {
+        addFill(`lexp-${s.entryId}`, s.color);
+      }
+    }
+    return next;
+  }, [showIncome, showExpense, visibleIncomeSeries, visibleExpenseSeries]);
 
   const hasEntries = entriesForYear.length > 0;
-  const hasAnyBarSeries = incomeSeries.length > 0 || expenseSeries.length > 0;
+  const hasAnyBarSeries = visibleIncomeSeries.length > 0 || visibleExpenseSeries.length > 0;
+  const flowsVisible = showExpense || showIncome;
+  const hasLineChartEntries = visibleIncomeSeries.length > 0 || visibleExpenseSeries.length > 0;
+  const hasVisibleTableRows = visibleEntriesForYear.length > 0;
+  const flowToggleValue = useMemo(() => {
+    const next: string[] = [];
+    if (showExpense) {
+      next.push('expense');
+    }
+    if (showIncome) {
+      next.push('income');
+    }
+    return next;
+  }, [showExpense, showIncome]);
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ px: 0, pb: 3, pt: 0 }}>
       <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1.5} sx={{ mb: 2 }}>
         <Stack direction="row" alignItems="center" spacing={0.5}>
           <IconButton onClick={() => setYearDate(new Date(selectedYear - 1, 0, 1))} aria-label="Previous year">
@@ -545,9 +870,43 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
             <ChevronRightIcon />
           </IconButton>
         </Stack>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={openAddFromEvent}>
-          Add entry
-        </Button>
+        <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap" justifyContent="flex-end">
+          {hasEntries && (
+            <>
+              <Typography variant="caption" color="text.secondary">{t('finance_chart_split_stack')}</Typography>
+              <ToggleButtonGroup
+                size="small"
+                exclusive
+                value={chartStacked ? 'stack' : 'split'}
+                onChange={(_, v) => {
+                  if (v) {
+                    setChartStacked(v === 'stack');
+                  }
+                }}
+              >
+                <ToggleButton value="split">Split</ToggleButton>
+                <ToggleButton value="stack">Stack</ToggleButton>
+              </ToggleButtonGroup>
+              <ToggleButtonGroup
+                size="small"
+                value={flowToggleValue}
+                onChange={(_, values: string[]) => {
+                  if (values.length === 0) {
+                    return;
+                  }
+                  setShowExpense(values.includes('expense'));
+                  setShowIncome(values.includes('income'));
+                }}
+              >
+                <ToggleButton value="expense">{t('finance_line_show_expenses')}</ToggleButton>
+                <ToggleButton value="income">{t('finance_line_show_income')}</ToggleButton>
+              </ToggleButtonGroup>
+            </>
+          )}
+          <Button variant="contained" startIcon={<AddIcon />} onClick={openAddFromEvent}>
+            Add entry
+          </Button>
+        </Stack>
       </Stack>
 
       {!hasEntries
@@ -565,58 +924,45 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
           )
         : (
             <Stack spacing={2.5}>
-              <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-                <Card sx={{ p: 2, flex: 1 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>Income</Typography>
-                  <Typography variant="caption" color="text.secondary">{t('finance_kpi_ytd')}</Typography>
-                  <Typography variant="h6" sx={{ color: 'success.main' }}>{formatCurrency(yearlyIncomeYtd)}</Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>{t('finance_kpi_full_year')}</Typography>
-                  <Typography variant="body2" sx={{ color: 'success.main' }}>{formatCurrency(yearlyIncome)}</Typography>
-                </Card>
-                <Card sx={{ p: 2, flex: 1 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>Expense</Typography>
-                  <Typography variant="caption" color="text.secondary">{t('finance_kpi_ytd')}</Typography>
-                  <Typography variant="h6" sx={{ color: 'error.main' }}>{formatCurrency(yearlyExpenseYtd)}</Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>{t('finance_kpi_full_year')}</Typography>
-                  <Typography variant="body2" sx={{ color: 'error.main' }}>{formatCurrency(yearlyExpense)}</Typography>
-                </Card>
-                <Card sx={{ p: 2, flex: 1 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>Net</Typography>
-                  <Typography variant="caption" color="text.secondary">{t('finance_kpi_ytd')}</Typography>
-                  <Typography variant="h6" sx={{ color: netYtd >= 0 ? 'success.main' : 'error.main' }}>
-                    {formatCurrency(netYtd)}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>{t('finance_kpi_full_year')}</Typography>
-                  <Typography variant="body2" sx={{ color: netYearly >= 0 ? 'success.main' : 'error.main' }}>
-                    {formatCurrency(netYearly)}
-                  </Typography>
-                </Card>
-              </Stack>
+              <Card sx={{ p: 2 }}>
+                <Typography variant="subtitle1" sx={{ mb: 1 }}>{t('finance_line_over_time')}</Typography>
+                {!hasLineChartEntries
+                  ? (
+                      <Typography color="text.secondary">{t('finance_line_empty')}</Typography>
+                    )
+                  : !flowsVisible
+                      ? (
+                          <Typography color="text.secondary">{t('finance_line_both_flows_hidden')}</Typography>
+                        )
+                      : (
+                          <FinanceLineNetLabelsContext value={cumulativeNetCentsForChartMarks}>
+                            <LineChart
+                              height={300}
+                              xAxis={[{ data: MONTH_LABELS, scaleType: 'band' }]}
+                              series={combinedLineSeries}
+                              grid={{ horizontal: true }}
+                              margin={{ left: 52, right: 12, top: 32, bottom: 48 }}
+                              slots={{ mark: FinanceLineMark }}
+                              slotProps={{ legend: { direction: 'horizontal', position: { vertical: 'bottom', horizontal: 'center' } } }}
+                              sx={th => ({
+                                ...lineChartEntryAreaFillSx,
+                                [`& path[data-series="${LINE_NET_TOTAL_ID}"][fill]:not([fill="none"])`]: {
+                                  fill: `${alpha(th.palette.grey[600], 0.1)} !important`,
+                                },
+                              })}
+                            />
+                          </FinanceLineNetLabelsContext>
+                        )}
+              </Card>
 
               <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="stretch">
                 <Card sx={{ p: 2, flex: 1, minWidth: 0 }}>
-                  <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1} sx={{ mb: 1 }}>
-                    <Typography variant="subtitle1">Monthly flow by entry</Typography>
-                    <Stack direction="row" flexWrap="wrap" gap={1} alignItems="center">
-                      <Typography variant="caption" color="text.secondary">{t('finance_chart_split_stack')}</Typography>
-                      <ToggleButtonGroup
-                        size="small"
-                        exclusive
-                        value={chartStacked ? 'stack' : 'split'}
-                        onChange={(_, v) => {
-                          if (v) {
-                            setChartStacked(v === 'stack');
-                          }
-                        }}
-                      >
-                        <ToggleButton value="split">Split</ToggleButton>
-                        <ToggleButton value="stack">Stack</ToggleButton>
-                      </ToggleButtonGroup>
-                    </Stack>
-                  </Stack>
+                  <Typography variant="subtitle1" sx={{ mb: 1 }}>Monthly flow by entry</Typography>
                   {!hasAnyBarSeries
                     ? (
-                        <Typography color="text.secondary">No income or expense entries for this year.</Typography>
+                        <Typography color="text.secondary">
+                          {flowsVisible ? 'No income or expense entries for this year.' : t('finance_line_both_flows_hidden')}
+                        </Typography>
                       )
                     : (
                         <BarChart
@@ -644,116 +990,187 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
                   <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, alignSelf: 'center' }}>
                     Year split
                   </Typography>
-                  {pieSeriesData.length === 0
+                  {!flowsVisible
                     ? (
                         <Typography color="text.secondary" variant="caption" sx={{ textAlign: 'center', px: 1 }}>
-                          No entry totals for this year.
+                          {t('finance_line_both_flows_hidden')}
                         </Typography>
                       )
-                    : (
-                        <PieChart
-                          width={280}
-                          height={240}
-                          margin={{ top: 4, right: 4, bottom: 4, left: 4 }}
-                          series={[{ data: pieSeriesData }]}
-                          slotProps={{
-                            legend: {
-                              direction: 'horizontal',
-                              position: { vertical: 'bottom', horizontal: 'center' },
-                            },
-                          }}
-                        />
-                      )}
+                    : pieSeriesData.length === 0
+                      ? (
+                          <Typography color="text.secondary" variant="caption" sx={{ textAlign: 'center', px: 1 }}>
+                            No entry totals for this year.
+                          </Typography>
+                        )
+                      : (
+                          <PieChart
+                            width={280}
+                            height={240}
+                            margin={{ top: 4, right: 4, bottom: 4, left: 4 }}
+                            series={[{ data: pieSeriesData }]}
+                            slotProps={{
+                              legend: {
+                                direction: 'horizontal',
+                                position: { vertical: 'bottom', horizontal: 'center' },
+                              },
+                            }}
+                          />
+                        )}
                 </Card>
               </Stack>
 
+              {!flowsVisible
+                ? (
+                    <Card sx={{ p: 2 }}>
+                      <Typography color="text.secondary">{t('finance_line_both_flows_hidden')}</Typography>
+                    </Card>
+                  )
+                : (
+                    <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+                      <Card sx={{ p: 2, flex: 1 }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>{t('finance_card_totals')}</Typography>
+                        <Typography variant="caption" color="text.secondary">{t('finance_metric_income')}</Typography>
+                        <Typography variant="h6" sx={{ color: 'success.main' }}>{formatCurrency(yearlyIncomeYtd)}</Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>{t('finance_metric_expense')}</Typography>
+                        <Typography variant="body2" sx={{ color: 'error.main' }}>{formatCurrency(yearlyExpenseYtd)}</Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>{t('finance_metric_net')}</Typography>
+                        <Typography variant="body2" sx={{ color: netYtd >= 0 ? 'success.main' : 'error.main' }}>{formatCurrency(netYtd)}</Typography>
+                      </Card>
+                      <Card sx={{ p: 2, flex: 1 }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>{t('finance_card_average')}</Typography>
+                        <Typography variant="caption" color="text.secondary">{t('finance_metric_income')}</Typography>
+                        <Typography variant="h6" sx={{ color: 'success.main' }}>{formatCurrency(avgIncomeRealized)}</Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>{t('finance_metric_expense')}</Typography>
+                        <Typography variant="body2" sx={{ color: 'error.main' }}>{formatCurrency(avgExpenseRealized)}</Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>{t('finance_metric_net')}</Typography>
+                        <Typography variant="body2" sx={{ color: avgNetRealized >= 0 ? 'success.main' : 'error.main' }}>{formatCurrency(avgNetRealized)}</Typography>
+                      </Card>
+                      <Card sx={{ p: 2, flex: 1 }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>{t('finance_card_projections')}</Typography>
+                        <Typography variant="caption" color="text.secondary">{t('finance_metric_income')}</Typography>
+                        <Typography variant="h6" sx={{ color: 'success.main' }}>{formatCurrency(projectedIncome)}</Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>{t('finance_metric_expense')}</Typography>
+                        <Typography variant="body2" sx={{ color: 'error.main' }}>{formatCurrency(projectedExpense)}</Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>{t('finance_metric_net')}</Typography>
+                        <Typography variant="body2" sx={{ color: projectedNet >= 0 ? 'success.main' : 'error.main' }}>{formatCurrency(projectedNet)}</Typography>
+                      </Card>
+                    </Stack>
+                  )}
+
               <Card sx={{ p: 2 }}>
                 <Typography variant="subtitle1" sx={{ mb: 1.5 }}>Entries</Typography>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Color</TableCell>
-                      <TableCell>Name</TableCell>
-                      <TableCell>Category</TableCell>
-                      {!assetId && <TableCell>Asset</TableCell>}
-                      <TableCell>Type</TableCell>
-                      <TableCell>Flow</TableCell>
-                      <TableCell>Amount</TableCell>
-                      <TableCell>Date range</TableCell>
-                      <TableCell>Attachments</TableCell>
-                      <TableCell align="right">Actions</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {entriesForYear.map(entry => (
-                      <TableRow key={entry.id}>
-                        <TableCell>
-                          <IconButton
-                            size="small"
-                            aria-label="Edit color"
-                            onClick={(e) => {
-                              setRowColorEntry(entry);
-                              setRowColorAnchor(e.currentTarget);
-                            }}
-                            sx={{
-                              width: 28,
-                              height: 28,
-                              borderRadius: '50%',
-                              bgcolor: entry.color ?? getDefaultFinanceColor(entry.flow, 0),
-                            }}
-                          />
-                        </TableCell>
-                        <TableCell>{entry.name}</TableCell>
-                        <TableCell>{categoryLabel(entry.category)}</TableCell>
-                        {!assetId && <TableCell>{assetLookup.get(entry.assetId) ?? `Asset ${entry.assetId}`}</TableCell>}
-                        <TableCell>{kindLabel(entry.kind)}</TableCell>
-                        <TableCell sx={{ color: entry.flow === 'income' ? 'success.main' : 'error.main' }}>{entry.flow}</TableCell>
-                        <TableCell>
-                          {entry.kind === 'manual_recurring'
-                            ? (sumManualForYear(entry, selectedYear) > 0 ? formatCurrency(sumManualForYear(entry, selectedYear)) : '—')
-                            : formatCurrency(entry.amountCents)}
-                        </TableCell>
-                        <TableCell>
-                          {entry.kind === 'one_time'
-                            ? formatDateString(entry.effectiveDate)
-                            : `${formatDateString(entry.recurringStart)} - ${formatDateString(entry.recurringEnd)}`}
-                        </TableCell>
-                        <TableCell>
-                          <Stack direction="row" flexWrap="wrap" gap={0.5}>
-                            {(entry.attachments ?? []).map(att => (
-                              <Tooltip key={att.id} title={att.name}>
-                                <Chip
-                                  component="button"
-                                  label={truncateAttachmentName(att.name)}
-                                  size="small"
-                                  variant="outlined"
-                                  onClick={() => setPreviewItem({ id: att.id, name: att.name, url: att.url })}
-                                  sx={{
-                                    'maxWidth': 168,
-                                    'height': 28,
-                                    '& .MuiChip-label': {
-                                      overflow: 'hidden',
-                                      textOverflow: 'ellipsis',
-                                      whiteSpace: 'nowrap',
-                                      display: 'block',
-                                      px: 1,
-                                    },
-                                  }}
-                                />
-                              </Tooltip>
-                            ))}
-                            {(entry.attachments ?? []).length === 0 && '—'}
-                          </Stack>
-                        </TableCell>
-                        <TableCell align="right">
-                          {entry.kind === 'manual_recurring' && (
-                            <Button size="small" onClick={() => openMonthEditor(entry)}>Edit months</Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                {!flowsVisible
+                  ? (
+                      <Typography color="text.secondary">{t('finance_line_both_flows_hidden')}</Typography>
+                    )
+                  : !hasVisibleTableRows
+                      ? (
+                          <Typography color="text.secondary">{t('finance_line_empty')}</Typography>
+                        )
+                      : (
+                          <Table size="small">
+                            <TableHead>
+                              <TableRow>
+                                <TableCell>Color</TableCell>
+                                <TableCell>Name</TableCell>
+                                <TableCell>Category</TableCell>
+                                {!assetId && <TableCell>Asset</TableCell>}
+                                <TableCell>Type</TableCell>
+                                <TableCell>Flow</TableCell>
+                                <TableCell>Amount</TableCell>
+                                <TableCell>Date range</TableCell>
+                                <TableCell>Attachments</TableCell>
+                                <TableCell align="right">Actions</TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              {visibleEntriesForYear.map(entry => (
+                                <TableRow
+                                  key={entry.id}
+                                  hover
+                                  onClick={e => openEntryDetails(entry, e.currentTarget, { top: e.clientY, left: e.clientX })}
+                                  sx={{ cursor: 'pointer' }}
+                                >
+                                  <TableCell>
+                                    <IconButton
+                                      size="small"
+                                      aria-label="Edit color"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setRowColorEntry(entry);
+                                        setRowColorAnchor(e.currentTarget);
+                                      }}
+                                      sx={{
+                                        width: 28,
+                                        height: 28,
+                                        borderRadius: '50%',
+                                        bgcolor: entry.color ?? getDefaultFinanceColor(entry.flow, 0),
+                                      }}
+                                    />
+                                  </TableCell>
+                                  <TableCell>{entry.name}</TableCell>
+                                  <TableCell>{categoryLabel(entry.category)}</TableCell>
+                                  {!assetId && <TableCell>{assetLookup.get(entry.assetId) ?? `Asset ${entry.assetId}`}</TableCell>}
+                                  <TableCell>{kindLabel(entry.kind)}</TableCell>
+                                  <TableCell sx={{ color: entry.flow === 'income' ? 'success.main' : 'error.main' }}>{entry.flow}</TableCell>
+                                  <TableCell>
+                                    {entry.kind === 'manual_recurring'
+                                      ? (sumManualForYear(entry, selectedYear) > 0 ? formatCurrency(sumManualForYear(entry, selectedYear)) : '—')
+                                      : formatCurrency(entry.amountCents)}
+                                  </TableCell>
+                                  <TableCell>
+                                    {entry.kind === 'one_time'
+                                      ? formatDateString(entry.effectiveDate)
+                                      : `${formatDateString(entry.recurringStart)} - ${formatDateString(entry.recurringEnd)}`}
+                                  </TableCell>
+                                  <TableCell>
+                                    <Stack direction="row" flexWrap="wrap" gap={0.5}>
+                                      {(entry.attachments ?? []).map(att => (
+                                        <Tooltip key={att.id} title={att.name}>
+                                          <Chip
+                                            component="button"
+                                            label={truncateAttachmentName(att.name)}
+                                            size="small"
+                                            variant="outlined"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setPreviewItem({ id: att.id, name: att.name, url: att.url });
+                                            }}
+                                            sx={{
+                                              'maxWidth': 168,
+                                              'height': 28,
+                                              '& .MuiChip-label': {
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis',
+                                                whiteSpace: 'nowrap',
+                                                display: 'block',
+                                                px: 1,
+                                              },
+                                            }}
+                                          />
+                                        </Tooltip>
+                                      ))}
+                                      {(entry.attachments ?? []).length === 0 && '—'}
+                                    </Stack>
+                                  </TableCell>
+                                  <TableCell align="right">
+                                    {entry.kind === 'manual_recurring' && (
+                                      <Button
+                                        size="small"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          openMonthEditor(entry);
+                                        }}
+                                      >
+                                        Edit months
+                                      </Button>
+                                    )}
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        )}
               </Card>
             </Stack>
           )}
@@ -776,6 +1193,7 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
         onClose={() => {
           setAddAnchor(null);
           setAddStep('category');
+          setEditingEntry(null);
         }}
         anchorOrigin={{ vertical: 'center', horizontal: 'center' }}
         transformOrigin={{ vertical: 'center', horizontal: 'center' }}
@@ -825,6 +1243,7 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
         onClose={() => {
           setAddAnchor(null);
           setAddStep('category');
+          setEditingEntry(null);
         }}
         anchorOrigin={{ vertical: 'center', horizontal: 'center' }}
         transformOrigin={{ vertical: 'center', horizontal: 'center' }}
@@ -834,8 +1253,20 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
       >
         <Box component="form" onSubmit={onSubmit} sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center">
-            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Add finance entry</Typography>
-            <Button size="small" onClick={() => setAddStep('category')}>Back</Button>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+              {editingEntry ? t('finance_edit_entry') : 'Add finance entry'}
+            </Typography>
+            <Button
+              size="small"
+              onClick={() => {
+                setAddStep('category');
+                if (editingEntry) {
+                  setEditingEntry(null);
+                }
+              }}
+            >
+              Back
+            </Button>
           </Stack>
 
           {!assetId && (
@@ -1123,17 +1554,40 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
               onClick={() => {
                 setAddAnchor(null);
                 setAddStep('category');
+                setEditingEntry(null);
               }}
-              disabled={createFinanceEntry.isPending}
+              disabled={createFinanceEntry.isPending || updateFinanceEntry.isPending}
             >
               Cancel
             </Button>
-            <Button type="submit" variant="contained" disabled={createFinanceEntry.isPending}>
-              {createFinanceEntry.isPending ? 'Saving...' : 'Save'}
+            <Button type="submit" variant="contained" disabled={createFinanceEntry.isPending || updateFinanceEntry.isPending}>
+              {(createFinanceEntry.isPending || updateFinanceEntry.isPending) ? 'Saving...' : 'Save'}
             </Button>
           </Stack>
         </Box>
       </Popover>
+
+      <EntryDetailsPopover
+        open={entryDetailsEntry != null && (entryDetailsAnchor != null || entryDetailsAnchorPosition != null)}
+        anchorEl={entryDetailsAnchor}
+        anchorPosition={entryDetailsAnchorPosition}
+        entry={entryDetailsEntry}
+        onClose={closeEntryDetails}
+        onEdit={openEditEntryForm}
+        onDeleteClick={setDeleteConfirmAnchor}
+      />
+
+      <ConfirmPopover
+        open={Boolean(entryDetailsEntry) && Boolean(deleteConfirmAnchor)}
+        anchorEl={deleteConfirmAnchor}
+        onClose={() => setDeleteConfirmAnchor(null)}
+        onConfirm={() => void confirmDeleteEntry()}
+        message={t('finance_delete_confirm_message')}
+        confirmLabel={t('finance_delete_confirm_action')}
+        cancelLabel={t('finance_delete_cancel_action')}
+        confirmColor="error"
+        loading={deleteFinanceEntry.isPending}
+      />
 
       <DocsPreviewDialog open={previewItem != null} item={previewItem} onClose={() => setPreviewItem(null)} t={t} />
 
