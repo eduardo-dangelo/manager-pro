@@ -1,12 +1,6 @@
-import type { FinanceEntryData } from '@/entities';
+import type { FinanceEntryCategory, FinanceEntryData } from '@/entities';
 
-export type FinanceCategoryKey
-  = | 'vehicle_finance_agreement'
-    | 'vehicle_insurance'
-    | 'vehicle_gas'
-    | 'vehicle_repair'
-    | 'vehicle_other'
-    | 'generic_other';
+export type FinanceCategoryKey = FinanceEntryCategory;
 
 export type CategoryOption = {
   key: FinanceCategoryKey;
@@ -22,27 +16,47 @@ export type CategoryOption = {
 
 const VEHICLE_OPTIONS: CategoryOption[] = [
   {
-    key: 'vehicle_finance_agreement',
-    label: 'Finance agreement',
-    defaults: { name: 'Finance agreement', flow: 'expense', kind: 'recurring' },
+    key: 'finance_agreement',
+    label: 'Finance Agreement',
+    defaults: { name: 'Finance Agreement', flow: 'expense', kind: 'recurring' },
   },
   {
-    key: 'vehicle_insurance',
+    key: 'insurance',
     label: 'Insurance',
     defaults: { name: 'Insurance', flow: 'expense', kind: 'recurring' },
   },
   {
-    key: 'vehicle_gas',
+    key: 'gas',
     label: 'Gas',
     defaults: { name: 'Gas', flow: 'expense', kind: 'manual_recurring' },
   },
   {
-    key: 'vehicle_repair',
+    key: 'repair',
     label: 'Repair',
     defaults: { name: 'Repair', flow: 'expense', kind: 'one_time' },
   },
   {
-    key: 'vehicle_other',
+    key: 'tax',
+    label: 'Tax',
+    defaults: { name: 'Tax', flow: 'expense', kind: 'recurring' },
+  },
+  {
+    key: 'service',
+    label: 'Service',
+    defaults: { name: 'Service', flow: 'expense', kind: 'one_time' },
+  },
+  {
+    key: 'mot',
+    label: 'MOT',
+    defaults: { name: 'MOT', flow: 'expense', kind: 'one_time' },
+  },
+  {
+    key: 'income',
+    label: 'Income',
+    defaults: { name: 'Income', flow: 'income', kind: 'manual_recurring' },
+  },
+  {
+    key: 'other',
     label: 'Other',
     defaults: { name: 'Other', flow: 'expense', kind: 'one_time' },
   },
@@ -50,7 +64,47 @@ const VEHICLE_OPTIONS: CategoryOption[] = [
 
 const GENERIC_OPTIONS: CategoryOption[] = [
   {
-    key: 'generic_other',
+    key: 'finance_agreement',
+    label: 'Finance Agreement',
+    defaults: { name: 'Finance Agreement', flow: 'expense', kind: 'recurring' },
+  },
+  {
+    key: 'insurance',
+    label: 'Insurance',
+    defaults: { name: 'Insurance', flow: 'expense', kind: 'recurring' },
+  },
+  {
+    key: 'gas',
+    label: 'Gas',
+    defaults: { name: 'Gas', flow: 'expense', kind: 'manual_recurring' },
+  },
+  {
+    key: 'repair',
+    label: 'Repair',
+    defaults: { name: 'Repair', flow: 'expense', kind: 'one_time' },
+  },
+  {
+    key: 'tax',
+    label: 'Tax',
+    defaults: { name: 'Tax', flow: 'expense', kind: 'recurring' },
+  },
+  {
+    key: 'service',
+    label: 'Service',
+    defaults: { name: 'Service', flow: 'expense', kind: 'one_time' },
+  },
+  {
+    key: 'mot',
+    label: 'MOT',
+    defaults: { name: 'MOT', flow: 'expense', kind: 'one_time' },
+  },
+  {
+    key: 'income',
+    label: 'Income',
+    defaults: { name: 'Income', flow: 'income', kind: 'manual_recurring' },
+  },
+  {
+    key: 'other',
     label: 'Other',
     defaults: { name: 'Other', flow: 'expense', kind: 'one_time' },
   },
@@ -64,17 +118,64 @@ export function getCategoryOptions(assetType: string | null | undefined): Catego
 }
 
 const LABELS: Record<FinanceCategoryKey, string> = {
-  vehicle_finance_agreement: 'Finance agreement',
-  vehicle_insurance: 'Insurance',
-  vehicle_gas: 'Gas',
-  vehicle_repair: 'Repair',
-  vehicle_other: 'Other',
-  generic_other: 'Other',
+  finance_agreement: 'Finance Agreement',
+  insurance: 'Insurance',
+  gas: 'Gas',
+  repair: 'Repair',
+  tax: 'Tax',
+  service: 'Service',
+  mot: 'MOT',
+  income: 'Income',
+  other: 'Other',
 };
+
+const LEGACY_CATEGORY_MAP: Record<string, FinanceCategoryKey> = {
+  vehicle_finance_agreement: 'finance_agreement',
+  vehicle_insurance: 'insurance',
+  vehicle_gas: 'gas',
+  vehicle_repair: 'repair',
+  vehicle_other: 'other',
+  generic_other: 'other',
+};
+
+export function normalizeCategoryKey(key: string | null | undefined): FinanceCategoryKey | undefined {
+  if (!key) {
+    return undefined;
+  }
+  if (LABELS[key as FinanceCategoryKey]) {
+    return key as FinanceCategoryKey;
+  }
+  return LEGACY_CATEGORY_MAP[key];
+}
 
 export function categoryLabel(key: string | null | undefined): string {
   if (!key) {
     return '-';
   }
-  return LABELS[key as FinanceCategoryKey] ?? key;
+  const normalized = normalizeCategoryKey(key);
+  if (normalized) {
+    return LABELS[normalized];
+  }
+  return key;
+}
+
+export function attachmentNounForCategory(key: string | null | undefined): string {
+  switch (key) {
+    case 'gas':
+    case 'repair':
+    case 'service':
+      return 'receipts';
+    case 'income':
+      return 'statements';
+    default:
+      return 'documents';
+  }
+}
+
+export function categorySemanticsForUpload(key: string | null | undefined): { attachmentNoun: string; aiHint: string } {
+  const attachmentNoun = attachmentNounForCategory(key);
+  return {
+    attachmentNoun,
+    aiHint: `Uploaded ${attachmentNoun} can be parsed to prefill finance entry details in a future AI flow.`,
+  };
 }

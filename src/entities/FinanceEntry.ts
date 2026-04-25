@@ -1,6 +1,33 @@
 export type FinanceEntryKind = 'one_time' | 'recurring' | 'manual_recurring';
 export type FinanceEntryFlow = 'income' | 'expense';
 export type FinanceEntryFrequency = 'monthly';
+export type FinanceAgreementDetails = {
+  provider: string;
+  totalCashPriceCents: number;
+  advancePaymentsCents: number;
+  durationMonths: number;
+  frequency: FinanceEntryFrequency;
+  amountCents: number;
+  amountOfCreditCents: number;
+  interestChargesCents: number;
+  acceptanceFeeCents: number;
+  titleTransferFeeCents: number;
+  totalChargeForCreditCents: number;
+  totalAmountPayableCents: number;
+  interestRatePercent: number;
+};
+export const FINANCE_ENTRY_CATEGORIES = [
+  'finance_agreement',
+  'insurance',
+  'gas',
+  'repair',
+  'tax',
+  'service',
+  'mot',
+  'income',
+  'other',
+] as const;
+export type FinanceEntryCategory = (typeof FINANCE_ENTRY_CATEGORIES)[number];
 
 export type FinanceEntryAttachment = {
   id: string;
@@ -19,7 +46,7 @@ export type FinanceEntryData = {
   kind: FinanceEntryKind;
   flow: FinanceEntryFlow;
   amountCents: number;
-  category: string | null;
+  category: FinanceEntryCategory | string | null;
   color: string | null;
   manualAmounts: FinanceManualAmounts | null;
   attachments: FinanceEntryAttachment[] | null;
@@ -27,6 +54,7 @@ export type FinanceEntryData = {
   recurringFrequency: FinanceEntryFrequency | null;
   recurringStart: string | null;
   recurringEnd: string | null;
+  financeAgreement?: FinanceAgreementDetails | null;
   createdAt: string;
   updatedAt: string;
 };

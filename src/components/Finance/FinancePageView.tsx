@@ -5,13 +5,21 @@ import type { MarkElementProps } from '@mui/x-charts/LineChart';
 import type { Resolver } from 'react-hook-form';
 import type { FilePreviewItem } from '@/components/Assets/Asset/tabs/FilePreviewPopover';
 import type { CategoryOption } from '@/components/Finance/financeEntryCategories';
-import type { FinanceEntryAttachment, FinanceEntryData, FinanceEntryFlow, FinanceEntryKind } from '@/entities';
+import type {
+  FinanceAgreementDetails,
+  FinanceEntryAttachment,
+  FinanceEntryCategory,
+  FinanceEntryData,
+  FinanceEntryFlow,
+  FinanceEntryKind,
+} from '@/entities';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Add as AddIcon,
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
   Palette as PaletteIcon,
+  UploadFile as UploadFileIcon,
 } from '@mui/icons-material';
 import {
   Box,
@@ -26,7 +34,6 @@ import {
   InputAdornment,
   InputLabel,
   MenuItem,
-  Paper,
   Select,
   Stack,
   Table,
@@ -43,8 +50,9 @@ import {
 import { alpha, useTheme } from '@mui/material/styles';
 import { BarChart, LineChart, PieChart } from '@mui/x-charts';
 import { useInteractionItemProps } from '@mui/x-charts/internals';
+import Image from 'next/image';
 import { useTranslations } from 'next-intl';
-import { createContext, use, useCallback, useMemo, useRef, useState } from 'react';
+import { createContext, use, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import z from 'zod';
 import { DocsPreviewDialog } from '@/components/Assets/Asset/tabs/docs/DocsPreviewDialog';
@@ -62,9 +70,11 @@ import {
   sumMonthlyCentsWithFutureMask,
 } from '@/components/Finance/financeAggregations';
 import { getDefaultFinanceColor } from '@/components/Finance/financeDefaultColors';
-import { categoryLabel, getCategoryOptions } from '@/components/Finance/financeEntryCategories';
+import { categoryLabel, categorySemanticsForUpload, getCategoryOptions, normalizeCategoryKey } from '@/components/Finance/financeEntryCategories';
+import { FINANCE_ENTRY_CATEGORIES } from '@/entities';
 import { useGetAssets as useGetAssetsList } from '@/queries/hooks/assets/useGetAssets';
 import { useCreateFinanceEntry, useDeleteFinanceEntry, useFinanceEntries, useUpdateFinanceEntry } from '@/queries/hooks/finance-entries';
+import { useGetUserPreferences } from '@/queries/hooks/users';
 
 type FinancePageViewProps = {
   locale: string;
@@ -80,8 +90,18 @@ function isCustomColor(color: string) {
   return !EVENT_COLORS.some(c => c.value === color) && color.startsWith('#');
 }
 
-function formatCurrency(amountCents: number) {
-  return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(amountCents / 100);
+function formatCurrency(amountCents: number, currency: string) {
+  return new Intl.NumberFormat('en-GB', { style: 'currency', currency }).format(amountCents / 100);
+}
+
+function currencySymbol(currency: string) {
+  if (currency === 'EUR') {
+    return '€';
+  }
+  if (currency === 'USD') {
+    return '$';
+  }
+  return '£';
 }
 
 function formatDateString(value: string | null) {
@@ -124,7 +144,7 @@ function FinanceLineMark(props: MarkElementProps) {
   const bg = (th.vars ?? th).palette.background.paper;
   const netAt = cumulativeNetCents[dataIndex];
   const showLabel = id === LINE_NET_TOTAL_ID && netAt !== undefined;
-  const labelText = showLabel ? formatCurrency(netAt) : null;
+  const labelText = showLabel ? formatCurrency(netAt, 'GBP') : null;
   const fadedOpacity = isFaded ? 0.3 : 1;
 
   return (
@@ -213,6 +233,60 @@ function isoToDateInput(value: string | null | undefined) {
   return d.toISOString().slice(0, 10);
 }
 
+function toPounds(cents: number | null | undefined): number {
+  if (!cents) {
+    return 0;
+  }
+  return cents / 100;
+}
+
+function toCents(pounds: number | undefined): number {
+  if (!Number.isFinite(pounds)) {
+    return 0;
+  }
+  return Math.max(0, Math.round((pounds ?? 0) * 100));
+}
+
+function roundMoney(value: number): number {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
+function calculateFinanceAgreement(values: {
+  totalCashPrice: number;
+  advancePayments: number;
+  durationMonths: number;
+  interestRate: number;
+  acceptanceFee: number;
+  titleTransferFee: number;
+}) {
+  const amountOfCredit = Math.max(0, values.totalCashPrice - values.advancePayments);
+  const monthlyRate = Math.max(0, values.interestRate) / 100 / 12;
+  const months = Math.max(1, Math.round(values.durationMonths));
+
+  let amount = 0;
+  if (amountOfCredit > 0) {
+    if (monthlyRate === 0) {
+      amount = amountOfCredit / months;
+    } else {
+      const factor = (monthlyRate * (1 + monthlyRate) ** months) / ((1 + monthlyRate) ** months - 1);
+      amount = amountOfCredit * factor;
+    }
+  }
+  amount = roundMoney(amount);
+
+  const interestCharges = roundMoney(Math.max(0, amount * months - amountOfCredit));
+  const totalChargeForCredit = roundMoney(interestCharges + values.acceptanceFee + values.titleTransferFee);
+  const totalAmountPayable = roundMoney(amountOfCredit + totalChargeForCredit);
+
+  return {
+    amount,
+    amountOfCredit: roundMoney(amountOfCredit),
+    interestCharges,
+    totalChargeForCredit,
+    totalAmountPayable,
+  };
+}
+
 function sumManualForYear(entry: FinanceEntryData, year: number): number {
   if (!entry.manualAmounts) {
     return 0;
@@ -247,7 +321,7 @@ function replaceYearManualAmounts(
 
 const financeFormSchema = z.object({
   assetId: z.number().int().positive().optional(),
-  category: z.string().optional(),
+  category: z.enum(FINANCE_ENTRY_CATEGORIES).optional(),
   name: z.string().trim().min(1, 'Name is required'),
   kind: z.enum(['one_time', 'recurring', 'manual_recurring']),
   flow: z.enum(['income', 'expense']),
@@ -257,6 +331,18 @@ const financeFormSchema = z.object({
   recurringEnd: z.string().optional(),
   initialAmount: z.number().min(0).optional(),
   initialDate: z.string().optional(),
+  financeProvider: z.string().optional(),
+  totalCashPrice: z.number().min(0).optional(),
+  advancePayments: z.number().min(0).optional(),
+  durationMonths: z.number().int().positive().optional(),
+  financeFrequency: z.enum(['monthly']).optional(),
+  amountOfCredit: z.number().min(0).optional(),
+  interestCharges: z.number().min(0).optional(),
+  acceptanceFee: z.number().min(0).optional(),
+  titleTransferFee: z.number().min(0).optional(),
+  totalChargeForCredit: z.number().min(0).optional(),
+  totalAmountPayable: z.number().min(0).optional(),
+  interestRate: z.number().min(0).optional(),
 }).superRefine((v, ctx) => {
   if (v.kind === 'one_time') {
     if (!v.effectiveDate) {
@@ -277,11 +363,22 @@ const financeFormSchema = z.object({
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Recurring start is required', path: ['recurringStart'] });
     }
   }
+  if (v.category === 'finance_agreement') {
+    if (!v.financeProvider?.trim()) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Provider is required', path: ['financeProvider'] });
+    }
+    if ((v.totalCashPrice ?? 0) <= 0) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Total cash price must be greater than 0', path: ['totalCashPrice'] });
+    }
+    if ((v.durationMonths ?? 0) <= 0) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Duration must be at least 1 month', path: ['durationMonths'] });
+    }
+  }
 });
 
 type FinanceFormValues = {
   assetId?: number;
-  category?: string;
+  category?: FinanceEntryCategory;
   name: string;
   kind: 'one_time' | 'recurring' | 'manual_recurring';
   flow: 'income' | 'expense';
@@ -291,6 +388,18 @@ type FinanceFormValues = {
   recurringEnd?: string;
   initialAmount?: number;
   initialDate?: string;
+  financeProvider?: string;
+  totalCashPrice?: number;
+  advancePayments?: number;
+  durationMonths?: number;
+  financeFrequency?: 'monthly';
+  amountOfCredit?: number;
+  interestCharges?: number;
+  acceptanceFee?: number;
+  titleTransferFee?: number;
+  totalChargeForCredit?: number;
+  totalAmountPayable?: number;
+  interestRate?: number;
 };
 
 export function FinancePageView({ locale, assetId, assetName: _assetName, assetType: assetTypeProp }: FinancePageViewProps) {
@@ -311,6 +420,8 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
   const [showExpense, setShowExpense] = useState(true);
   const [showIncome, setShowIncome] = useState(true);
   const [previewItem, setPreviewItem] = useState<FilePreviewItem | null>(null);
+  const [formDropzoneActive, setFormDropzoneActive] = useState(false);
+  const [emptyDropzoneActive, setEmptyDropzoneActive] = useState(false);
   const [monthEditEntry, setMonthEditEntry] = useState<FinanceEntryData | null>(null);
   const [monthEditValues, setMonthEditValues] = useState<number[]>(Array.from({ length: 12 }, () => 0));
   const [rowColorEntry, setRowColorEntry] = useState<FinanceEntryData | null>(null);
@@ -329,11 +440,14 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
     year: selectedYear,
   });
   const { data: assets = [] } = useGetAssetsList(locale);
+  const { data: userPreferences } = useGetUserPreferences(locale);
   const createFinanceEntry = useCreateFinanceEntry(locale);
   const deleteFinanceEntry = useDeleteFinanceEntry(locale);
   const updateFinanceEntry = useUpdateFinanceEntry(locale);
 
   const resolvedAssetIdForScope = assetId ?? globalPickedAssetId;
+  const selectedCurrency = userPreferences?.currency ?? 'GBP';
+  const selectedCurrencySymbol = currencySymbol(selectedCurrency);
 
   const entriesForYear = useMemo(
     () => entries.filter(entry => intersectsYear(entry, selectedYear)),
@@ -446,6 +560,7 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
     register,
     control,
     watch,
+    setValue,
     handleSubmit,
     reset,
     formState: { errors },
@@ -463,20 +578,69 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
       recurringEnd: '',
       initialAmount: 0,
       initialDate: new Date().toISOString().slice(0, 10),
+      financeProvider: '',
+      totalCashPrice: 0,
+      advancePayments: 0,
+      durationMonths: 60,
+      financeFrequency: 'monthly',
+      amountOfCredit: 0,
+      interestCharges: 0,
+      acceptanceFee: 0,
+      titleTransferFee: 0,
+      totalChargeForCredit: 0,
+      totalAmountPayable: 0,
+      interestRate: 0,
     },
   });
   const kind = watch('kind');
+  const selectedCategory = watch('category');
+  const watchedTotalCashPrice = watch('totalCashPrice');
+  const watchedAdvancePayments = watch('advancePayments');
+  const watchedDurationMonths = watch('durationMonths');
+  const watchedInterestRate = watch('interestRate');
+  const watchedAcceptanceFee = watch('acceptanceFee');
+  const watchedTitleTransferFee = watch('titleTransferFee');
   const formAssetId = watch('assetId');
+  const formAttachmentInputRef = useRef<HTMLInputElement>(null);
+  const emptyAttachmentInputRef = useRef<HTMLInputElement>(null);
 
   const assetLookup = useMemo(
     () => new Map(assets.map(item => [item.id, item.name || `Asset ${item.id}`])),
     [assets],
   );
 
+  useEffect(() => {
+    if (selectedCategory !== 'finance_agreement') {
+      return;
+    }
+    const computed = calculateFinanceAgreement({
+      totalCashPrice: watchedTotalCashPrice ?? 0,
+      advancePayments: watchedAdvancePayments ?? 0,
+      durationMonths: watchedDurationMonths ?? 1,
+      interestRate: watchedInterestRate ?? 0,
+      acceptanceFee: watchedAcceptanceFee ?? 0,
+      titleTransferFee: watchedTitleTransferFee ?? 0,
+    });
+    setValue('amount', computed.amount, { shouldValidate: false, shouldDirty: true });
+    setValue('amountOfCredit', computed.amountOfCredit, { shouldValidate: false, shouldDirty: true });
+    setValue('interestCharges', computed.interestCharges, { shouldValidate: false, shouldDirty: true });
+    setValue('totalChargeForCredit', computed.totalChargeForCredit, { shouldValidate: false, shouldDirty: true });
+    setValue('totalAmountPayable', computed.totalAmountPayable, { shouldValidate: false, shouldDirty: true });
+    setValue('financeFrequency', 'monthly', { shouldValidate: false });
+  }, [
+    selectedCategory,
+    watchedTotalCashPrice,
+    watchedAdvancePayments,
+    watchedDurationMonths,
+    watchedInterestRate,
+    watchedAcceptanceFee,
+    watchedTitleTransferFee,
+    setValue,
+  ]);
+
   const openAddFromEvent = useCallback((e: React.MouseEvent<HTMLElement>) => {
     setAddStep('category');
     setGlobalPickedAssetId(assetId);
-    setAttachmentsDraft([]);
     setIncludeInitial(false);
     setManualMonthsPounds(Array.from({ length: 12 }, () => 0));
     setAddAnchor(e.currentTarget);
@@ -487,7 +651,6 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
     const ord = entriesForYear.filter(e => e.flow === flow).length;
     const nextColor = getDefaultFinanceColor(flow, ord);
     setFinanceColor(nextColor);
-    setAttachmentsDraft([]);
     setIncludeInitial(false);
     setManualMonthsPounds(Array.from({ length: 12 }, () => 0));
     reset({
@@ -502,6 +665,18 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
       recurringEnd: '',
       initialAmount: 0,
       initialDate: new Date().toISOString().slice(0, 10),
+      financeProvider: '',
+      totalCashPrice: 0,
+      advancePayments: 0,
+      durationMonths: 60,
+      financeFrequency: 'monthly',
+      amountOfCredit: 0,
+      interestCharges: 0,
+      acceptanceFee: 0,
+      titleTransferFee: 0,
+      totalChargeForCredit: 0,
+      totalAmountPayable: 0,
+      interestRate: 0,
     });
     setAddStep('form');
   }, [assetId, globalPickedAssetId, formAssetId, entriesForYear, reset]);
@@ -530,46 +705,82 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
       ? financeColor
       : (EVENT_COLORS.find(c => c.value === financeColor)?.hex ?? financeColor);
 
+    const effectiveKind: FinanceEntryKind = values.category === 'finance_agreement' ? 'recurring' : values.kind;
+    const effectiveFlow: FinanceEntryFlow = values.category === 'finance_agreement' ? 'expense' : values.flow;
     const payload: Parameters<typeof createFinanceEntry.mutateAsync>[0] = {
       assetId: resolvedAssetId,
       name: values.name.trim(),
-      kind: values.kind as FinanceEntryKind,
-      flow: values.flow as FinanceEntryFlow,
+      kind: effectiveKind,
+      flow: effectiveFlow,
       amountCents,
       category: values.category ?? null,
       color: colorHex,
       attachments: attachmentsDraft.length > 0 ? attachmentsDraft : null,
-      manualAmounts: values.kind === 'manual_recurring' ? manualAmounts : null,
-      initialAmountCents: includeInitial && values.kind === 'manual_recurring' && (values.initialAmount ?? 0) > 0
+      manualAmounts: effectiveKind === 'manual_recurring' ? manualAmounts : null,
+      initialAmountCents: includeInitial && effectiveKind === 'manual_recurring' && (values.initialAmount ?? 0) > 0
         ? Math.round((values.initialAmount ?? 0) * 100)
         : null,
       initialEffectiveDate:
-        includeInitial && values.kind === 'manual_recurring' && (values.initialAmount ?? 0) > 0 && values.initialDate
+        includeInitial && effectiveKind === 'manual_recurring' && (values.initialAmount ?? 0) > 0 && values.initialDate
           ? dateInputToIso(values.initialDate)
           : null,
+      financeAgreement: values.category === 'finance_agreement'
+        ? {
+            provider: values.financeProvider?.trim() ?? '',
+            totalCashPriceCents: toCents(values.totalCashPrice),
+            advancePaymentsCents: toCents(values.advancePayments),
+            durationMonths: Math.max(1, Math.round(values.durationMonths ?? 1)),
+            frequency: 'monthly',
+            amountCents,
+            amountOfCreditCents: toCents(values.amountOfCredit),
+            interestChargesCents: toCents(values.interestCharges),
+            acceptanceFeeCents: toCents(values.acceptanceFee),
+            titleTransferFeeCents: toCents(values.titleTransferFee),
+            totalChargeForCreditCents: toCents(values.totalChargeForCredit),
+            totalAmountPayableCents: toCents(values.totalAmountPayable),
+            interestRatePercent: values.interestRate ?? 0,
+          } satisfies FinanceAgreementDetails
+        : null,
     };
 
-    if (values.kind === 'one_time') {
+    if (effectiveKind === 'one_time') {
       payload.effectiveDate = dateInputToIso(values.effectiveDate);
     } else {
       payload.recurringFrequency = 'monthly';
       payload.recurringStart = dateInputToIso(values.recurringStart);
-      payload.recurringEnd = values.recurringEnd ? dateInputToIso(values.recurringEnd) : null;
+      payload.recurringEnd = values.category === 'finance_agreement' ? null : (values.recurringEnd ? dateInputToIso(values.recurringEnd) : null);
     }
 
     if (editingEntry) {
       const updatePayload: Parameters<typeof updateFinanceEntry.mutateAsync>[0] = {
         id: editingEntry.id,
         name: values.name.trim(),
-        kind: values.kind as FinanceEntryKind,
-        flow: values.flow as FinanceEntryFlow,
+        kind: effectiveKind,
+        flow: effectiveFlow,
         amountCents,
         category: values.category ?? null,
         color: colorHex,
         attachments: attachmentsDraft.length > 0 ? attachmentsDraft : null,
-        manualAmounts: values.kind === 'manual_recurring' ? manualAmounts : null,
+        manualAmounts: effectiveKind === 'manual_recurring' ? manualAmounts : null,
+        financeAgreement: values.category === 'finance_agreement'
+          ? {
+              provider: values.financeProvider?.trim() ?? '',
+              totalCashPriceCents: toCents(values.totalCashPrice),
+              advancePaymentsCents: toCents(values.advancePayments),
+              durationMonths: Math.max(1, Math.round(values.durationMonths ?? 1)),
+              frequency: 'monthly',
+              amountCents,
+              amountOfCreditCents: toCents(values.amountOfCredit),
+              interestChargesCents: toCents(values.interestCharges),
+              acceptanceFeeCents: toCents(values.acceptanceFee),
+              titleTransferFeeCents: toCents(values.titleTransferFee),
+              totalChargeForCreditCents: toCents(values.totalChargeForCredit),
+              totalAmountPayableCents: toCents(values.totalAmountPayable),
+              interestRatePercent: values.interestRate ?? 0,
+            } satisfies FinanceAgreementDetails
+          : null,
       };
-      if (values.kind === 'one_time') {
+      if (effectiveKind === 'one_time') {
         updatePayload.effectiveDate = dateInputToIso(values.effectiveDate);
         updatePayload.recurringFrequency = null;
         updatePayload.recurringStart = null;
@@ -578,7 +789,7 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
         updatePayload.effectiveDate = null;
         updatePayload.recurringFrequency = 'monthly';
         updatePayload.recurringStart = dateInputToIso(values.recurringStart);
-        updatePayload.recurringEnd = values.recurringEnd ? dateInputToIso(values.recurringEnd) : null;
+        updatePayload.recurringEnd = values.category === 'finance_agreement' ? null : (values.recurringEnd ? dateInputToIso(values.recurringEnd) : null);
       }
       await updateFinanceEntry.mutateAsync(updatePayload);
     } else {
@@ -587,6 +798,7 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
     setAddAnchor(null);
     setAddStep('category');
     setEditingEntry(null);
+    setAttachmentsDraft([]);
   });
 
   const openEntryDetails = useCallback((entry: FinanceEntryData, anchor: HTMLElement, position: { top: number; left: number }) => {
@@ -619,7 +831,7 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
     setManualMonthsPounds(nextManual);
     reset({
       assetId: entryDetailsEntry.assetId,
-      category: entryDetailsEntry.category ?? undefined,
+      category: normalizeCategoryKey(entryDetailsEntry.category),
       name: entryDetailsEntry.name,
       kind: entryDetailsEntry.kind,
       flow: entryDetailsEntry.flow,
@@ -629,6 +841,18 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
       recurringEnd: isoToDateInput(entryDetailsEntry.recurringEnd),
       initialAmount: 0,
       initialDate: new Date().toISOString().slice(0, 10),
+      financeProvider: entryDetailsEntry.financeAgreement?.provider ?? '',
+      totalCashPrice: toPounds(entryDetailsEntry.financeAgreement?.totalCashPriceCents),
+      advancePayments: toPounds(entryDetailsEntry.financeAgreement?.advancePaymentsCents),
+      durationMonths: entryDetailsEntry.financeAgreement?.durationMonths ?? 60,
+      financeFrequency: entryDetailsEntry.financeAgreement?.frequency ?? 'monthly',
+      amountOfCredit: toPounds(entryDetailsEntry.financeAgreement?.amountOfCreditCents),
+      interestCharges: toPounds(entryDetailsEntry.financeAgreement?.interestChargesCents),
+      acceptanceFee: toPounds(entryDetailsEntry.financeAgreement?.acceptanceFeeCents),
+      titleTransferFee: toPounds(entryDetailsEntry.financeAgreement?.titleTransferFeeCents),
+      totalChargeForCredit: toPounds(entryDetailsEntry.financeAgreement?.totalChargeForCreditCents),
+      totalAmountPayable: toPounds(entryDetailsEntry.financeAgreement?.totalAmountPayableCents),
+      interestRate: entryDetailsEntry.financeAgreement?.interestRatePercent ?? 0,
     });
     setGlobalPickedAssetId(entryDetailsEntry.assetId);
     setAddAnchor(entryDetailsAnchor);
@@ -644,12 +868,10 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
     closeEntryDetails();
   }, [entryDetailsEntry, deleteFinanceEntry, closeEntryDetails]);
 
-  const handleFilePick = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const uploadAttachment = useCallback(async (file: File) => {
     const aid = assetId ?? globalPickedAssetId ?? formAssetId;
     if (!file || !aid) {
-      e.target.value = '';
-      return;
+      return false;
     }
     try {
       const formData = new FormData();
@@ -664,12 +886,60 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
       }
       const uploaded = (await res.json()) as FilePreviewItem;
       setAttachmentsDraft(prev => [...prev, { id: uploaded.id, name: uploaded.name, url: uploaded.url }]);
+      return true;
     } catch {
       // keep UI quiet; could toast
+      return false;
+    }
+  }, [assetId, formAssetId, globalPickedAssetId, locale]);
+
+  const handleFilePick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      e.target.value = '';
+      return;
+    }
+    try {
+      await uploadAttachment(file);
     } finally {
       e.target.value = '';
     }
   };
+
+  const handleDropUpload = useCallback(async (e: React.DragEvent<HTMLElement>, source: 'form' | 'empty') => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (source === 'form') {
+      setFormDropzoneActive(false);
+    } else {
+      setEmptyDropzoneActive(false);
+    }
+    const file = e.dataTransfer.files?.[0];
+    if (!file) {
+      return;
+    }
+    await uploadAttachment(file);
+  }, [uploadAttachment]);
+
+  const dragOverUpload = useCallback((e: React.DragEvent<HTMLElement>, source: 'form' | 'empty') => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (source === 'form') {
+      setFormDropzoneActive(true);
+    } else {
+      setEmptyDropzoneActive(true);
+    }
+  }, []);
+
+  const dragLeaveUpload = useCallback((e: React.DragEvent<HTMLElement>, source: 'form' | 'empty') => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (source === 'form') {
+      setFormDropzoneActive(false);
+    } else {
+      setEmptyDropzoneActive(false);
+    }
+  }, []);
 
   const openMonthEditor = (entry: FinanceEntryData) => {
     if (entry.kind !== 'manual_recurring') {
@@ -855,6 +1125,14 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
     }
     return next;
   }, [showExpense, showIncome]);
+  const uploadContext = useMemo(() => {
+    const semantics = categorySemanticsForUpload(selectedCategory);
+    return {
+      category: selectedCategory ?? null,
+      attachmentNoun: semantics.attachmentNoun,
+      aiHint: semantics.aiHint,
+    };
+  }, [selectedCategory]);
 
   return (
     <Box sx={{ px: 0, pb: 3, pt: 0 }}>
@@ -911,16 +1189,67 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
 
       {!hasEntries
         ? (
-            <Paper sx={{ py: 8, px: 3, textAlign: 'center', border: '1px dashed', borderColor: 'divider', backgroundColor: 'background.paper' }}>
+            <Box sx={{ py: 6, px: 3, textAlign: 'center' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1.5 }}>
+                <Image
+                  src="/assets/images/undraw_investing_uzcu.svg"
+                  alt="Finance illustration"
+                  width={280}
+                  height={208}
+                  style={{ width: '100%', maxWidth: 280, height: 'auto' }}
+                  priority={false}
+                />
+              </Box>
               <Typography variant="h6" sx={{ mb: 1 }}>
                 No finance data for
                 {' '}
                 {selectedYear}
               </Typography>
-              <Typography color="text.secondary">
-                Add your first entry to populate charts and yearly totals.
+              <Typography color="text.secondary" sx={{ mb: 2 }}>
+                Drag your documents here first, then add the details manually.
               </Typography>
-            </Paper>
+              <Box
+                data-upload-category={uploadContext.category ?? ''}
+                data-upload-ai-hint={uploadContext.aiHint}
+                onDrop={e => void handleDropUpload(e, 'empty')}
+                onDragOver={e => dragOverUpload(e, 'empty')}
+                onDragLeave={e => dragLeaveUpload(e, 'empty')}
+                sx={{
+                  p: 2.5,
+                  border: '1px dashed',
+                  borderColor: 'primary.main',
+                  bgcolor: emptyDropzoneActive ? alpha(theme.palette.primary.main, 0.1) : alpha(theme.palette.primary.main, 0.03),
+                  borderRadius: 1.5,
+                  mb: 1.5,
+                  transition: 'background-color 120ms ease, border-color 120ms ease',
+                }}
+              >
+                <Typography variant="body2" sx={{ mb: 1 }}>
+                  Drop finance documents to upload attachments.
+                </Typography>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<UploadFileIcon />}
+                  onClick={() => emptyAttachmentInputRef.current?.click()}
+                  disabled={!resolvedAssetIdForScope}
+                >
+                  Select File
+                </Button>
+                <input
+                  ref={emptyAttachmentInputRef}
+                  type="file"
+                  accept="application/pdf"
+                  hidden
+                  onChange={handleFilePick}
+                />
+              </Box>
+              {!resolvedAssetIdForScope && (
+                <Typography variant="caption" color="text.secondary">
+                  Select an asset first to upload documents.
+                </Typography>
+              )}
+            </Box>
           )
         : (
             <Stack spacing={2.5}>
@@ -1030,29 +1359,29 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
                       <Card sx={{ p: 2, flex: 1 }}>
                         <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>{t('finance_card_totals')}</Typography>
                         <Typography variant="caption" color="text.secondary">{t('finance_metric_income')}</Typography>
-                        <Typography variant="h6" sx={{ color: 'success.main' }}>{formatCurrency(yearlyIncomeYtd)}</Typography>
+                        <Typography variant="h6" sx={{ color: 'success.main' }}>{formatCurrency(yearlyIncomeYtd, selectedCurrency)}</Typography>
                         <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>{t('finance_metric_expense')}</Typography>
-                        <Typography variant="body2" sx={{ color: 'error.main' }}>{formatCurrency(yearlyExpenseYtd)}</Typography>
+                        <Typography variant="body2" sx={{ color: 'error.main' }}>{formatCurrency(yearlyExpenseYtd, selectedCurrency)}</Typography>
                         <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>{t('finance_metric_net')}</Typography>
-                        <Typography variant="body2" sx={{ color: netYtd >= 0 ? 'success.main' : 'error.main' }}>{formatCurrency(netYtd)}</Typography>
+                        <Typography variant="body2" sx={{ color: netYtd >= 0 ? 'success.main' : 'error.main' }}>{formatCurrency(netYtd, selectedCurrency)}</Typography>
                       </Card>
                       <Card sx={{ p: 2, flex: 1 }}>
                         <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>{t('finance_card_average')}</Typography>
                         <Typography variant="caption" color="text.secondary">{t('finance_metric_income')}</Typography>
-                        <Typography variant="h6" sx={{ color: 'success.main' }}>{formatCurrency(avgIncomeRealized)}</Typography>
+                        <Typography variant="h6" sx={{ color: 'success.main' }}>{formatCurrency(avgIncomeRealized, selectedCurrency)}</Typography>
                         <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>{t('finance_metric_expense')}</Typography>
-                        <Typography variant="body2" sx={{ color: 'error.main' }}>{formatCurrency(avgExpenseRealized)}</Typography>
+                        <Typography variant="body2" sx={{ color: 'error.main' }}>{formatCurrency(avgExpenseRealized, selectedCurrency)}</Typography>
                         <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>{t('finance_metric_net')}</Typography>
-                        <Typography variant="body2" sx={{ color: avgNetRealized >= 0 ? 'success.main' : 'error.main' }}>{formatCurrency(avgNetRealized)}</Typography>
+                        <Typography variant="body2" sx={{ color: avgNetRealized >= 0 ? 'success.main' : 'error.main' }}>{formatCurrency(avgNetRealized, selectedCurrency)}</Typography>
                       </Card>
                       <Card sx={{ p: 2, flex: 1 }}>
                         <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>{t('finance_card_projections')}</Typography>
                         <Typography variant="caption" color="text.secondary">{t('finance_metric_income')}</Typography>
-                        <Typography variant="h6" sx={{ color: 'success.main' }}>{formatCurrency(projectedIncome)}</Typography>
+                        <Typography variant="h6" sx={{ color: 'success.main' }}>{formatCurrency(projectedIncome, selectedCurrency)}</Typography>
                         <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>{t('finance_metric_expense')}</Typography>
-                        <Typography variant="body2" sx={{ color: 'error.main' }}>{formatCurrency(projectedExpense)}</Typography>
+                        <Typography variant="body2" sx={{ color: 'error.main' }}>{formatCurrency(projectedExpense, selectedCurrency)}</Typography>
                         <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>{t('finance_metric_net')}</Typography>
-                        <Typography variant="body2" sx={{ color: projectedNet >= 0 ? 'success.main' : 'error.main' }}>{formatCurrency(projectedNet)}</Typography>
+                        <Typography variant="body2" sx={{ color: projectedNet >= 0 ? 'success.main' : 'error.main' }}>{formatCurrency(projectedNet, selectedCurrency)}</Typography>
                       </Card>
                     </Stack>
                   )}
@@ -1115,8 +1444,8 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
                                   <TableCell sx={{ color: entry.flow === 'income' ? 'success.main' : 'error.main' }}>{entry.flow}</TableCell>
                                   <TableCell>
                                     {entry.kind === 'manual_recurring'
-                                      ? (sumManualForYear(entry, selectedYear) > 0 ? formatCurrency(sumManualForYear(entry, selectedYear)) : '—')
-                                      : formatCurrency(entry.amountCents)}
+                                      ? (sumManualForYear(entry, selectedYear) > 0 ? formatCurrency(sumManualForYear(entry, selectedYear), selectedCurrency) : '—')
+                                      : formatCurrency(entry.amountCents, selectedCurrency)}
                                   </TableCell>
                                   <TableCell>
                                     {entry.kind === 'one_time'
@@ -1202,6 +1531,9 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
       >
         <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Choose category</Typography>
+          <Typography variant="caption" color="text.secondary">
+            Choose a category to start with document-first capture.
+          </Typography>
           {!assetId && (
             <FormControl size="small" fullWidth>
               <InputLabel id="fin-global-asset">Asset</InputLabel>
@@ -1305,37 +1637,112 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
 
           <input type="hidden" {...register('category')} />
 
-          <TextField
-            label="Name"
-            size="small"
-            error={Boolean(errors.name)}
-            helperText={errors.name?.message}
-            {...register('name')}
-            slotProps={{
-              input: {
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <Box
-                      component="button"
-                      type="button"
-                      onClick={e => setColorPickerAnchor(e.currentTarget)}
-                      aria-label="Color"
-                      sx={{
-                        width: 22,
-                        height: 22,
-                        borderRadius: '50%',
-                        bgcolor: EVENT_COLORS.find(c => c.value === financeColor)?.hex ?? financeColor,
-                        cursor: 'pointer',
-                        p: 0,
-                        border: 'none',
-                        boxShadow: '0 0 2px',
-                      }}
-                    />
-                  </InputAdornment>
-                ),
-              },
-            }}
-          />
+          <Stack direction="row" spacing={1}>
+            <FormControl size="small" sx={{ flex: 1 }} error={Boolean(errors.name)}>
+              <InputLabel id="finance-name-label">Entry type</InputLabel>
+              <Controller
+                name="name"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    {...field}
+                    labelId="finance-name-label"
+                    label="Entry type"
+                    onChange={(event) => {
+                      const nextName = String(event.target.value);
+                      field.onChange(nextName);
+                      const matched = categoryOptions.find(opt => opt.defaults.name === nextName);
+                      if (matched) {
+                        setValue('category', matched.key, { shouldValidate: true, shouldDirty: true });
+                        setValue('kind', matched.defaults.kind, { shouldValidate: true, shouldDirty: true });
+                        setValue('flow', matched.defaults.flow, { shouldValidate: true, shouldDirty: true });
+                      }
+                    }}
+                  >
+                    {categoryOptions.map(opt => (
+                      <MenuItem key={opt.key} value={opt.defaults.name}>{opt.label}</MenuItem>
+                    ))}
+                  </Select>
+                )}
+              />
+            </FormControl>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={e => setColorPickerAnchor(e.currentTarget)}
+              sx={{ minWidth: 40, px: 0 }}
+              aria-label="Color"
+            >
+              <Box
+                sx={{
+                  width: 18,
+                  height: 18,
+                  borderRadius: '50%',
+                  bgcolor: EVENT_COLORS.find(c => c.value === financeColor)?.hex ?? financeColor,
+                  boxShadow: '0 0 2px',
+                }}
+              />
+            </Button>
+          </Stack>
+
+          <Stack spacing={0.75}>
+            <Typography variant="caption" color="text.secondary">
+              Upload
+              {' '}
+              {uploadContext.attachmentNoun}
+              {' '}
+              first, then complete the entry manually.
+            </Typography>
+            <Box
+              data-upload-category={uploadContext.category ?? ''}
+              data-upload-ai-hint={uploadContext.aiHint}
+              onDrop={e => void handleDropUpload(e, 'form')}
+              onDragOver={e => dragOverUpload(e, 'form')}
+              onDragLeave={e => dragLeaveUpload(e, 'form')}
+              sx={{
+                p: 1.5,
+                border: '1px dashed',
+                borderColor: 'primary.main',
+                bgcolor: formDropzoneActive ? alpha(theme.palette.primary.main, 0.1) : alpha(theme.palette.primary.main, 0.03),
+                borderRadius: 1.5,
+                transition: 'background-color 120ms ease, border-color 120ms ease',
+              }}
+            >
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                Drag and drop
+                {' '}
+                {uploadContext.attachmentNoun}
+                {' '}
+                (PDF) here.
+              </Typography>
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<UploadFileIcon />}
+                disabled={!resolvedAssetIdForScope}
+                onClick={() => formAttachmentInputRef.current?.click()}
+              >
+                Select File
+              </Button>
+              <input
+                ref={formAttachmentInputRef}
+                type="file"
+                accept="application/pdf"
+                hidden
+                onChange={handleFilePick}
+              />
+            </Box>
+            {!resolvedAssetIdForScope && (
+              <Typography variant="caption" color="text.secondary">
+                Select an asset first to upload attachments.
+              </Typography>
+            )}
+            <Stack direction="row" flexWrap="wrap" gap={0.5}>
+              {attachmentsDraft.map(att => (
+                <Chip key={att.id} size="small" label={att.name} onDelete={() => setAttachmentsDraft(prev => prev.filter(a => a.id !== att.id))} />
+              ))}
+            </Stack>
+          </Stack>
 
           <Popover
             open={Boolean(colorPickerAnchor)}
@@ -1405,35 +1812,37 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
             </Box>
           </Popover>
 
-          <Stack direction="row" spacing={1}>
-            <FormControl size="small" sx={{ flex: 1 }}>
-              <InputLabel id="finance-kind-label">Type</InputLabel>
-              <Controller
-                name="kind"
-                control={control}
-                render={({ field }) => (
-                  <Select {...field} labelId="finance-kind-label" label="Type">
-                    <MenuItem value="one_time">One-time</MenuItem>
-                    <MenuItem value="recurring">Recurring</MenuItem>
-                    <MenuItem value="manual_recurring">Manual recurring</MenuItem>
-                  </Select>
-                )}
-              />
-            </FormControl>
-            <FormControl size="small" sx={{ flex: 1 }}>
-              <InputLabel id="finance-flow-label">Flow</InputLabel>
-              <Controller
-                name="flow"
-                control={control}
-                render={({ field }) => (
-                  <Select {...field} labelId="finance-flow-label" label="Flow">
-                    <MenuItem value="income">Income</MenuItem>
-                    <MenuItem value="expense">Expense</MenuItem>
-                  </Select>
-                )}
-              />
-            </FormControl>
-          </Stack>
+          {selectedCategory !== 'finance_agreement' && (
+            <Stack direction="row" spacing={1}>
+              <FormControl size="small" sx={{ flex: 1 }}>
+                <InputLabel id="finance-kind-label">Type</InputLabel>
+                <Controller
+                  name="kind"
+                  control={control}
+                  render={({ field }) => (
+                    <Select {...field} labelId="finance-kind-label" label="Type">
+                      <MenuItem value="one_time">One-time</MenuItem>
+                      <MenuItem value="recurring">Recurring</MenuItem>
+                      <MenuItem value="manual_recurring">Manual recurring</MenuItem>
+                    </Select>
+                  )}
+                />
+              </FormControl>
+              <FormControl size="small" sx={{ flex: 1 }}>
+                <InputLabel id="finance-flow-label">Flow</InputLabel>
+                <Controller
+                  name="flow"
+                  control={control}
+                  render={({ field }) => (
+                    <Select {...field} labelId="finance-flow-label" label="Flow">
+                      <MenuItem value="income">Income</MenuItem>
+                      <MenuItem value="expense">Expense</MenuItem>
+                    </Select>
+                  )}
+                />
+              </FormControl>
+            </Stack>
+          )}
 
           <TextField
             label={kind === 'manual_recurring' ? 'Template amount (optional)' : 'Amount'}
@@ -1442,23 +1851,207 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
             inputProps={{ min: 0, step: 0.01 }}
             error={Boolean(errors.amount)}
             helperText={errors.amount?.message}
+            disabled={selectedCategory === 'finance_agreement'}
+            sx={selectedCategory === 'finance_agreement' ? { display: 'none' } : undefined}
+            slotProps={{
+              input: {
+                startAdornment: <InputAdornment position="start">{selectedCurrencySymbol}</InputAdornment>,
+              },
+            }}
             {...register('amount', { valueAsNumber: true })}
           />
 
-          {kind === 'one_time'
-            ? (
+          {selectedCategory === 'finance_agreement' && (
+            <>
+              <TextField
+                label="Provider"
+                size="small"
+                error={Boolean(errors.financeProvider)}
+                helperText={errors.financeProvider?.message}
+                {...register('financeProvider')}
+              />
+              <TextField
+                label="Start date"
+                type="date"
+                size="small"
+                slotProps={{ inputLabel: { shrink: true } }}
+                error={Boolean(errors.recurringStart)}
+                helperText={errors.recurringStart?.message}
+                {...register('recurringStart')}
+              />
+              <Stack direction="row" spacing={1}>
                 <TextField
-                  label="Date"
-                  type="date"
+                  label="Total cash price"
+                  type="number"
                   size="small"
-                  slotProps={{ inputLabel: { shrink: true } }}
-                  error={Boolean(errors.effectiveDate)}
-                  helperText={errors.effectiveDate?.message}
-                  {...register('effectiveDate')}
+                  inputProps={{ min: 0, step: 0.01 }}
+                  error={Boolean(errors.totalCashPrice)}
+                  helperText={errors.totalCashPrice?.message}
+                  slotProps={{
+                    input: {
+                      startAdornment: <InputAdornment position="start">{selectedCurrencySymbol}</InputAdornment>,
+                    },
+                  }}
+                  {...register('totalCashPrice', { valueAsNumber: true })}
+                  sx={{ flex: 1 }}
                 />
-              )
-            : (
-                <>
+                <TextField
+                  label="Advance payments"
+                  type="number"
+                  size="small"
+                  inputProps={{ min: 0, step: 0.01 }}
+                  error={Boolean(errors.advancePayments)}
+                  helperText={errors.advancePayments?.message}
+                  slotProps={{
+                    input: {
+                      startAdornment: <InputAdornment position="start">{selectedCurrencySymbol}</InputAdornment>,
+                    },
+                  }}
+                  {...register('advancePayments', { valueAsNumber: true })}
+                  sx={{ flex: 1 }}
+                />
+              </Stack>
+              <Stack direction="row" spacing={1}>
+                <TextField
+                  label="Duration (months)"
+                  type="number"
+                  size="small"
+                  inputProps={{ min: 1, step: 1 }}
+                  error={Boolean(errors.durationMonths)}
+                  helperText={errors.durationMonths?.message}
+                  {...register('durationMonths', { valueAsNumber: true })}
+                  sx={{ flex: 1 }}
+                />
+                <FormControl size="small" sx={{ flex: 1 }}>
+                  <InputLabel id="finance-frequency-label">Frequency</InputLabel>
+                  <Controller
+                    name="financeFrequency"
+                    control={control}
+                    render={({ field }) => (
+                      <Select {...field} labelId="finance-frequency-label" label="Frequency">
+                        <MenuItem value="monthly">Monthly</MenuItem>
+                      </Select>
+                    )}
+                  />
+                </FormControl>
+              </Stack>
+              <Stack direction="row" spacing={1}>
+                <TextField
+                  label="Interest rate (%)"
+                  type="number"
+                  size="small"
+                  inputProps={{ min: 0, step: 0.01 }}
+                  {...register('interestRate', { valueAsNumber: true })}
+                  sx={{ flex: 1 }}
+                />
+                <TextField
+                  label="Acceptance fee"
+                  type="number"
+                  size="small"
+                  inputProps={{ min: 0, step: 0.01 }}
+                  {...register('acceptanceFee', { valueAsNumber: true })}
+                  slotProps={{
+                    input: {
+                      startAdornment: <InputAdornment position="start">{selectedCurrencySymbol}</InputAdornment>,
+                    },
+                  }}
+                  sx={{ flex: 1 }}
+                />
+              </Stack>
+              <TextField
+                label="Title transfer fee"
+                type="number"
+                size="small"
+                inputProps={{ min: 0, step: 0.01 }}
+                {...register('titleTransferFee', { valueAsNumber: true })}
+                slotProps={{
+                  input: {
+                    startAdornment: <InputAdornment position="start">{selectedCurrencySymbol}</InputAdornment>,
+                  },
+                }}
+              />
+              <Typography variant="caption" color="text.secondary">
+                Auto-calculated fields
+              </Typography>
+              <TextField
+                label="Amount"
+                type="number"
+                size="small"
+                inputProps={{ min: 0, step: 0.01 }}
+                {...register('amount', { valueAsNumber: true })}
+                slotProps={{
+                  input: {
+                    readOnly: true,
+                    startAdornment: <InputAdornment position="start">{selectedCurrencySymbol}</InputAdornment>,
+                  },
+                }}
+              />
+              <Stack direction="row" spacing={1}>
+                <TextField
+                  label="Amount of credit"
+                  type="number"
+                  size="small"
+                  inputProps={{ min: 0, step: 0.01 }}
+                  {...register('amountOfCredit', { valueAsNumber: true })}
+                  slotProps={{
+                    input: {
+                      readOnly: true,
+                      startAdornment: <InputAdornment position="start">{selectedCurrencySymbol}</InputAdornment>,
+                    },
+                  }}
+                  sx={{ flex: 1 }}
+                />
+                <TextField
+                  label="Interest charges"
+                  type="number"
+                  size="small"
+                  inputProps={{ min: 0, step: 0.01 }}
+                  {...register('interestCharges', { valueAsNumber: true })}
+                  slotProps={{
+                    input: {
+                      readOnly: true,
+                      startAdornment: <InputAdornment position="start">{selectedCurrencySymbol}</InputAdornment>,
+                    },
+                  }}
+                  sx={{ flex: 1 }}
+                />
+              </Stack>
+              <Stack direction="row" spacing={1}>
+                <TextField
+                  label="Total charge for credit"
+                  type="number"
+                  size="small"
+                  inputProps={{ min: 0, step: 0.01 }}
+                  {...register('totalChargeForCredit', { valueAsNumber: true })}
+                  slotProps={{
+                    input: {
+                      readOnly: true,
+                      startAdornment: <InputAdornment position="start">{selectedCurrencySymbol}</InputAdornment>,
+                    },
+                  }}
+                  sx={{ flex: 1 }}
+                />
+                <TextField
+                  label="Total amount payable"
+                  type="number"
+                  size="small"
+                  inputProps={{ min: 0, step: 0.01 }}
+                  {...register('totalAmountPayable', { valueAsNumber: true })}
+                  slotProps={{
+                    input: {
+                      readOnly: true,
+                      startAdornment: <InputAdornment position="start">{selectedCurrencySymbol}</InputAdornment>,
+                    },
+                  }}
+                  sx={{ flex: 1 }}
+                />
+              </Stack>
+            </>
+          )}
+
+          {selectedCategory !== 'finance_agreement' && (
+            kind !== 'one_time'
+              ? (
                   <TextField
                     label="Recurring start"
                     type="date"
@@ -1468,17 +2061,31 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
                     helperText={errors.recurringStart?.message}
                     {...register('recurringStart')}
                   />
+                )
+              : (
                   <TextField
-                    label="Recurring end (optional)"
+                    label="Date"
                     type="date"
                     size="small"
                     slotProps={{ inputLabel: { shrink: true } }}
-                    error={Boolean(errors.recurringEnd)}
-                    helperText={errors.recurringEnd?.message}
-                    {...register('recurringEnd')}
+                    error={Boolean(errors.effectiveDate)}
+                    helperText={errors.effectiveDate?.message}
+                    {...register('effectiveDate')}
                   />
-                </>
-              )}
+                )
+          )}
+
+          {selectedCategory !== 'finance_agreement' && kind !== 'one_time' && (
+            <TextField
+              label="Recurring end (optional)"
+              type="date"
+              size="small"
+              slotProps={{ inputLabel: { shrink: true } }}
+              error={Boolean(errors.recurringEnd)}
+              helperText={errors.recurringEnd?.message}
+              {...register('recurringEnd')}
+            />
+          )}
 
           {kind === 'manual_recurring' && (
             <>
@@ -1487,7 +2094,9 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
                 {' '}
                 {selectedYear}
                 {' '}
-                (GBP, optional per month)
+                (
+                {selectedCurrency}
+                , optional per month)
               </Typography>
               <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 1 }}>
                 {MONTH_LABELS.map((label, m) => (
@@ -1506,7 +2115,12 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
                         return next;
                       });
                     }}
-                    slotProps={{ inputLabel: { shrink: true } }}
+                    slotProps={{
+                      inputLabel: { shrink: true },
+                      input: {
+                        startAdornment: <InputAdornment position="start">{selectedCurrencySymbol}</InputAdornment>,
+                      },
+                    }}
                   />
                 ))}
               </Box>
@@ -1522,6 +2136,11 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
                     type="number"
                     size="small"
                     {...register('initialAmount', { valueAsNumber: true })}
+                    slotProps={{
+                      input: {
+                        startAdornment: <InputAdornment position="start">{selectedCurrencySymbol}</InputAdornment>,
+                      },
+                    }}
                     sx={{ flex: 1 }}
                   />
                   <TextField
@@ -1536,18 +2155,6 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
               )}
             </>
           )}
-
-          <Stack spacing={0.5}>
-            <Button variant="outlined" component="label" size="small" disabled={!resolvedAssetIdForScope}>
-              Attach PDF
-              <input type="file" accept="application/pdf" hidden onChange={handleFilePick} />
-            </Button>
-            <Stack direction="row" flexWrap="wrap" gap={0.5}>
-              {attachmentsDraft.map(att => (
-                <Chip key={att.id} size="small" label={att.name} onDelete={() => setAttachmentsDraft(prev => prev.filter(a => a.id !== att.id))} />
-              ))}
-            </Stack>
-          </Stack>
 
           <Stack direction="row" justifyContent="flex-end" spacing={1} sx={{ pt: 1 }}>
             <Button

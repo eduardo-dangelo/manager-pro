@@ -78,6 +78,27 @@
       "when": 1776504728124,
       "tag": "0010_cultured_electro",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1777017600000,
+      "tag": "0011_smart_finance_agreement",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1777018200000,
+      "tag": "0012_add_user_currency_preference",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1777020000000,
+      "tag": "0013_cleanup_invalid_finance_agreements",
+      "breakpoints": true
     }
   ]
 }

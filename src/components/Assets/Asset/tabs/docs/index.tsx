@@ -2,8 +2,10 @@
 
 import type { FilePreviewItem } from '../FilePreviewPopover';
 import type { FileItem, FolderItem } from '../types';
-import { Add as AddIcon } from '@mui/icons-material';
-import { Box, Button, Typography } from '@mui/material';
+import { UploadFile as UploadFileIcon } from '@mui/icons-material';
+import { alpha, useTheme } from '@mui/material/styles';
+import { Box, Button, CircularProgress, Typography } from '@mui/material';
+import Image from 'next/image';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useRef, useState } from 'react';
@@ -34,6 +36,7 @@ type DocsTabContentProps = {
 
 export function DocsTabContent({ asset, locale }: DocsTabContentProps) {
   const t = useTranslations('Assets');
+  const theme = useTheme();
   const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -57,6 +60,7 @@ export function DocsTabContent({ asset, locale }: DocsTabContentProps) {
   const [movePopoverItemType, setMovePopoverItemType] = useState<'file' | 'folder' | null>(null);
   const movePopoverCloseDropdownRef = useRef<(() => void) | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [emptyDropzoneActive, setEmptyDropzoneActive] = useState(false);
   const rowDropdownRefs = useRef<Record<string, HTMLElement>>({});
   const folderDropdownRefs = useRef<Record<string, HTMLElement>>({});
 
@@ -98,12 +102,8 @@ export function DocsTabContent({ asset, locale }: DocsTabContentProps) {
     [asset.metadata, updateMutation],
   );
 
-  const handleUpload = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file) {
-        return;
-      }
+  const uploadDocsFile = useCallback(
+    async (file: File) => {
       try {
         const data = await uploadMutation.mutateAsync({ file, type: 'docs' });
         const newFile: FileItem = { ...data, folderId: currentFolderId };
@@ -111,12 +111,48 @@ export function DocsTabContent({ asset, locale }: DocsTabContentProps) {
         updateDocsMetadata(folders, newFiles, { skipActivityLog: true });
       } catch (error) {
         console.error('Docs upload error:', error);
-      } finally {
-        e.target.value = '';
       }
     },
     [currentFolderId, files, folders, uploadMutation, updateDocsMetadata],
   );
+
+  const handleUpload = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) {
+        return;
+      }
+      await uploadDocsFile(file);
+      e.target.value = '';
+    },
+    [uploadDocsFile],
+  );
+
+  const handleDropUpload = useCallback(
+    (e: React.DragEvent<HTMLElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setEmptyDropzoneActive(false);
+      const file = e.dataTransfer.files?.[0];
+      if (!file) {
+        return;
+      }
+      void uploadDocsFile(file);
+    },
+    [uploadDocsFile],
+  );
+
+  const dragOverUpload = useCallback((e: React.DragEvent<HTMLElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setEmptyDropzoneActive(true);
+  }, []);
+
+  const dragLeaveUpload = useCallback((e: React.DragEvent<HTMLElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setEmptyDropzoneActive(false);
+  }, []);
 
   const handleBack = useCallback(() => {
     if (currentFolderId === null) {
@@ -372,27 +408,50 @@ export function DocsTabContent({ asset, locale }: DocsTabContentProps) {
 
       {isEmpty
         ? (
-            <Box
-              sx={{
-                py: 8,
-                textAlign: 'center',
-                color: 'text.secondary',
-                border: '2px dashed',
-                borderColor: 'divider',
-                borderRadius: 2,
-              }}
-            >
-              <Typography variant="body1" sx={{ mb: 2 }}>
+            <Box sx={{ py: 6, px: 2, textAlign: 'center' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1.5 }}>
+                <Image
+                  src="/assets/images/undraw_folder-files_5www.svg"
+                  alt="Documents illustration"
+                  width={280}
+                  height={186}
+                  style={{ width: '100%', maxWidth: 280, height: 'auto' }}
+                  priority={false}
+                />
+              </Box>
+              <Typography variant="h6" sx={{ mb: 1 }}>
+                No docs data
+              </Typography>
+              <Typography color="text.secondary" sx={{ mb: 2 }}>
                 {t('docs_empty')}
               </Typography>
-              <Button
-                variant="outlined"
-                startIcon={<AddIcon />}
-                onClick={() => inputRef.current?.click()}
-                disabled={uploading}
+              <Box
+                onDrop={handleDropUpload}
+                onDragOver={dragOverUpload}
+                onDragLeave={dragLeaveUpload}
+                sx={{
+                  p: 2.5,
+                  border: '1px dashed',
+                  borderColor: 'primary.main',
+                  bgcolor: emptyDropzoneActive ? alpha(theme.palette.primary.main, 0.1) : alpha(theme.palette.primary.main, 0.03),
+                  borderRadius: 1.5,
+                  transition: 'background-color 120ms ease',
+                }}
               >
-                {t('docs_upload')}
-              </Button>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  Drop PDF files here, or choose a file.
+                </Typography>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={uploading ? <CircularProgress size={16} color="inherit" /> : <UploadFileIcon />}
+                  onClick={() => inputRef.current?.click()}
+                  disabled={uploading}
+                  sx={{ textTransform: 'none' }}
+                >
+                  Select File
+                </Button>
+              </Box>
             </Box>
           )
         : (

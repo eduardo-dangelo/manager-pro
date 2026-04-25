@@ -71,6 +71,7 @@ export const POST = async (request: Request) => {
       initialEffectiveDate,
       manualAmounts: manualAmountsInput,
       attachments,
+      financeAgreement,
       ...rest
     } = parse.data;
 
@@ -92,6 +93,7 @@ export const POST = async (request: Request) => {
       color: rest.color ?? null,
       manualAmounts: manualAmountsMerged,
       attachments: attachments ?? null,
+      financeAgreement: financeAgreement ?? null,
       effectiveDate: rest.effectiveDate ? new Date(rest.effectiveDate) : null,
       recurringFrequency: rest.recurringFrequency ?? null,
       recurringStart: rest.recurringStart ? new Date(rest.recurringStart) : null,

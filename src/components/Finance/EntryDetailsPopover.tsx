@@ -6,9 +6,10 @@ import {
   EditOutlined as EditIcon,
 } from '@mui/icons-material';
 import { Box, IconButton, Stack, Typography } from '@mui/material';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Popover } from '@/components/common/Popover';
-import { categoryLabel } from '@/components/Finance/financeEntryCategories';
+import { attachmentNounForCategory, categoryLabel } from '@/components/Finance/financeEntryCategories';
+import { useGetUserPreferences } from '@/queries/hooks/users';
 
 type EntryDetailsPopoverProps = {
   open: boolean;
@@ -20,8 +21,8 @@ type EntryDetailsPopoverProps = {
   onDeleteClick: (anchorEl: HTMLElement) => void;
 };
 
-function formatCurrency(amountCents: number) {
-  return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(amountCents / 100);
+function formatCurrency(amountCents: number, currency: string) {
+  return new Intl.NumberFormat('en-GB', { style: 'currency', currency }).format(amountCents / 100);
 }
 
 function formatDateString(value: string | null) {
@@ -41,6 +42,10 @@ function kindLabel(kind: FinanceEntryData['kind']) {
   return 'Manual recurring';
 }
 
+function formatPercent(value: number) {
+  return `${value.toFixed(2)}%`;
+}
+
 export function EntryDetailsPopover({
   open,
   anchorEl,
@@ -51,10 +56,15 @@ export function EntryDetailsPopover({
   onDeleteClick,
 }: EntryDetailsPopoverProps) {
   const t = useTranslations('Assets');
+  const locale = useLocale();
+  const { data: userPreferences } = useGetUserPreferences(locale);
+  const selectedCurrency = userPreferences?.currency ?? 'GBP';
 
   if (!entry) {
     return null;
   }
+  const attachmentNoun = attachmentNounForCategory(entry.category);
+  const attachmentLabel = attachmentNoun.charAt(0).toUpperCase() + attachmentNoun.slice(1);
 
   return (
     <Popover
@@ -104,7 +114,7 @@ export function EntryDetailsPopover({
           </Box>
           <Box>
             <Typography variant="caption" color="text.secondary">Amount</Typography>
-            <Typography variant="body2">{formatCurrency(entry.amountCents)}</Typography>
+            <Typography variant="body2">{formatCurrency(entry.amountCents, selectedCurrency)}</Typography>
           </Box>
           <Box>
             <Typography variant="caption" color="text.secondary">Date range</Typography>
@@ -115,9 +125,63 @@ export function EntryDetailsPopover({
             </Typography>
           </Box>
           <Box>
-            <Typography variant="caption" color="text.secondary">Attachments</Typography>
+            <Typography variant="caption" color="text.secondary">{attachmentLabel}</Typography>
             <Typography variant="body2">{(entry.attachments ?? []).length}</Typography>
           </Box>
+          {entry.category === 'finance_agreement' && entry.financeAgreement && (
+            <>
+              <Box>
+                <Typography variant="caption" color="text.secondary">Provider</Typography>
+                <Typography variant="body2">{entry.financeAgreement.provider}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" color="text.secondary">Total cash price</Typography>
+                <Typography variant="body2">{formatCurrency(entry.financeAgreement.totalCashPriceCents, selectedCurrency)}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" color="text.secondary">Advance payments</Typography>
+                <Typography variant="body2">{formatCurrency(entry.financeAgreement.advancePaymentsCents, selectedCurrency)}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" color="text.secondary">Duration</Typography>
+                <Typography variant="body2">
+                  {entry.financeAgreement.durationMonths}
+                  {' '}
+                  months (
+                  {entry.financeAgreement.frequency}
+                  )
+                </Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" color="text.secondary">Amount of credit</Typography>
+                <Typography variant="body2">{formatCurrency(entry.financeAgreement.amountOfCreditCents, selectedCurrency)}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" color="text.secondary">Interest charges</Typography>
+                <Typography variant="body2">{formatCurrency(entry.financeAgreement.interestChargesCents, selectedCurrency)}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" color="text.secondary">Acceptance fee</Typography>
+                <Typography variant="body2">{formatCurrency(entry.financeAgreement.acceptanceFeeCents, selectedCurrency)}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" color="text.secondary">Title transfer fee</Typography>
+                <Typography variant="body2">{formatCurrency(entry.financeAgreement.titleTransferFeeCents, selectedCurrency)}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" color="text.secondary">Total charge for credit</Typography>
+                <Typography variant="body2">{formatCurrency(entry.financeAgreement.totalChargeForCreditCents, selectedCurrency)}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" color="text.secondary">Total amount payable</Typography>
+                <Typography variant="body2">{formatCurrency(entry.financeAgreement.totalAmountPayableCents, selectedCurrency)}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" color="text.secondary">Interest rate</Typography>
+                <Typography variant="body2">{formatPercent(entry.financeAgreement.interestRatePercent)}</Typography>
+              </Box>
+            </>
+          )}
         </Stack>
       </Box>
     </Popover>

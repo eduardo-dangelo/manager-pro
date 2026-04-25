@@ -7,6 +7,7 @@ import { userKeys } from '@/queries/keys';
 export type UpdateUserPreferencesInput = Partial<{
   theme: string;
   hoverSoundEnabled: string;
+  currency: string;
 }>;
 
 export function useUpdateUserPreferences(locale: string) {

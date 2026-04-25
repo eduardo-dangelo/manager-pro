@@ -20,6 +20,7 @@ export async function GET() {
     return NextResponse.json({
       theme: user.theme || 'light',
       hoverSoundEnabled: user.hoverSoundEnabled || 'true',
+      currency: user.currency || 'GBP',
     });
   } catch (error) {
     console.error('Error fetching user preferences:', error);
@@ -36,10 +37,11 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { theme, hoverSoundEnabled } = body;
+    const { theme, hoverSoundEnabled, currency } = body;
 
     const validThemes = ['light', 'dark', 'system'];
     const validHoverSoundEnabled = ['true', 'false'];
+    const validCurrencies = ['GBP', 'EUR', 'USD'];
 
     if (theme && !validThemes.includes(theme)) {
       return NextResponse.json({ error: 'Invalid theme' }, { status: 400 });
@@ -48,6 +50,9 @@ export async function PATCH(request: NextRequest) {
     if (hoverSoundEnabled && !validHoverSoundEnabled.includes(hoverSoundEnabled)) {
       return NextResponse.json({ error: 'Invalid hover sound enabled value' }, { status: 400 });
     }
+    if (currency && !validCurrencies.includes(currency)) {
+      return NextResponse.json({ error: 'Invalid currency' }, { status: 400 });
+    }
 
     const updateData: Record<string, string> = {};
     if (theme) {
@@ -55,6 +60,9 @@ export async function PATCH(request: NextRequest) {
     }
     if (hoverSoundEnabled) {
       updateData.hoverSoundEnabled = hoverSoundEnabled;
+    }
+    if (currency) {
+      updateData.currency = currency;
     }
 
     if (Object.keys(updateData).length === 0) {
@@ -72,6 +80,7 @@ export async function PATCH(request: NextRequest) {
       preferences: {
         theme: updatedUser.theme,
         hoverSoundEnabled: updatedUser.hoverSoundEnabled,
+        currency: updatedUser.currency,
       },
     });
   } catch (error) {

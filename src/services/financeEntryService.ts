@@ -13,6 +13,21 @@ export type FinanceEntryCreatePayload = {
   color?: string | null;
   manualAmounts?: Record<string, number> | null;
   attachments?: Array<{ id: string; name: string; url: string }> | null;
+  financeAgreement?: {
+    provider: string;
+    totalCashPriceCents: number;
+    advancePaymentsCents: number;
+    durationMonths: number;
+    frequency: 'monthly';
+    amountCents: number;
+    amountOfCreditCents: number;
+    interestChargesCents: number;
+    acceptanceFeeCents: number;
+    titleTransferFeeCents: number;
+    totalChargeForCreditCents: number;
+    totalAmountPayableCents: number;
+    interestRatePercent: number;
+  } | null;
   effectiveDate?: Date | null;
   recurringFrequency?: 'monthly' | null;
   recurringStart?: Date | null;
@@ -65,6 +80,7 @@ export class FinanceEntryService {
         color: data.color ?? null,
         manualAmounts: data.manualAmounts ?? null,
         attachments: data.attachments ?? null,
+        financeAgreement: data.financeAgreement ?? null,
         effectiveDate: data.effectiveDate ?? null,
         recurringFrequency: data.recurringFrequency ?? null,
         recurringStart: data.recurringStart ?? null,
@@ -127,6 +143,9 @@ export class FinanceEntryService {
     if (updates.attachments !== undefined) {
       updateData.attachments = updates.attachments;
     }
+    if (updates.financeAgreement !== undefined) {
+      updateData.financeAgreement = updates.financeAgreement;
+    }
     if (updates.effectiveDate !== undefined) {
       updateData.effectiveDate = updates.effectiveDate;
     }
@@ -164,7 +183,8 @@ export class FinanceEntryService {
       return null;
     }
 
-    if (existing.attachments?.length) {
+    const existingAttachments = Array.isArray(existing.attachments) ? existing.attachments : [];
+    if (existingAttachments.length > 0) {
       await AssetService.syncFinanceAttachmentsToAssetDocs(
         existing.assetId,
         userId,

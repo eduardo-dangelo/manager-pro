@@ -1,6 +1,9 @@
 export { Asset, type AssetData, type AssetMetadata, type MaintenanceItem, type MileagePoint, type MotTaxStatus, type MotTest, type StatusColors } from './Asset';
 export { CalendarEvent, type CalendarEventData, type EventReminders, type ReminderRow, type ReminderUnit } from './CalendarEvent';
 export {
+  FINANCE_ENTRY_CATEGORIES,
+  type FinanceEntryCategory,
+  type FinanceAgreementDetails,
   type FinanceEntryAttachment,
   type FinanceEntryData,
   type FinanceEntryFlow,

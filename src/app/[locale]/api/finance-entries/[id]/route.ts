@@ -53,6 +53,9 @@ export const PATCH = async (
     if (d.attachments !== undefined) {
       updates.attachments = d.attachments;
     }
+    if (d.financeAgreement !== undefined) {
+      updates.financeAgreement = d.financeAgreement;
+    }
     if (d.effectiveDate !== undefined) {
       updates.effectiveDate = d.effectiveDate ? new Date(d.effectiveDate) : null;
     }

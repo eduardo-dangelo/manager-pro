@@ -9,6 +9,7 @@ import {
   DeleteOutlined as DeleteIcon,
   Download as DownloadIcon,
   FileUploadOutlined as FileUploadOutlinedIcon,
+  UploadFile as UploadFileIcon,
   ViewModule as LargeIcon,
   ViewModule as MediumIcon,
   ViewModule as SmallIcon,
@@ -26,7 +27,8 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
+import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { Popover } from '@/components/common/Popover';
@@ -95,6 +97,7 @@ export function GalleryTab({ asset, locale, onUpdateAsset: _onUpdateAsset }: Gal
   const [previewItem, setPreviewItem] = useState<FilePreviewItem | null>(null);
   const [deleteConfirmAnchor, setDeleteConfirmAnchor] = useState<HTMLElement | null>(null);
   const [deleteConfirmItem, setDeleteConfirmItem] = useState<FileItem | null>(null);
+  const [emptyDropzoneActive, setEmptyDropzoneActive] = useState(false);
 
   const { folders, files } = useMemo(
     () => normalizeGalleryMetadata(asset.metadata?.gallery),
@@ -120,13 +123,8 @@ export function GalleryTab({ asset, locale, onUpdateAsset: _onUpdateAsset }: Gal
     [asset.metadata, updateMutation],
   );
 
-  const handleUpload = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file) {
-        return;
-      }
-
+  const uploadGalleryFile = useCallback(
+    async (file: File) => {
       try {
         const data = await uploadMutation.mutateAsync({ file, type: 'gallery' });
         const newFile: FileItem = { ...data, folderId: null };
@@ -134,12 +132,48 @@ export function GalleryTab({ asset, locale, onUpdateAsset: _onUpdateAsset }: Gal
         updateGalleryMetadata(folders, newFiles, { skipActivityLog: true });
       } catch (error) {
         console.error('Gallery upload error:', error);
-      } finally {
-        e.target.value = '';
       }
     },
     [files, folders, uploadMutation, updateGalleryMetadata],
   );
+
+  const handleUpload = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) {
+        return;
+      }
+      await uploadGalleryFile(file);
+      e.target.value = '';
+    },
+    [uploadGalleryFile],
+  );
+
+  const handleDropUpload = useCallback(
+    (e: React.DragEvent<HTMLElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setEmptyDropzoneActive(false);
+      const file = e.dataTransfer.files?.[0];
+      if (!file) {
+        return;
+      }
+      void uploadGalleryFile(file);
+    },
+    [uploadGalleryFile],
+  );
+
+  const dragOverUpload = useCallback((e: React.DragEvent<HTMLElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setEmptyDropzoneActive(true);
+  }, []);
+
+  const dragLeaveUpload = useCallback((e: React.DragEvent<HTMLElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setEmptyDropzoneActive(false);
+  }, []);
 
   const handleImageClick = (_e: React.MouseEvent<HTMLElement>, item: FilePreviewItem) => {
     setPreviewItem(item);
@@ -314,30 +348,50 @@ export function GalleryTab({ asset, locale, onUpdateAsset: _onUpdateAsset }: Gal
 
       {isEmpty
         ? (
-            <Box
-              sx={{
-                py: 8,
-                textAlign: 'center',
-                color: 'text.secondary',
-                border: '2px dashed',
-                borderColor: 'divider',
-                borderRadius: 2,
-              }}
-            >
-              <Typography variant="body1" sx={{ mb: 2 }}>
+            <Box sx={{ py: 6, px: 2, textAlign: 'center' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1.5 }}>
+                <Image
+                  src="/assets/images/undraw_moments_4a32.svg"
+                  alt="Gallery illustration"
+                  width={280}
+                  height={285}
+                  style={{ width: '100%', maxWidth: 280, height: 'auto' }}
+                  priority={false}
+                />
+              </Box>
+              <Typography variant="h6" sx={{ mb: 1 }}>
+                No gallery data
+              </Typography>
+              <Typography color="text.secondary" sx={{ mb: 2 }}>
                 {t('gallery_empty')}
               </Typography>
-              <Button
-                variant="contained"
-                size="small"
-                disableElevation
-                startIcon={uploading ? <CircularProgress size={16} color="inherit" /> : <FileUploadOutlinedIcon />}
-                onClick={() => inputRef.current?.click()}
-                disabled={uploading}
-                sx={{ textTransform: 'none' }}
+              <Box
+                onDrop={handleDropUpload}
+                onDragOver={dragOverUpload}
+                onDragLeave={dragLeaveUpload}
+                sx={{
+                  p: 2.5,
+                  border: '1px dashed',
+                  borderColor: 'primary.main',
+                  bgcolor: emptyDropzoneActive ? alpha(theme.palette.primary.main, 0.1) : alpha(theme.palette.primary.main, 0.03),
+                  borderRadius: 1.5,
+                  transition: 'background-color 120ms ease',
+                }}
               >
-                {t('docs_upload')}
-              </Button>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  Drop images here, or choose a file.
+                </Typography>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={uploading ? <CircularProgress size={16} color="inherit" /> : <UploadFileIcon />}
+                  onClick={() => inputRef.current?.click()}
+                  disabled={uploading}
+                  sx={{ textTransform: 'none' }}
+                >
+                  Select File
+                </Button>
+              </Box>
             </Box>
           )
         : (

@@ -1,6 +1,6 @@
 'use client';
 
-import type { FinanceEntryData, FinanceManualAmounts } from '@/entities';
+import type { FinanceEntryCategory, FinanceEntryData, FinanceManualAmounts } from '@/entities';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { assetKeys, financeEntryKeys } from '@/queries/keys';
 
@@ -10,10 +10,11 @@ export type CreateFinanceEntryInput = {
   kind: FinanceEntryData['kind'];
   flow: FinanceEntryData['flow'];
   amountCents: number;
-  category?: string | null;
+  category?: FinanceEntryCategory | null;
   color?: string | null;
   manualAmounts?: FinanceManualAmounts | null;
   attachments?: FinanceEntryData['attachments'];
+  financeAgreement?: FinanceEntryData['financeAgreement'];
   effectiveDate?: string | Date | null;
   recurringFrequency?: 'monthly' | null;
   recurringStart?: string | Date | null;

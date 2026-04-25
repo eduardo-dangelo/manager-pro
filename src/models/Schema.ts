@@ -38,6 +38,7 @@ export const usersSchema = pgTable('users', {
     .notNull(),
   theme: text('theme').notNull().default('system'),
   hoverSoundEnabled: text('hover_sound_enabled').notNull().default('true'),
+  currency: text('currency').notNull().default('GBP'),
 });
 
 export const workSpacesSchema = pgTable('work_spaces', {
@@ -159,6 +160,7 @@ export const financeEntriesSchema = pgTable('finance_entries', {
   color: text('color'),
   manualAmounts: jsonb('manual_amounts'),
   attachments: jsonb('attachments'),
+  financeAgreement: jsonb('finance_agreement'),
   effectiveDate: timestamp('effective_date', { mode: 'date' }),
   recurringFrequency: text('recurring_frequency'),
   recurringStart: timestamp('recurring_start', { mode: 'date' }),

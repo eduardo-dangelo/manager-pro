@@ -1,4 +1,5 @@
 import z from 'zod';
+import { FINANCE_ENTRY_CATEGORIES } from '@/entities';
 
 export const FinanceEntryKindSchema = z.enum(['one_time', 'recurring', 'manual_recurring']);
 export const FinanceEntryFlowSchema = z.enum(['income', 'expense']);
@@ -11,6 +12,22 @@ const attachmentSchema = z.object({
 });
 
 const manualAmountsSchema = z.record(z.string().regex(/^\d{4}-\d{2}$/), z.number().int().nonnegative());
+const financeEntryCategorySchema = z.enum(FINANCE_ENTRY_CATEGORIES);
+const financeAgreementSchema = z.object({
+  provider: z.string().trim().min(1, 'Provider is required').max(200),
+  totalCashPriceCents: z.number().int().nonnegative(),
+  advancePaymentsCents: z.number().int().nonnegative(),
+  durationMonths: z.number().int().positive(),
+  frequency: FinanceEntryFrequencySchema,
+  amountCents: z.number().int().positive(),
+  amountOfCreditCents: z.number().int().nonnegative(),
+  interestChargesCents: z.number().int().nonnegative(),
+  acceptanceFeeCents: z.number().int().nonnegative(),
+  titleTransferFeeCents: z.number().int().nonnegative(),
+  totalChargeForCreditCents: z.number().int().nonnegative(),
+  totalAmountPayableCents: z.number().int().nonnegative(),
+  interestRatePercent: z.number().nonnegative(),
+});
 
 const BaseFinanceEntryValidation = z.object({
   assetId: z.number().int().positive(),
@@ -18,10 +35,11 @@ const BaseFinanceEntryValidation = z.object({
   kind: FinanceEntryKindSchema,
   flow: FinanceEntryFlowSchema,
   amountCents: z.number().int().nonnegative(),
-  category: z.string().trim().max(80).nullable().optional(),
+  category: financeEntryCategorySchema.nullable().optional(),
   color: z.string().trim().max(32).nullable().optional(),
   manualAmounts: manualAmountsSchema.nullable().optional(),
   attachments: z.array(attachmentSchema).nullable().optional(),
+  financeAgreement: financeAgreementSchema.nullable().optional(),
   effectiveDate: z.string().datetime().nullable().optional(),
   recurringFrequency: FinanceEntryFrequencySchema.nullable().optional(),
   recurringStart: z.string().datetime().nullable().optional(),
@@ -31,6 +49,56 @@ const BaseFinanceEntryValidation = z.object({
 });
 
 export const FinanceEntryValidation = BaseFinanceEntryValidation.superRefine((value, ctx) => {
+  if (value.category === 'finance_agreement') {
+    const agreement = value.financeAgreement;
+    if (!agreement) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Finance agreement details are required for this category',
+        path: ['financeAgreement'],
+      });
+    } else {
+      const expectedAmountOfCredit = agreement.totalCashPriceCents - agreement.advancePaymentsCents;
+      if (expectedAmountOfCredit < 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Advance payments cannot exceed total cash price',
+          path: ['financeAgreement', 'advancePaymentsCents'],
+        });
+      }
+      if (agreement.amountOfCreditCents !== expectedAmountOfCredit) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Amount of credit must match total cash price minus advance payments',
+          path: ['financeAgreement', 'amountOfCreditCents'],
+        });
+      }
+      const expectedTotalCharge = agreement.interestChargesCents + agreement.acceptanceFeeCents + agreement.titleTransferFeeCents;
+      if (agreement.totalChargeForCreditCents !== expectedTotalCharge) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Total charge for credit must equal interest charges plus agreement fees',
+          path: ['financeAgreement', 'totalChargeForCreditCents'],
+        });
+      }
+      const expectedTotalPayable = agreement.amountOfCreditCents + agreement.totalChargeForCreditCents;
+      if (agreement.totalAmountPayableCents !== expectedTotalPayable) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Total amount payable must equal amount of credit plus total charge for credit',
+          path: ['financeAgreement', 'totalAmountPayableCents'],
+        });
+      }
+      if (agreement.amountCents !== value.amountCents) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Finance agreement amount must match entry amount',
+          path: ['financeAgreement', 'amountCents'],
+        });
+      }
+    }
+  }
+
   if (value.kind === 'one_time') {
     if (!value.effectiveDate) {
       ctx.addIssue({
@@ -127,10 +195,11 @@ export const UpdateFinanceEntryValidation = z.object({
   kind: FinanceEntryKindSchema.optional(),
   flow: FinanceEntryFlowSchema.optional(),
   amountCents: z.number().int().nonnegative().optional(),
-  category: z.string().trim().max(80).nullable().optional(),
+  category: financeEntryCategorySchema.nullable().optional(),
   color: z.string().trim().max(32).nullable().optional(),
   manualAmounts: manualAmountsSchema.nullable().optional(),
   attachments: z.array(attachmentSchema).nullable().optional(),
+  financeAgreement: financeAgreementSchema.nullable().optional(),
   effectiveDate: z.string().datetime().nullable().optional(),
   recurringFrequency: FinanceEntryFrequencySchema.nullable().optional(),
   recurringStart: z.string().datetime().nullable().optional(),

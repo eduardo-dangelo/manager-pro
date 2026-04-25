@@ -1,14 +1,18 @@
 'use client';
 
-import { Box, FormControlLabel, Paper, Switch, Typography } from '@mui/material';
-import { useTranslations } from 'next-intl';
+import { Box, FormControl, FormControlLabel, InputLabel, MenuItem, Paper, Select, Switch, Typography } from '@mui/material';
+import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { useHoverSound } from '@/hooks/useHoverSound';
+import { useGetUserPreferences, useUpdateUserPreferences } from '@/queries/hooks/users';
 
 export function SettingsContent() {
   const t = useTranslations('Settings');
+  const locale = useLocale();
   const { hoverSoundEnabled, updatePreference, isLoading } = useHoverSound();
   const [isUpdating, setIsUpdating] = useState(false);
+  const { data: preferences } = useGetUserPreferences(locale);
+  const updateUserPreferences = useUpdateUserPreferences(locale);
 
   const handleToggle = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = event.target.checked;
@@ -87,6 +91,24 @@ export function SettingsContent() {
             },
           }}
         />
+        <Box sx={{ mt: 2 }}>
+          <FormControl size="small" sx={{ minWidth: 180 }}>
+            <InputLabel id="settings-currency-label">Currency</InputLabel>
+            <Select
+              labelId="settings-currency-label"
+              label="Currency"
+              value={preferences?.currency ?? 'GBP'}
+              onChange={(event) => {
+                void updateUserPreferences.mutateAsync({ currency: String(event.target.value) });
+              }}
+              disabled={updateUserPreferences.isPending}
+            >
+              <MenuItem value="GBP">GBP (£)</MenuItem>
+              <MenuItem value="EUR">EUR (€)</MenuItem>
+              <MenuItem value="USD">USD ($)</MenuItem>
+            </Select>
+          </FormControl>
+        </Box>
       </Paper>
     </Box>
   );
