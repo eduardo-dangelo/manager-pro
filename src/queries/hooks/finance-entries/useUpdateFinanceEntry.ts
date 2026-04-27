@@ -15,6 +15,13 @@ export type UpdateFinanceEntryPayload = {
   manualAmounts?: FinanceEntryData['manualAmounts'];
   attachments?: FinanceEntryData['attachments'];
   financeAgreement?: FinanceEntryData['financeAgreement'];
+  insurance?: FinanceEntryData['insurance'];
+  gas?: FinanceEntryData['gas'];
+  repair?: FinanceEntryData['repair'];
+  tax?: FinanceEntryData['tax'];
+  service?: FinanceEntryData['service'];
+  mot?: FinanceEntryData['mot'];
+  other?: FinanceEntryData['other'];
   effectiveDate?: string | Date | null;
   recurringFrequency?: FinanceEntryData['recurringFrequency'];
   recurringStart?: string | Date | null;

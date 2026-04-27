@@ -16,6 +16,59 @@ export type FinanceAgreementDetails = {
   totalAmountPayableCents: number;
   interestRatePercent: number;
 };
+export type InsuranceType = 'comprehensive' | 'third_party' | 'third_party_fire_theft' | 'other';
+export type InsuranceFrequency = 'annual' | 'monthly';
+export type InsuranceDetails = {
+  insuranceType?: InsuranceType | null;
+  provider: string;
+  frequency: InsuranceFrequency;
+  premiumCents: number;
+  validFrom: string;
+  validUntil?: string | null;
+  policyNumber?: string | null;
+  insurerContact?: string | null;
+};
+export type GasDetails = {
+  valueCents: number;
+  litres: number;
+  pricePerLitreCents?: number | null;
+  date: string;
+};
+export type RepairDetails = {
+  valueCents: number;
+  date: string;
+  provider?: string | null;
+  repairType?: string | null;
+  notes?: string | null;
+};
+export type TaxDetails = {
+  valueCents: number;
+  validFrom: string;
+  validUntil?: string | null;
+  reference?: string | null;
+};
+export type ServiceDetails = {
+  valueCents: number;
+  date: string;
+  provider?: string | null;
+  serviceType?: string | null;
+  notes?: string | null;
+};
+export type MotResult = 'pass' | 'fail' | 'advisory';
+export type MotDetails = {
+  valueCents: number;
+  date: string;
+  result: MotResult;
+  provider?: string | null;
+  notes?: string | null;
+};
+export type OtherDirection = 'expense' | 'income';
+export type OtherDetails = {
+  valueCents: number;
+  date: string;
+  description: string;
+  direction: OtherDirection;
+};
 export const FINANCE_ENTRY_CATEGORIES = [
   'finance_agreement',
   'insurance',
@@ -24,7 +77,6 @@ export const FINANCE_ENTRY_CATEGORIES = [
   'tax',
   'service',
   'mot',
-  'income',
   'other',
 ] as const;
 export type FinanceEntryCategory = (typeof FINANCE_ENTRY_CATEGORIES)[number];
@@ -55,6 +107,13 @@ export type FinanceEntryData = {
   recurringStart: string | null;
   recurringEnd: string | null;
   financeAgreement?: FinanceAgreementDetails | null;
+  insurance?: InsuranceDetails | null;
+  gas?: GasDetails | null;
+  repair?: RepairDetails | null;
+  tax?: TaxDetails | null;
+  service?: ServiceDetails | null;
+  mot?: MotDetails | null;
+  other?: OtherDetails | null;
   createdAt: string;
   updatedAt: string;
 };

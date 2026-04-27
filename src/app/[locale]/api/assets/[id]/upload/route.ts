@@ -9,7 +9,7 @@ import { ActivityService } from '@/services/activityService';
 import { AssetService } from '@/services/assetService';
 
 const GALLERY_ACCEPT = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
-const DOCS_ACCEPT = ['application/pdf'];
+const DOCS_ACCEPT = ['application/pdf', ...GALLERY_ACCEPT];
 const MAX_FILE_SIZE = 4.5 * 1024 * 1024; // 4.5 MB (Vercel Blob server limit)
 
 const UPLOADS_DIR = 'public/uploads';
@@ -68,7 +68,7 @@ export async function POST(
     if (type === 'docs') {
       if (!DOCS_ACCEPT.includes(mimeType)) {
         return NextResponse.json(
-          { error: 'Invalid file type. Docs accept PDF only' },
+          { error: 'Invalid file type. Docs accept PDF and images (PNG, JPG, GIF, WebP)' },
           { status: 400 },
         );
       }
@@ -81,7 +81,7 @@ export async function POST(
       }
     }
 
-    const ext = type === 'docs' ? 'pdf' : mimeType.split('/')[1] || 'bin';
+    const ext = mimeType.split('/')[1] || 'bin';
     const fileId = randomUUID();
     const pathname = `assets/${assetId}/${type}/${fileId}.${ext}`;
     const name = file.name || `file.${ext}`;

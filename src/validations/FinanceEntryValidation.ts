@@ -28,6 +28,59 @@ const financeAgreementSchema = z.object({
   totalAmountPayableCents: z.number().int().nonnegative(),
   interestRatePercent: z.number().nonnegative(),
 });
+const insuranceTypeSchema = z.enum(['comprehensive', 'third_party', 'third_party_fire_theft', 'other']);
+const insuranceFrequencySchema = z.enum(['annual', 'monthly']);
+const insuranceSchema = z.object({
+  insuranceType: insuranceTypeSchema.nullable().optional(),
+  provider: z.string().trim().min(1, 'Provider is required').max(200),
+  frequency: insuranceFrequencySchema,
+  premiumCents: z.number().int().positive(),
+  validFrom: z.string().datetime(),
+  validUntil: z.string().datetime().nullable().optional(),
+  policyNumber: z.string().trim().max(120).nullable().optional(),
+  insurerContact: z.string().trim().max(120).nullable().optional(),
+});
+const gasSchema = z.object({
+  valueCents: z.number().int().positive(),
+  litres: z.number().positive(),
+  pricePerLitreCents: z.number().int().positive().nullable().optional(),
+  date: z.string().datetime(),
+});
+const repairSchema = z.object({
+  valueCents: z.number().int().positive(),
+  date: z.string().datetime(),
+  provider: z.string().trim().max(200).nullable().optional(),
+  repairType: z.string().trim().max(120).nullable().optional(),
+  notes: z.string().trim().max(2000).nullable().optional(),
+});
+const taxSchema = z.object({
+  valueCents: z.number().int().positive(),
+  validFrom: z.string().datetime(),
+  validUntil: z.string().datetime().nullable().optional(),
+  reference: z.string().trim().max(120).nullable().optional(),
+});
+const serviceSchema = z.object({
+  valueCents: z.number().int().positive(),
+  date: z.string().datetime(),
+  provider: z.string().trim().max(200).nullable().optional(),
+  serviceType: z.string().trim().max(120).nullable().optional(),
+  notes: z.string().trim().max(2000).nullable().optional(),
+});
+const motResultSchema = z.enum(['pass', 'fail', 'advisory']);
+const motSchema = z.object({
+  valueCents: z.number().int().positive(),
+  date: z.string().datetime(),
+  result: motResultSchema,
+  provider: z.string().trim().max(200).nullable().optional(),
+  notes: z.string().trim().max(2000).nullable().optional(),
+});
+const otherDirectionSchema = z.enum(['expense', 'income']);
+const otherSchema = z.object({
+  valueCents: z.number().int().positive(),
+  date: z.string().datetime(),
+  description: z.string().trim().min(1).max(300),
+  direction: otherDirectionSchema,
+});
 
 const BaseFinanceEntryValidation = z.object({
   assetId: z.number().int().positive(),
@@ -40,6 +93,13 @@ const BaseFinanceEntryValidation = z.object({
   manualAmounts: manualAmountsSchema.nullable().optional(),
   attachments: z.array(attachmentSchema).nullable().optional(),
   financeAgreement: financeAgreementSchema.nullable().optional(),
+  insurance: insuranceSchema.nullable().optional(),
+  gas: gasSchema.nullable().optional(),
+  repair: repairSchema.nullable().optional(),
+  tax: taxSchema.nullable().optional(),
+  service: serviceSchema.nullable().optional(),
+  mot: motSchema.nullable().optional(),
+  other: otherSchema.nullable().optional(),
   effectiveDate: z.string().datetime().nullable().optional(),
   recurringFrequency: FinanceEntryFrequencySchema.nullable().optional(),
   recurringStart: z.string().datetime().nullable().optional(),
@@ -96,6 +156,108 @@ export const FinanceEntryValidation = BaseFinanceEntryValidation.superRefine((va
           path: ['financeAgreement', 'amountCents'],
         });
       }
+    }
+  }
+  if (value.category === 'insurance') {
+    const insurance = value.insurance;
+    if (!insurance) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Insurance details are required for this category',
+        path: ['insurance'],
+      });
+    } else {
+      if (insurance.validUntil) {
+        const from = new Date(insurance.validFrom);
+        const until = new Date(insurance.validUntil);
+        if (until < from) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Valid until must be the same day or after valid from',
+            path: ['insurance', 'validUntil'],
+          });
+        }
+      }
+      if (insurance.premiumCents !== value.amountCents) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Insurance premium must match entry amount',
+          path: ['insurance', 'premiumCents'],
+        });
+      }
+    }
+  }
+  if (value.category === 'gas') {
+    const gas = value.gas;
+    if (!gas) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Gas details are required for this category',
+        path: ['gas'],
+      });
+    } else {
+      if (gas.valueCents !== value.amountCents) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Gas value must match entry amount',
+          path: ['gas', 'valueCents'],
+        });
+      }
+      if (gas.pricePerLitreCents != null) {
+        const expectedValue = Math.round(gas.pricePerLitreCents * gas.litres);
+        if (Math.abs(expectedValue - gas.valueCents) > 1) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Price per litre does not match value and litres',
+            path: ['gas', 'pricePerLitreCents'],
+          });
+        }
+      }
+    }
+  }
+  if (value.category === 'repair') {
+    const repair = value.repair;
+    if (!repair) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Repair details are required for this category', path: ['repair'] });
+    } else if (repair.valueCents !== value.amountCents) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Repair value must match entry amount', path: ['repair', 'valueCents'] });
+    }
+  }
+  if (value.category === 'tax') {
+    const tax = value.tax;
+    if (!tax) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Tax details are required for this category', path: ['tax'] });
+    } else {
+      if (tax.valueCents !== value.amountCents) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Tax value must match entry amount', path: ['tax', 'valueCents'] });
+      }
+      if (tax.validUntil && new Date(tax.validUntil) < new Date(tax.validFrom)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Valid until must be the same day or after valid from', path: ['tax', 'validUntil'] });
+      }
+    }
+  }
+  if (value.category === 'service') {
+    const service = value.service;
+    if (!service) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Service details are required for this category', path: ['service'] });
+    } else if (service.valueCents !== value.amountCents) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Service value must match entry amount', path: ['service', 'valueCents'] });
+    }
+  }
+  if (value.category === 'mot') {
+    const mot = value.mot;
+    if (!mot) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'MOT details are required for this category', path: ['mot'] });
+    } else if (mot.valueCents !== value.amountCents) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'MOT value must match entry amount', path: ['mot', 'valueCents'] });
+    }
+  }
+  if (value.category === 'other') {
+    const other = value.other;
+    if (!other) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Other details are required for this category', path: ['other'] });
+    } else if (other.valueCents !== value.amountCents) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Other value must match entry amount', path: ['other', 'valueCents'] });
     }
   }
 
@@ -200,6 +362,13 @@ export const UpdateFinanceEntryValidation = z.object({
   manualAmounts: manualAmountsSchema.nullable().optional(),
   attachments: z.array(attachmentSchema).nullable().optional(),
   financeAgreement: financeAgreementSchema.nullable().optional(),
+  insurance: insuranceSchema.nullable().optional(),
+  gas: gasSchema.nullable().optional(),
+  repair: repairSchema.nullable().optional(),
+  tax: taxSchema.nullable().optional(),
+  service: serviceSchema.nullable().optional(),
+  mot: motSchema.nullable().optional(),
+  other: otherSchema.nullable().optional(),
   effectiveDate: z.string().datetime().nullable().optional(),
   recurringFrequency: FinanceEntryFrequencySchema.nullable().optional(),
   recurringStart: z.string().datetime().nullable().optional(),

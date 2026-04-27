@@ -56,6 +56,27 @@ export const PATCH = async (
     if (d.financeAgreement !== undefined) {
       updates.financeAgreement = d.financeAgreement;
     }
+    if (d.insurance !== undefined) {
+      updates.insurance = d.insurance;
+    }
+    if (d.gas !== undefined) {
+      updates.gas = d.gas;
+    }
+    if (d.repair !== undefined) {
+      updates.repair = d.repair;
+    }
+    if (d.tax !== undefined) {
+      updates.tax = d.tax;
+    }
+    if (d.service !== undefined) {
+      updates.service = d.service;
+    }
+    if (d.mot !== undefined) {
+      updates.mot = d.mot;
+    }
+    if (d.other !== undefined) {
+      updates.other = d.other;
+    }
     if (d.effectiveDate !== undefined) {
       updates.effectiveDate = d.effectiveDate ? new Date(d.effectiveDate) : null;
     }

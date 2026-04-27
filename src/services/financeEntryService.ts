@@ -28,6 +28,55 @@ export type FinanceEntryCreatePayload = {
     totalAmountPayableCents: number;
     interestRatePercent: number;
   } | null;
+  insurance?: {
+    insuranceType?: 'comprehensive' | 'third_party' | 'third_party_fire_theft' | 'other' | null;
+    provider: string;
+    frequency: 'annual' | 'monthly';
+    premiumCents: number;
+    validFrom: string;
+    validUntil?: string | null;
+    policyNumber?: string | null;
+    insurerContact?: string | null;
+  } | null;
+  gas?: {
+    valueCents: number;
+    litres: number;
+    pricePerLitreCents?: number | null;
+    date: string;
+  } | null;
+  repair?: {
+    valueCents: number;
+    date: string;
+    provider?: string | null;
+    repairType?: string | null;
+    notes?: string | null;
+  } | null;
+  tax?: {
+    valueCents: number;
+    validFrom: string;
+    validUntil?: string | null;
+    reference?: string | null;
+  } | null;
+  service?: {
+    valueCents: number;
+    date: string;
+    provider?: string | null;
+    serviceType?: string | null;
+    notes?: string | null;
+  } | null;
+  mot?: {
+    valueCents: number;
+    date: string;
+    result: 'pass' | 'fail' | 'advisory';
+    provider?: string | null;
+    notes?: string | null;
+  } | null;
+  other?: {
+    valueCents: number;
+    date: string;
+    description: string;
+    direction: 'expense' | 'income';
+  } | null;
   effectiveDate?: Date | null;
   recurringFrequency?: 'monthly' | null;
   recurringStart?: Date | null;
@@ -81,6 +130,13 @@ export class FinanceEntryService {
         manualAmounts: data.manualAmounts ?? null,
         attachments: data.attachments ?? null,
         financeAgreement: data.financeAgreement ?? null,
+        insurance: data.insurance ?? null,
+        gas: data.gas ?? null,
+        repair: data.repair ?? null,
+        tax: data.tax ?? null,
+        service: data.service ?? null,
+        mot: data.mot ?? null,
+        other: data.other ?? null,
         effectiveDate: data.effectiveDate ?? null,
         recurringFrequency: data.recurringFrequency ?? null,
         recurringStart: data.recurringStart ?? null,
@@ -145,6 +201,27 @@ export class FinanceEntryService {
     }
     if (updates.financeAgreement !== undefined) {
       updateData.financeAgreement = updates.financeAgreement;
+    }
+    if (updates.insurance !== undefined) {
+      updateData.insurance = updates.insurance;
+    }
+    if (updates.gas !== undefined) {
+      updateData.gas = updates.gas;
+    }
+    if (updates.repair !== undefined) {
+      updateData.repair = updates.repair;
+    }
+    if (updates.tax !== undefined) {
+      updateData.tax = updates.tax;
+    }
+    if (updates.service !== undefined) {
+      updateData.service = updates.service;
+    }
+    if (updates.mot !== undefined) {
+      updateData.mot = updates.mot;
+    }
+    if (updates.other !== undefined) {
+      updateData.other = updates.other;
     }
     if (updates.effectiveDate !== undefined) {
       updateData.effectiveDate = updates.effectiveDate;

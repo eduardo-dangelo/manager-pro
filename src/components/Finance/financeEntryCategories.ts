@@ -28,7 +28,7 @@ const VEHICLE_OPTIONS: CategoryOption[] = [
   {
     key: 'gas',
     label: 'Gas',
-    defaults: { name: 'Gas', flow: 'expense', kind: 'manual_recurring' },
+    defaults: { name: 'Gas', flow: 'expense', kind: 'one_time' },
   },
   {
     key: 'repair',
@@ -49,11 +49,6 @@ const VEHICLE_OPTIONS: CategoryOption[] = [
     key: 'mot',
     label: 'MOT',
     defaults: { name: 'MOT', flow: 'expense', kind: 'one_time' },
-  },
-  {
-    key: 'income',
-    label: 'Income',
-    defaults: { name: 'Income', flow: 'income', kind: 'manual_recurring' },
   },
   {
     key: 'other',
@@ -76,7 +71,7 @@ const GENERIC_OPTIONS: CategoryOption[] = [
   {
     key: 'gas',
     label: 'Gas',
-    defaults: { name: 'Gas', flow: 'expense', kind: 'manual_recurring' },
+    defaults: { name: 'Gas', flow: 'expense', kind: 'one_time' },
   },
   {
     key: 'repair',
@@ -97,11 +92,6 @@ const GENERIC_OPTIONS: CategoryOption[] = [
     key: 'mot',
     label: 'MOT',
     defaults: { name: 'MOT', flow: 'expense', kind: 'one_time' },
-  },
-  {
-    key: 'income',
-    label: 'Income',
-    defaults: { name: 'Income', flow: 'income', kind: 'manual_recurring' },
   },
   {
     key: 'other',
@@ -125,7 +115,6 @@ const LABELS: Record<FinanceCategoryKey, string> = {
   tax: 'Tax',
   service: 'Service',
   mot: 'MOT',
-  income: 'Income',
   other: 'Other',
 };
 
@@ -165,8 +154,6 @@ export function attachmentNounForCategory(key: string | null | undefined): strin
     case 'repair':
     case 'service':
       return 'receipts';
-    case 'income':
-      return 'statements';
     default:
       return 'documents';
   }

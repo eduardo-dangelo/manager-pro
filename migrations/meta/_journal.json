@@ -99,6 +99,34 @@
       "when": 1777020000000,
       "tag": "0013_cleanup_invalid_finance_agreements",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1777176000000,
+      "tag": "0014_add_finance_insurance_details",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1777177800000,
+      "tag": "0015_add_finance_gas_details",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1777182000000,
+      "tag": "0016_add_finance_remaining_category_details",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1777182300000,
+      "tag": "0017_migrate_income_category_to_other",
+      "breakpoints": true
     }
   ]
 }

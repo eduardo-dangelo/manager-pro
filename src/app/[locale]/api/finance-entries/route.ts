@@ -72,6 +72,13 @@ export const POST = async (request: Request) => {
       manualAmounts: manualAmountsInput,
       attachments,
       financeAgreement,
+      insurance,
+      gas,
+      repair,
+      tax,
+      service,
+      mot,
+      other,
       ...rest
     } = parse.data;
 
@@ -94,6 +101,13 @@ export const POST = async (request: Request) => {
       manualAmounts: manualAmountsMerged,
       attachments: attachments ?? null,
       financeAgreement: financeAgreement ?? null,
+      insurance: insurance ?? null,
+      gas: gas ?? null,
+      repair: repair ?? null,
+      tax: tax ?? null,
+      service: service ?? null,
+      mot: mot ?? null,
+      other: other ?? null,
       effectiveDate: rest.effectiveDate ? new Date(rest.effectiveDate) : null,
       recurringFrequency: rest.recurringFrequency ?? null,
       recurringStart: rest.recurringStart ? new Date(rest.recurringStart) : null,

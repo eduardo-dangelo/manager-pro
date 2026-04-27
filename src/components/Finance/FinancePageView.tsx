@@ -12,6 +12,13 @@ import type {
   FinanceEntryData,
   FinanceEntryFlow,
   FinanceEntryKind,
+  GasDetails,
+  MotDetails,
+  OtherDetails,
+  RepairDetails,
+  ServiceDetails,
+  TaxDetails,
+  InsuranceDetails,
 } from '@/entities';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -287,6 +294,18 @@ function calculateFinanceAgreement(values: {
   };
 }
 
+const INSURANCE_TYPE_OPTIONS = [
+  { value: 'comprehensive', label: 'Comprehensive' },
+  { value: 'third_party', label: 'Third party' },
+  { value: 'third_party_fire_theft', label: 'Third party, fire and theft' },
+  { value: 'other', label: 'Other' },
+] as const;
+const MOT_RESULT_OPTIONS = [
+  { value: 'pass', label: 'Pass' },
+  { value: 'fail', label: 'Fail' },
+  { value: 'advisory', label: 'Advisory' },
+] as const;
+
 function sumManualForYear(entry: FinanceEntryData, year: number): number {
   if (!entry.manualAmounts) {
     return 0;
@@ -343,6 +362,41 @@ const financeFormSchema = z.object({
   totalChargeForCredit: z.number().min(0).optional(),
   totalAmountPayable: z.number().min(0).optional(),
   interestRate: z.number().min(0).optional(),
+  insuranceType: z.enum(['comprehensive', 'third_party', 'third_party_fire_theft', 'other']).optional(),
+  insuranceProvider: z.string().optional(),
+  insuranceFrequency: z.enum(['annual', 'monthly']).optional(),
+  insurancePremium: z.number().min(0).optional(),
+  insuranceValidFrom: z.string().optional(),
+  insuranceValidUntil: z.string().optional(),
+  insurancePolicyNumber: z.string().optional(),
+  insuranceContact: z.string().optional(),
+  repairValue: z.number().min(0).optional(),
+  repairDate: z.string().optional(),
+  repairProvider: z.string().optional(),
+  repairType: z.string().optional(),
+  repairNotes: z.string().optional(),
+  taxValue: z.number().min(0).optional(),
+  taxValidFrom: z.string().optional(),
+  taxValidUntil: z.string().optional(),
+  taxReference: z.string().optional(),
+  serviceValue: z.number().min(0).optional(),
+  serviceDate: z.string().optional(),
+  serviceProvider: z.string().optional(),
+  serviceType: z.string().optional(),
+  serviceNotes: z.string().optional(),
+  motValue: z.number().min(0).optional(),
+  motDate: z.string().optional(),
+  motResult: z.enum(['pass', 'fail', 'advisory']).optional(),
+  motProvider: z.string().optional(),
+  motNotes: z.string().optional(),
+  otherValue: z.number().min(0).optional(),
+  otherDate: z.string().optional(),
+  otherDescription: z.string().optional(),
+  otherDirection: z.enum(['expense', 'income']).optional(),
+  gasValue: z.number().min(0).optional(),
+  gasLitres: z.number().min(0).optional(),
+  gasPricePerLitre: z.number().min(0).optional(),
+  gasDate: z.string().optional(),
 }).superRefine((v, ctx) => {
   if (v.kind === 'one_time') {
     if (!v.effectiveDate) {
@@ -374,6 +428,90 @@ const financeFormSchema = z.object({
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Duration must be at least 1 month', path: ['durationMonths'] });
     }
   }
+  if (v.category === 'insurance') {
+    if (!v.insuranceProvider?.trim()) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Provider is required', path: ['insuranceProvider'] });
+    }
+    if (!v.insuranceFrequency) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Frequency is required', path: ['insuranceFrequency'] });
+    }
+    if ((v.insurancePremium ?? 0) <= 0) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Premium must be greater than 0', path: ['insurancePremium'] });
+    }
+    if (!v.insuranceValidFrom) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Valid from is required', path: ['insuranceValidFrom'] });
+    }
+    if (v.insuranceValidFrom && v.insuranceValidUntil) {
+      const from = new Date(v.insuranceValidFrom);
+      const until = new Date(v.insuranceValidUntil);
+      if (until < from) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Valid until must be after valid from', path: ['insuranceValidUntil'] });
+      }
+    }
+  }
+  if (v.category === 'gas') {
+    if ((v.gasValue ?? 0) <= 0) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Value must be greater than 0', path: ['gasValue'] });
+    }
+    if ((v.gasLitres ?? 0) <= 0) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Litres must be greater than 0', path: ['gasLitres'] });
+    }
+    if (!v.gasDate) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Date is required', path: ['gasDate'] });
+    }
+  }
+  if (v.category === 'repair') {
+    if ((v.repairValue ?? 0) <= 0) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Value must be greater than 0', path: ['repairValue'] });
+    }
+    if (!v.repairDate) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Date is required', path: ['repairDate'] });
+    }
+  }
+  if (v.category === 'tax') {
+    if ((v.taxValue ?? 0) <= 0) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Value must be greater than 0', path: ['taxValue'] });
+    }
+    if (!v.taxValidFrom) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Valid from is required', path: ['taxValidFrom'] });
+    }
+    if (v.taxValidFrom && v.taxValidUntil && new Date(v.taxValidUntil) < new Date(v.taxValidFrom)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Valid until must be after valid from', path: ['taxValidUntil'] });
+    }
+  }
+  if (v.category === 'service') {
+    if ((v.serviceValue ?? 0) <= 0) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Value must be greater than 0', path: ['serviceValue'] });
+    }
+    if (!v.serviceDate) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Date is required', path: ['serviceDate'] });
+    }
+  }
+  if (v.category === 'mot') {
+    if ((v.motValue ?? 0) <= 0) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Value must be greater than 0', path: ['motValue'] });
+    }
+    if (!v.motDate) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Date is required', path: ['motDate'] });
+    }
+    if (!v.motResult) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Result is required', path: ['motResult'] });
+    }
+  }
+  if (v.category === 'other') {
+    if ((v.otherValue ?? 0) <= 0) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Value must be greater than 0', path: ['otherValue'] });
+    }
+    if (!v.otherDate) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Date is required', path: ['otherDate'] });
+    }
+    if (!v.otherDescription?.trim()) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Description is required', path: ['otherDescription'] });
+    }
+    if (!v.otherDirection) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Direction is required', path: ['otherDirection'] });
+    }
+  }
 });
 
 type FinanceFormValues = {
@@ -400,6 +538,41 @@ type FinanceFormValues = {
   totalChargeForCredit?: number;
   totalAmountPayable?: number;
   interestRate?: number;
+  insuranceType?: 'comprehensive' | 'third_party' | 'third_party_fire_theft' | 'other';
+  insuranceProvider?: string;
+  insuranceFrequency?: 'annual' | 'monthly';
+  insurancePremium?: number;
+  insuranceValidFrom?: string;
+  insuranceValidUntil?: string;
+  insurancePolicyNumber?: string;
+  insuranceContact?: string;
+  repairValue?: number;
+  repairDate?: string;
+  repairProvider?: string;
+  repairType?: string;
+  repairNotes?: string;
+  taxValue?: number;
+  taxValidFrom?: string;
+  taxValidUntil?: string;
+  taxReference?: string;
+  serviceValue?: number;
+  serviceDate?: string;
+  serviceProvider?: string;
+  serviceType?: string;
+  serviceNotes?: string;
+  motValue?: number;
+  motDate?: string;
+  motResult?: 'pass' | 'fail' | 'advisory';
+  motProvider?: string;
+  motNotes?: string;
+  otherValue?: number;
+  otherDate?: string;
+  otherDescription?: string;
+  otherDirection?: 'expense' | 'income';
+  gasValue?: number;
+  gasLitres?: number;
+  gasPricePerLitre?: number;
+  gasDate?: string;
 };
 
 export function FinancePageView({ locale, assetId, assetName: _assetName, assetType: assetTypeProp }: FinancePageViewProps) {
@@ -431,6 +604,14 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
   const [entryDetailsAnchorPosition, setEntryDetailsAnchorPosition] = useState<{ top: number; left: number } | null>(null);
   const [deleteConfirmAnchor, setDeleteConfirmAnchor] = useState<HTMLElement | null>(null);
   const [editingEntry, setEditingEntry] = useState<FinanceEntryData | null>(null);
+  const [showFinanceAgreementDetails, setShowFinanceAgreementDetails] = useState(false);
+  const [showInsuranceDetails, setShowInsuranceDetails] = useState(false);
+  const [showGasDetails, setShowGasDetails] = useState(false);
+  const [showRepairDetails, setShowRepairDetails] = useState(false);
+  const [showTaxDetails, setShowTaxDetails] = useState(false);
+  const [showServiceDetails, setShowServiceDetails] = useState(false);
+  const [showMotDetails, setShowMotDetails] = useState(false);
+  const [, setShowOtherDetails] = useState(false);
 
   const selectedYear = yearDate.getFullYear();
 
@@ -590,6 +771,41 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
       totalChargeForCredit: 0,
       totalAmountPayable: 0,
       interestRate: 0,
+      insuranceType: 'comprehensive',
+      insuranceProvider: '',
+      insuranceFrequency: 'annual',
+      insurancePremium: 0,
+      insuranceValidFrom: new Date().toISOString().slice(0, 10),
+      insuranceValidUntil: '',
+      insurancePolicyNumber: '',
+      insuranceContact: '',
+      repairValue: 0,
+      repairDate: new Date().toISOString().slice(0, 10),
+      repairProvider: '',
+      repairType: '',
+      repairNotes: '',
+      taxValue: 0,
+      taxValidFrom: new Date().toISOString().slice(0, 10),
+      taxValidUntil: '',
+      taxReference: '',
+      serviceValue: 0,
+      serviceDate: new Date().toISOString().slice(0, 10),
+      serviceProvider: '',
+      serviceType: '',
+      serviceNotes: '',
+      motValue: 0,
+      motDate: new Date().toISOString().slice(0, 10),
+      motResult: 'pass',
+      motProvider: '',
+      motNotes: '',
+      otherValue: 0,
+      otherDate: new Date().toISOString().slice(0, 10),
+      otherDescription: '',
+      otherDirection: 'expense',
+      gasValue: 0,
+      gasLitres: 0,
+      gasPricePerLitre: 0,
+      gasDate: new Date().toISOString().slice(0, 10),
     },
   });
   const kind = watch('kind');
@@ -600,6 +816,14 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
   const watchedInterestRate = watch('interestRate');
   const watchedAcceptanceFee = watch('acceptanceFee');
   const watchedTitleTransferFee = watch('titleTransferFee');
+  const watchedInsurancePremium = watch('insurancePremium');
+  const watchedRepairValue = watch('repairValue');
+  const watchedTaxValue = watch('taxValue');
+  const watchedServiceValue = watch('serviceValue');
+  const watchedMotValue = watch('motValue');
+  const watchedOtherValue = watch('otherValue');
+  const watchedGasValue = watch('gasValue');
+  const watchedGasDate = watch('gasDate');
   const formAssetId = watch('assetId');
   const formAttachmentInputRef = useRef<HTMLInputElement>(null);
   const emptyAttachmentInputRef = useRef<HTMLInputElement>(null);
@@ -638,8 +862,71 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
     setValue,
   ]);
 
+  useEffect(() => {
+    if (selectedCategory !== 'insurance') {
+      return;
+    }
+    setValue('amount', watchedInsurancePremium ?? 0, { shouldValidate: false, shouldDirty: true });
+  }, [selectedCategory, watchedInsurancePremium, setValue]);
+
+  useEffect(() => {
+    if (selectedCategory !== 'gas') {
+      return;
+    }
+    setValue('amount', watchedGasValue ?? 0, { shouldValidate: false, shouldDirty: true });
+    setValue('kind', 'one_time', { shouldValidate: false, shouldDirty: true });
+    setValue('flow', 'expense', { shouldValidate: false, shouldDirty: true });
+    if (watchedGasDate) {
+      setValue('effectiveDate', watchedGasDate, { shouldValidate: false, shouldDirty: true });
+    }
+  }, [selectedCategory, watchedGasValue, watchedGasDate, setValue]);
+
+  useEffect(() => {
+    if (selectedCategory === 'repair') {
+      setValue('amount', watchedRepairValue ?? 0, { shouldValidate: false, shouldDirty: true });
+      setValue('kind', 'one_time', { shouldValidate: false, shouldDirty: true });
+      setValue('flow', 'expense', { shouldValidate: false, shouldDirty: true });
+    } else if (selectedCategory === 'tax') {
+      setValue('amount', watchedTaxValue ?? 0, { shouldValidate: false, shouldDirty: true });
+      setValue('kind', 'recurring', { shouldValidate: false, shouldDirty: true });
+      setValue('flow', 'expense', { shouldValidate: false, shouldDirty: true });
+    } else if (selectedCategory === 'service') {
+      setValue('amount', watchedServiceValue ?? 0, { shouldValidate: false, shouldDirty: true });
+      setValue('kind', 'one_time', { shouldValidate: false, shouldDirty: true });
+      setValue('flow', 'expense', { shouldValidate: false, shouldDirty: true });
+    } else if (selectedCategory === 'mot') {
+      setValue('amount', watchedMotValue ?? 0, { shouldValidate: false, shouldDirty: true });
+      setValue('kind', 'one_time', { shouldValidate: false, shouldDirty: true });
+      setValue('flow', 'expense', { shouldValidate: false, shouldDirty: true });
+    } else if (selectedCategory === 'other') {
+      setValue('amount', watchedOtherValue ?? 0, { shouldValidate: false, shouldDirty: true });
+      setValue('kind', 'one_time', { shouldValidate: false, shouldDirty: true });
+    }
+  }, [
+    selectedCategory,
+    watchedRepairValue,
+    watchedTaxValue,
+    watchedServiceValue,
+    watchedMotValue,
+    watchedOtherValue,
+    setValue,
+  ]);
+
   const openAddFromEvent = useCallback((e: React.MouseEvent<HTMLElement>) => {
     setAddStep('category');
+    setShowFinanceAgreementDetails(false);
+    setShowInsuranceDetails(false);
+    setShowGasDetails(false);
+    setShowRepairDetails(false);
+    setShowTaxDetails(false);
+    setShowServiceDetails(false);
+    setShowMotDetails(false);
+    setShowOtherDetails(false);
+    setShowRepairDetails(false);
+    setShowTaxDetails(false);
+    setShowServiceDetails(false);
+    setShowMotDetails(false);
+    setShowOtherDetails(false);
     setGlobalPickedAssetId(assetId);
     setIncludeInitial(false);
     setManualMonthsPounds(Array.from({ length: 12 }, () => 0));
@@ -677,7 +964,55 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
       totalChargeForCredit: 0,
       totalAmountPayable: 0,
       interestRate: 0,
+      insuranceType: 'comprehensive',
+      insuranceProvider: '',
+      insuranceFrequency: 'annual',
+      insurancePremium: 0,
+      insuranceValidFrom: new Date().toISOString().slice(0, 10),
+      insuranceValidUntil: '',
+      insurancePolicyNumber: '',
+      insuranceContact: '',
+      repairValue: 0,
+      repairDate: new Date().toISOString().slice(0, 10),
+      repairProvider: '',
+      repairType: '',
+      repairNotes: '',
+      taxValue: 0,
+      taxValidFrom: new Date().toISOString().slice(0, 10),
+      taxValidUntil: '',
+      taxReference: '',
+      serviceValue: 0,
+      serviceDate: new Date().toISOString().slice(0, 10),
+      serviceProvider: '',
+      serviceType: '',
+      serviceNotes: '',
+      motValue: 0,
+      motDate: new Date().toISOString().slice(0, 10),
+      motResult: 'pass',
+      motProvider: '',
+      motNotes: '',
+      otherValue: 0,
+      otherDate: new Date().toISOString().slice(0, 10),
+      otherDescription: '',
+      otherDirection: 'expense',
+      gasValue: 0,
+      gasLitres: 0,
+      gasPricePerLitre: 0,
+      gasDate: new Date().toISOString().slice(0, 10),
     });
+    setShowFinanceAgreementDetails(false);
+    setShowInsuranceDetails(false);
+    setShowGasDetails(false);
+    setShowRepairDetails(false);
+    setShowTaxDetails(false);
+    setShowServiceDetails(false);
+    setShowMotDetails(false);
+    setShowOtherDetails(false);
+    setShowRepairDetails(false);
+    setShowTaxDetails(false);
+    setShowServiceDetails(false);
+    setShowMotDetails(false);
+    setShowOtherDetails(false);
     setAddStep('form');
   }, [assetId, globalPickedAssetId, formAssetId, entriesForYear, reset]);
 
@@ -697,16 +1032,35 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
       });
     }
 
-    const amountCents = values.kind === 'manual_recurring' && values.amount <= 0
+    const rawAmount = values.category === 'insurance'
+      ? (values.insurancePremium ?? 0)
+      : values.category === 'repair'
+          ? (values.repairValue ?? 0)
+          : values.category === 'tax'
+              ? (values.taxValue ?? 0)
+              : values.category === 'service'
+                  ? (values.serviceValue ?? 0)
+                  : values.category === 'mot'
+                      ? (values.motValue ?? 0)
+                      : values.category === 'other'
+                          ? (values.otherValue ?? 0)
+                          : values.category === 'gas'
+                              ? (values.gasValue ?? 0)
+                              : values.amount;
+    const amountCents = values.kind === 'manual_recurring' && rawAmount <= 0
       ? 0
-      : Math.round(values.amount * 100);
+      : Math.round(rawAmount * 100);
 
     const colorHex = financeColor.startsWith('#') || financeColor.startsWith('hsl')
       ? financeColor
       : (EVENT_COLORS.find(c => c.value === financeColor)?.hex ?? financeColor);
 
-    const effectiveKind: FinanceEntryKind = values.category === 'finance_agreement' ? 'recurring' : values.kind;
-    const effectiveFlow: FinanceEntryFlow = values.category === 'finance_agreement' ? 'expense' : values.flow;
+    const forceRecurringExpense = values.category === 'finance_agreement' || values.category === 'insurance' || values.category === 'tax';
+    const forceOneTimeExpense = values.category === 'gas' || values.category === 'repair' || values.category === 'service' || values.category === 'mot';
+    const effectiveKind: FinanceEntryKind = forceOneTimeExpense ? 'one_time' : (forceRecurringExpense ? 'recurring' : values.kind);
+    const effectiveFlow: FinanceEntryFlow = values.category === 'other'
+      ? (values.otherDirection ?? 'expense')
+      : (forceRecurringExpense || forceOneTimeExpense) ? 'expense' : values.flow;
     const payload: Parameters<typeof createFinanceEntry.mutateAsync>[0] = {
       assetId: resolvedAssetId,
       name: values.name.trim(),
@@ -741,14 +1095,101 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
             interestRatePercent: values.interestRate ?? 0,
           } satisfies FinanceAgreementDetails
         : null,
+      insurance: values.category === 'insurance'
+        ? {
+            insuranceType: values.insuranceType ?? 'comprehensive',
+            provider: values.insuranceProvider?.trim() ?? '',
+            frequency: values.insuranceFrequency ?? 'annual',
+            premiumCents: amountCents,
+            validFrom: dateInputToIso(values.insuranceValidFrom) ?? new Date().toISOString(),
+            validUntil: values.insuranceValidUntil ? dateInputToIso(values.insuranceValidUntil) : null,
+            policyNumber: values.insurancePolicyNumber?.trim() || null,
+            insurerContact: values.insuranceContact?.trim() || null,
+          } satisfies InsuranceDetails
+        : null,
+      gas: values.category === 'gas'
+        ? {
+            valueCents: amountCents,
+            litres: values.gasLitres ?? 0,
+            pricePerLitreCents: (values.gasPricePerLitre ?? 0) > 0
+              ? toCents(values.gasPricePerLitre)
+              : (values.gasLitres ?? 0) > 0
+                  ? Math.round(amountCents / (values.gasLitres ?? 1))
+                  : null,
+            date: dateInputToIso(values.gasDate) ?? new Date().toISOString(),
+          } satisfies GasDetails
+        : null,
+      repair: values.category === 'repair'
+        ? {
+            valueCents: amountCents,
+            date: dateInputToIso(values.repairDate) ?? new Date().toISOString(),
+            provider: values.repairProvider?.trim() || null,
+            repairType: values.repairType?.trim() || null,
+            notes: values.repairNotes?.trim() || null,
+          } satisfies RepairDetails
+        : null,
+      tax: values.category === 'tax'
+        ? {
+            valueCents: amountCents,
+            validFrom: dateInputToIso(values.taxValidFrom) ?? new Date().toISOString(),
+            validUntil: values.taxValidUntil ? dateInputToIso(values.taxValidUntil) : null,
+            reference: values.taxReference?.trim() || null,
+          } satisfies TaxDetails
+        : null,
+      service: values.category === 'service'
+        ? {
+            valueCents: amountCents,
+            date: dateInputToIso(values.serviceDate) ?? new Date().toISOString(),
+            provider: values.serviceProvider?.trim() || null,
+            serviceType: values.serviceType?.trim() || null,
+            notes: values.serviceNotes?.trim() || null,
+          } satisfies ServiceDetails
+        : null,
+      mot: values.category === 'mot'
+        ? {
+            valueCents: amountCents,
+            date: dateInputToIso(values.motDate) ?? new Date().toISOString(),
+            result: values.motResult ?? 'pass',
+            provider: values.motProvider?.trim() || null,
+            notes: values.motNotes?.trim() || null,
+          } satisfies MotDetails
+        : null,
+      other: values.category === 'other'
+        ? {
+            valueCents: amountCents,
+            date: dateInputToIso(values.otherDate) ?? new Date().toISOString(),
+            description: values.otherDescription?.trim() ?? '',
+            direction: values.otherDirection ?? 'expense',
+          } satisfies OtherDetails
+        : null,
     };
 
     if (effectiveKind === 'one_time') {
-      payload.effectiveDate = dateInputToIso(values.effectiveDate);
+      payload.effectiveDate = values.category === 'gas'
+        ? dateInputToIso(values.gasDate)
+        : values.category === 'repair'
+            ? dateInputToIso(values.repairDate)
+            : values.category === 'service'
+                ? dateInputToIso(values.serviceDate)
+                : values.category === 'mot'
+                    ? dateInputToIso(values.motDate)
+                    : values.category === 'other'
+                        ? dateInputToIso(values.otherDate)
+                        : dateInputToIso(values.effectiveDate);
     } else {
       payload.recurringFrequency = 'monthly';
-      payload.recurringStart = dateInputToIso(values.recurringStart);
-      payload.recurringEnd = values.category === 'finance_agreement' ? null : (values.recurringEnd ? dateInputToIso(values.recurringEnd) : null);
+      payload.recurringStart = values.category === 'insurance'
+        ? dateInputToIso(values.insuranceValidFrom)
+        : values.category === 'tax'
+            ? dateInputToIso(values.taxValidFrom)
+        : dateInputToIso(values.recurringStart);
+      payload.recurringEnd = values.category === 'finance_agreement'
+        ? null
+        : values.category === 'insurance'
+            ? (values.insuranceValidUntil ? dateInputToIso(values.insuranceValidUntil) : null)
+            : values.category === 'tax'
+                ? (values.taxValidUntil ? dateInputToIso(values.taxValidUntil) : null)
+            : (values.recurringEnd ? dateInputToIso(values.recurringEnd) : null);
     }
 
     if (editingEntry) {
@@ -779,17 +1220,104 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
               interestRatePercent: values.interestRate ?? 0,
             } satisfies FinanceAgreementDetails
           : null,
+        insurance: values.category === 'insurance'
+          ? {
+              insuranceType: values.insuranceType ?? 'comprehensive',
+              provider: values.insuranceProvider?.trim() ?? '',
+              frequency: values.insuranceFrequency ?? 'annual',
+              premiumCents: amountCents,
+              validFrom: dateInputToIso(values.insuranceValidFrom) ?? new Date().toISOString(),
+              validUntil: values.insuranceValidUntil ? dateInputToIso(values.insuranceValidUntil) : null,
+              policyNumber: values.insurancePolicyNumber?.trim() || null,
+              insurerContact: values.insuranceContact?.trim() || null,
+            } satisfies InsuranceDetails
+          : null,
+        gas: values.category === 'gas'
+          ? {
+              valueCents: amountCents,
+              litres: values.gasLitres ?? 0,
+              pricePerLitreCents: (values.gasPricePerLitre ?? 0) > 0
+                ? toCents(values.gasPricePerLitre)
+                : (values.gasLitres ?? 0) > 0
+                    ? Math.round(amountCents / (values.gasLitres ?? 1))
+                    : null,
+              date: dateInputToIso(values.gasDate) ?? new Date().toISOString(),
+            } satisfies GasDetails
+          : null,
+        repair: values.category === 'repair'
+          ? {
+              valueCents: amountCents,
+              date: dateInputToIso(values.repairDate) ?? new Date().toISOString(),
+              provider: values.repairProvider?.trim() || null,
+              repairType: values.repairType?.trim() || null,
+              notes: values.repairNotes?.trim() || null,
+            } satisfies RepairDetails
+          : null,
+        tax: values.category === 'tax'
+          ? {
+              valueCents: amountCents,
+              validFrom: dateInputToIso(values.taxValidFrom) ?? new Date().toISOString(),
+              validUntil: values.taxValidUntil ? dateInputToIso(values.taxValidUntil) : null,
+              reference: values.taxReference?.trim() || null,
+            } satisfies TaxDetails
+          : null,
+        service: values.category === 'service'
+          ? {
+              valueCents: amountCents,
+              date: dateInputToIso(values.serviceDate) ?? new Date().toISOString(),
+              provider: values.serviceProvider?.trim() || null,
+              serviceType: values.serviceType?.trim() || null,
+              notes: values.serviceNotes?.trim() || null,
+            } satisfies ServiceDetails
+          : null,
+        mot: values.category === 'mot'
+          ? {
+              valueCents: amountCents,
+              date: dateInputToIso(values.motDate) ?? new Date().toISOString(),
+              result: values.motResult ?? 'pass',
+              provider: values.motProvider?.trim() || null,
+              notes: values.motNotes?.trim() || null,
+            } satisfies MotDetails
+          : null,
+        other: values.category === 'other'
+          ? {
+              valueCents: amountCents,
+              date: dateInputToIso(values.otherDate) ?? new Date().toISOString(),
+              description: values.otherDescription?.trim() ?? '',
+              direction: values.otherDirection ?? 'expense',
+            } satisfies OtherDetails
+          : null,
       };
       if (effectiveKind === 'one_time') {
-        updatePayload.effectiveDate = dateInputToIso(values.effectiveDate);
+        updatePayload.effectiveDate = values.category === 'gas'
+          ? dateInputToIso(values.gasDate)
+          : values.category === 'repair'
+              ? dateInputToIso(values.repairDate)
+              : values.category === 'service'
+                  ? dateInputToIso(values.serviceDate)
+                  : values.category === 'mot'
+                      ? dateInputToIso(values.motDate)
+                      : values.category === 'other'
+                          ? dateInputToIso(values.otherDate)
+                          : dateInputToIso(values.effectiveDate);
         updatePayload.recurringFrequency = null;
         updatePayload.recurringStart = null;
         updatePayload.recurringEnd = null;
       } else {
         updatePayload.effectiveDate = null;
         updatePayload.recurringFrequency = 'monthly';
-        updatePayload.recurringStart = dateInputToIso(values.recurringStart);
-        updatePayload.recurringEnd = values.category === 'finance_agreement' ? null : (values.recurringEnd ? dateInputToIso(values.recurringEnd) : null);
+        updatePayload.recurringStart = values.category === 'insurance'
+          ? dateInputToIso(values.insuranceValidFrom)
+          : values.category === 'tax'
+              ? dateInputToIso(values.taxValidFrom)
+          : dateInputToIso(values.recurringStart);
+        updatePayload.recurringEnd = values.category === 'finance_agreement'
+          ? null
+          : values.category === 'insurance'
+              ? (values.insuranceValidUntil ? dateInputToIso(values.insuranceValidUntil) : null)
+              : values.category === 'tax'
+                  ? (values.taxValidUntil ? dateInputToIso(values.taxValidUntil) : null)
+              : (values.recurringEnd ? dateInputToIso(values.recurringEnd) : null);
       }
       await updateFinanceEntry.mutateAsync(updatePayload);
     } else {
@@ -799,6 +1327,14 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
     setAddStep('category');
     setEditingEntry(null);
     setAttachmentsDraft([]);
+    setShowFinanceAgreementDetails(false);
+    setShowInsuranceDetails(false);
+    setShowGasDetails(false);
+    setShowRepairDetails(false);
+    setShowTaxDetails(false);
+    setShowServiceDetails(false);
+    setShowMotDetails(false);
+    setShowOtherDetails(false);
   });
 
   const openEntryDetails = useCallback((entry: FinanceEntryData, anchor: HTMLElement, position: { top: number; left: number }) => {
@@ -853,8 +1389,51 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
       totalChargeForCredit: toPounds(entryDetailsEntry.financeAgreement?.totalChargeForCreditCents),
       totalAmountPayable: toPounds(entryDetailsEntry.financeAgreement?.totalAmountPayableCents),
       interestRate: entryDetailsEntry.financeAgreement?.interestRatePercent ?? 0,
+      insuranceType: entryDetailsEntry.insurance?.insuranceType ?? 'comprehensive',
+      insuranceProvider: entryDetailsEntry.insurance?.provider ?? '',
+      insuranceFrequency: entryDetailsEntry.insurance?.frequency ?? 'annual',
+      insurancePremium: toPounds(entryDetailsEntry.insurance?.premiumCents),
+      insuranceValidFrom: isoToDateInput(entryDetailsEntry.insurance?.validFrom) || new Date().toISOString().slice(0, 10),
+      insuranceValidUntil: isoToDateInput(entryDetailsEntry.insurance?.validUntil),
+      insurancePolicyNumber: entryDetailsEntry.insurance?.policyNumber ?? '',
+      insuranceContact: entryDetailsEntry.insurance?.insurerContact ?? '',
+      repairValue: toPounds(entryDetailsEntry.repair?.valueCents),
+      repairDate: isoToDateInput(entryDetailsEntry.repair?.date) || new Date().toISOString().slice(0, 10),
+      repairProvider: entryDetailsEntry.repair?.provider ?? '',
+      repairType: entryDetailsEntry.repair?.repairType ?? '',
+      repairNotes: entryDetailsEntry.repair?.notes ?? '',
+      taxValue: toPounds(entryDetailsEntry.tax?.valueCents),
+      taxValidFrom: isoToDateInput(entryDetailsEntry.tax?.validFrom) || new Date().toISOString().slice(0, 10),
+      taxValidUntil: isoToDateInput(entryDetailsEntry.tax?.validUntil),
+      taxReference: entryDetailsEntry.tax?.reference ?? '',
+      serviceValue: toPounds(entryDetailsEntry.service?.valueCents),
+      serviceDate: isoToDateInput(entryDetailsEntry.service?.date) || new Date().toISOString().slice(0, 10),
+      serviceProvider: entryDetailsEntry.service?.provider ?? '',
+      serviceType: entryDetailsEntry.service?.serviceType ?? '',
+      serviceNotes: entryDetailsEntry.service?.notes ?? '',
+      motValue: toPounds(entryDetailsEntry.mot?.valueCents),
+      motDate: isoToDateInput(entryDetailsEntry.mot?.date) || new Date().toISOString().slice(0, 10),
+      motResult: entryDetailsEntry.mot?.result ?? 'pass',
+      motProvider: entryDetailsEntry.mot?.provider ?? '',
+      motNotes: entryDetailsEntry.mot?.notes ?? '',
+      otherValue: toPounds(entryDetailsEntry.other?.valueCents),
+      otherDate: isoToDateInput(entryDetailsEntry.other?.date) || new Date().toISOString().slice(0, 10),
+      otherDescription: entryDetailsEntry.other?.description ?? '',
+      otherDirection: entryDetailsEntry.other?.direction ?? (entryDetailsEntry.flow === 'income' ? 'income' : 'expense'),
+      gasValue: toPounds(entryDetailsEntry.gas?.valueCents),
+      gasLitres: entryDetailsEntry.gas?.litres ?? 0,
+      gasPricePerLitre: toPounds(entryDetailsEntry.gas?.pricePerLitreCents),
+      gasDate: isoToDateInput(entryDetailsEntry.gas?.date) || new Date().toISOString().slice(0, 10),
     });
     setGlobalPickedAssetId(entryDetailsEntry.assetId);
+    setShowFinanceAgreementDetails(normalizeCategoryKey(entryDetailsEntry.category) === 'finance_agreement');
+    setShowInsuranceDetails(normalizeCategoryKey(entryDetailsEntry.category) === 'insurance');
+    setShowGasDetails(normalizeCategoryKey(entryDetailsEntry.category) === 'gas');
+    setShowRepairDetails(normalizeCategoryKey(entryDetailsEntry.category) === 'repair');
+    setShowTaxDetails(normalizeCategoryKey(entryDetailsEntry.category) === 'tax');
+    setShowServiceDetails(normalizeCategoryKey(entryDetailsEntry.category) === 'service');
+    setShowMotDetails(normalizeCategoryKey(entryDetailsEntry.category) === 'mot');
+    setShowOtherDetails(normalizeCategoryKey(entryDetailsEntry.category) === 'other');
     setAddAnchor(entryDetailsAnchor);
     setAddStep('form');
     closeEntryDetails();
@@ -1239,7 +1818,7 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
                 <input
                   ref={emptyAttachmentInputRef}
                   type="file"
-                  accept="application/pdf"
+                  accept="application/pdf,image/png,image/jpeg,image/jpg,image/gif,image/webp"
                   hidden
                   onChange={handleFilePick}
                 />
@@ -1523,6 +2102,14 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
           setAddAnchor(null);
           setAddStep('category');
           setEditingEntry(null);
+          setShowFinanceAgreementDetails(false);
+          setShowInsuranceDetails(false);
+          setShowGasDetails(false);
+          setShowRepairDetails(false);
+          setShowTaxDetails(false);
+          setShowServiceDetails(false);
+          setShowMotDetails(false);
+          setShowOtherDetails(false);
         }}
         anchorOrigin={{ vertical: 'center', horizontal: 'center' }}
         transformOrigin={{ vertical: 'center', horizontal: 'center' }}
@@ -1576,6 +2163,14 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
           setAddAnchor(null);
           setAddStep('category');
           setEditingEntry(null);
+          setShowFinanceAgreementDetails(false);
+          setShowInsuranceDetails(false);
+          setShowGasDetails(false);
+          setShowRepairDetails(false);
+          setShowTaxDetails(false);
+          setShowServiceDetails(false);
+          setShowMotDetails(false);
+          setShowOtherDetails(false);
         }}
         anchorOrigin={{ vertical: 'center', horizontal: 'center' }}
         transformOrigin={{ vertical: 'center', horizontal: 'center' }}
@@ -1592,6 +2187,14 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
               size="small"
               onClick={() => {
                 setAddStep('category');
+                setShowFinanceAgreementDetails(false);
+                setShowInsuranceDetails(false);
+                setShowGasDetails(false);
+                setShowRepairDetails(false);
+                setShowTaxDetails(false);
+                setShowServiceDetails(false);
+                setShowMotDetails(false);
+                setShowOtherDetails(false);
                 if (editingEntry) {
                   setEditingEntry(null);
                 }
@@ -1656,6 +2259,14 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
                         setValue('category', matched.key, { shouldValidate: true, shouldDirty: true });
                         setValue('kind', matched.defaults.kind, { shouldValidate: true, shouldDirty: true });
                         setValue('flow', matched.defaults.flow, { shouldValidate: true, shouldDirty: true });
+                        setShowFinanceAgreementDetails(false);
+                        setShowInsuranceDetails(false);
+                        setShowGasDetails(false);
+                        setShowRepairDetails(false);
+                        setShowTaxDetails(false);
+                        setShowServiceDetails(false);
+                        setShowMotDetails(false);
+                        setShowOtherDetails(false);
                       }
                     }}
                   >
@@ -1686,13 +2297,133 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
           </Stack>
 
           <Stack spacing={0.75}>
-            <Typography variant="caption" color="text.secondary">
-              Upload
-              {' '}
-              {uploadContext.attachmentNoun}
-              {' '}
-              first, then complete the entry manually.
-            </Typography>
+            {selectedCategory === 'finance_agreement'
+              ? (
+                  <Typography variant="caption" color="text.secondary">
+                    Upload your finance agreement document or
+                    {' '}
+                    <Box
+                      component="button"
+                      type="button"
+                      onClick={() => setShowFinanceAgreementDetails(true)}
+                      sx={{
+                        border: 'none',
+                        backgroundColor: 'transparent',
+                        p: 0,
+                        m: 0,
+                        font: 'inherit',
+                        color: 'primary.main',
+                        cursor: 'pointer',
+                        textDecoration: 'none',
+                      }}
+                    >
+                      enter the details manually
+                    </Box>
+                  </Typography>
+                )
+              : selectedCategory === 'insurance'
+                  ? (
+                      <Typography variant="caption" color="text.secondary">
+                        Upload your insurance document or
+                        {' '}
+                        <Box
+                          component="button"
+                          type="button"
+                          onClick={() => setShowInsuranceDetails(true)}
+                          sx={{
+                            border: 'none',
+                            backgroundColor: 'transparent',
+                            p: 0,
+                            m: 0,
+                            font: 'inherit',
+                            color: 'primary.main',
+                            cursor: 'pointer',
+                            textDecoration: 'none',
+                          }}
+                        >
+                          add details manually
+                        </Box>
+                      </Typography>
+                    )
+                  : selectedCategory === 'gas'
+                      ? (
+                          <Typography variant="caption" color="text.secondary">
+                            Upload your gas receipt or
+                            {' '}
+                            <Box
+                              component="button"
+                              type="button"
+                              onClick={() => setShowGasDetails(true)}
+                              sx={{
+                                border: 'none',
+                                backgroundColor: 'transparent',
+                                p: 0,
+                                m: 0,
+                                font: 'inherit',
+                                color: 'primary.main',
+                                cursor: 'pointer',
+                                textDecoration: 'none',
+                              }}
+                            >
+                              add details manually
+                            </Box>
+                          </Typography>
+                        )
+                  : selectedCategory === 'repair'
+                      ? (
+                          <Typography variant="caption" color="text.secondary">
+                            Upload your repair receipt or
+                            {' '}
+                            <Box component="button" type="button" onClick={() => setShowRepairDetails(true)} sx={{ border: 'none', backgroundColor: 'transparent', p: 0, m: 0, font: 'inherit', color: 'primary.main', cursor: 'pointer', textDecoration: 'none' }}>
+                              add details manually
+                            </Box>
+                          </Typography>
+                        )
+                  : selectedCategory === 'tax'
+                      ? (
+                          <Typography variant="caption" color="text.secondary">
+                            Upload your tax document or
+                            {' '}
+                            <Box component="button" type="button" onClick={() => setShowTaxDetails(true)} sx={{ border: 'none', backgroundColor: 'transparent', p: 0, m: 0, font: 'inherit', color: 'primary.main', cursor: 'pointer', textDecoration: 'none' }}>
+                              add details manually
+                            </Box>
+                          </Typography>
+                        )
+                  : selectedCategory === 'service'
+                      ? (
+                          <Typography variant="caption" color="text.secondary">
+                            Upload your service receipt or
+                            {' '}
+                            <Box component="button" type="button" onClick={() => setShowServiceDetails(true)} sx={{ border: 'none', backgroundColor: 'transparent', p: 0, m: 0, font: 'inherit', color: 'primary.main', cursor: 'pointer', textDecoration: 'none' }}>
+                              add details manually
+                            </Box>
+                          </Typography>
+                        )
+                  : selectedCategory === 'mot'
+                      ? (
+                          <Typography variant="caption" color="text.secondary">
+                            Upload your MOT document or
+                            {' '}
+                            <Box component="button" type="button" onClick={() => setShowMotDetails(true)} sx={{ border: 'none', backgroundColor: 'transparent', p: 0, m: 0, font: 'inherit', color: 'primary.main', cursor: 'pointer', textDecoration: 'none' }}>
+                              add details manually
+                            </Box>
+                          </Typography>
+                        )
+                  : selectedCategory === 'other'
+                      ? (
+                          <Typography variant="caption" color="text.secondary">
+                            Upload your document or fill in the details below.
+                          </Typography>
+                        )
+                  : (
+                  <Typography variant="caption" color="text.secondary">
+                    Upload
+                    {' '}
+                    {uploadContext.attachmentNoun}
+                    {' '}
+                    first, then complete the entry manually.
+                  </Typography>
+                )}
             <Box
               data-upload-category={uploadContext.category ?? ''}
               data-upload-ai-hint={uploadContext.aiHint}
@@ -1713,7 +2444,7 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
                 {' '}
                 {uploadContext.attachmentNoun}
                 {' '}
-                (PDF) here.
+                {selectedCategory === 'gas' || selectedCategory === 'repair' || selectedCategory === 'service' ? '(PDF or image) here.' : '(PDF) here.'}
               </Typography>
               <Button
                 variant="outlined"
@@ -1727,7 +2458,9 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
               <input
                 ref={formAttachmentInputRef}
                 type="file"
-                accept="application/pdf"
+                accept={selectedCategory === 'gas' || selectedCategory === 'repair' || selectedCategory === 'service'
+                  ? 'application/pdf,image/png,image/jpeg,image/jpg,image/gif,image/webp'
+                  : 'application/pdf'}
                 hidden
                 onChange={handleFilePick}
               />
@@ -1812,7 +2545,7 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
             </Box>
           </Popover>
 
-          {selectedCategory !== 'finance_agreement' && (
+          {selectedCategory == null && (
             <Stack direction="row" spacing={1}>
               <FormControl size="small" sx={{ flex: 1 }}>
                 <InputLabel id="finance-kind-label">Type</InputLabel>
@@ -1851,8 +2584,8 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
             inputProps={{ min: 0, step: 0.01 }}
             error={Boolean(errors.amount)}
             helperText={errors.amount?.message}
-            disabled={selectedCategory === 'finance_agreement'}
-            sx={selectedCategory === 'finance_agreement' ? { display: 'none' } : undefined}
+            disabled={selectedCategory != null}
+            sx={selectedCategory != null ? { display: 'none' } : undefined}
             slotProps={{
               input: {
                 startAdornment: <InputAdornment position="start">{selectedCurrencySymbol}</InputAdornment>,
@@ -1861,7 +2594,7 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
             {...register('amount', { valueAsNumber: true })}
           />
 
-          {selectedCategory === 'finance_agreement' && (
+          {selectedCategory === 'finance_agreement' && showFinanceAgreementDetails && (
             <>
               <TextField
                 label="Provider"
@@ -2049,7 +2782,228 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
             </>
           )}
 
-          {selectedCategory !== 'finance_agreement' && (
+          {selectedCategory === 'insurance' && showInsuranceDetails && (
+            <>
+              <TextField
+                label="Provider"
+                size="small"
+                error={Boolean(errors.insuranceProvider)}
+                helperText={errors.insuranceProvider?.message}
+                {...register('insuranceProvider')}
+              />
+              <Stack direction="row" spacing={1}>
+                <FormControl size="small" sx={{ flex: 1 }}>
+                  <InputLabel id="insurance-type-label">Type</InputLabel>
+                  <Controller
+                    name="insuranceType"
+                    control={control}
+                    render={({ field }) => (
+                      <Select {...field} labelId="insurance-type-label" label="Type">
+                        {INSURANCE_TYPE_OPTIONS.map(opt => (
+                          <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+                        ))}
+                      </Select>
+                    )}
+                  />
+                </FormControl>
+                <FormControl size="small" sx={{ flex: 1 }}>
+                  <InputLabel id="insurance-frequency-label">Frequency</InputLabel>
+                  <Controller
+                    name="insuranceFrequency"
+                    control={control}
+                    render={({ field }) => (
+                      <Select {...field} labelId="insurance-frequency-label" label="Frequency">
+                        <MenuItem value="annual">Annual</MenuItem>
+                        <MenuItem value="monthly">Monthly</MenuItem>
+                      </Select>
+                    )}
+                  />
+                </FormControl>
+              </Stack>
+              <TextField
+                label="Premium"
+                type="number"
+                size="small"
+                inputProps={{ min: 0, step: 0.01 }}
+                error={Boolean(errors.insurancePremium)}
+                helperText={errors.insurancePremium?.message}
+                slotProps={{
+                  input: {
+                    startAdornment: <InputAdornment position="start">{selectedCurrencySymbol}</InputAdornment>,
+                  },
+                }}
+                {...register('insurancePremium', { valueAsNumber: true })}
+              />
+              <Stack direction="row" spacing={1}>
+                <TextField
+                  label="Valid from"
+                  type="date"
+                  size="small"
+                  slotProps={{ inputLabel: { shrink: true } }}
+                  error={Boolean(errors.insuranceValidFrom)}
+                  helperText={errors.insuranceValidFrom?.message}
+                  {...register('insuranceValidFrom')}
+                  sx={{ flex: 1 }}
+                />
+                <TextField
+                  label="Valid until"
+                  type="date"
+                  size="small"
+                  slotProps={{ inputLabel: { shrink: true } }}
+                  error={Boolean(errors.insuranceValidUntil)}
+                  helperText={errors.insuranceValidUntil?.message}
+                  {...register('insuranceValidUntil')}
+                  sx={{ flex: 1 }}
+                />
+              </Stack>
+              <Stack direction="row" spacing={1}>
+                <TextField
+                  label="Policy number"
+                  size="small"
+                  {...register('insurancePolicyNumber')}
+                  sx={{ flex: 1 }}
+                />
+                <TextField
+                  label="Insurer contact"
+                  size="small"
+                  {...register('insuranceContact')}
+                  sx={{ flex: 1 }}
+                />
+              </Stack>
+            </>
+          )}
+
+          {selectedCategory === 'gas' && showGasDetails && (
+            <>
+              <TextField
+                label="Value"
+                type="number"
+                size="small"
+                inputProps={{ min: 0, step: 0.01 }}
+                error={Boolean(errors.gasValue)}
+                helperText={errors.gasValue?.message}
+                slotProps={{
+                  input: {
+                    startAdornment: <InputAdornment position="start">{selectedCurrencySymbol}</InputAdornment>,
+                  },
+                }}
+                {...register('gasValue', { valueAsNumber: true })}
+              />
+              <Stack direction="row" spacing={1}>
+                <TextField
+                  label="Litres"
+                  type="number"
+                  size="small"
+                  inputProps={{ min: 0, step: 0.01 }}
+                  error={Boolean(errors.gasLitres)}
+                  helperText={errors.gasLitres?.message}
+                  {...register('gasLitres', { valueAsNumber: true })}
+                  sx={{ flex: 1 }}
+                />
+                <TextField
+                  label="Price per litre (optional)"
+                  type="number"
+                  size="small"
+                  inputProps={{ min: 0, step: 0.001 }}
+                  error={Boolean(errors.gasPricePerLitre)}
+                  helperText={errors.gasPricePerLitre?.message}
+                  slotProps={{
+                    input: {
+                      startAdornment: <InputAdornment position="start">{selectedCurrencySymbol}</InputAdornment>,
+                    },
+                  }}
+                  {...register('gasPricePerLitre', { valueAsNumber: true })}
+                  sx={{ flex: 1 }}
+                />
+              </Stack>
+              <TextField
+                label="Date"
+                type="date"
+                size="small"
+                slotProps={{ inputLabel: { shrink: true } }}
+                error={Boolean(errors.gasDate)}
+                helperText={errors.gasDate?.message}
+                {...register('gasDate')}
+              />
+            </>
+          )}
+
+          {selectedCategory === 'repair' && showRepairDetails && (
+            <>
+              <TextField label="Value" type="number" size="small" inputProps={{ min: 0, step: 0.01 }} error={Boolean(errors.repairValue)} helperText={errors.repairValue?.message} slotProps={{ input: { startAdornment: <InputAdornment position="start">{selectedCurrencySymbol}</InputAdornment> } }} {...register('repairValue', { valueAsNumber: true })} />
+              <TextField label="Date" type="date" size="small" slotProps={{ inputLabel: { shrink: true } }} error={Boolean(errors.repairDate)} helperText={errors.repairDate?.message} {...register('repairDate')} />
+              <TextField label="Provider (optional)" size="small" {...register('repairProvider')} />
+              <TextField label="Repair type (optional)" size="small" {...register('repairType')} />
+              <TextField label="Notes (optional)" size="small" multiline minRows={2} {...register('repairNotes')} />
+            </>
+          )}
+
+          {selectedCategory === 'tax' && showTaxDetails && (
+            <>
+              <TextField label="Value" type="number" size="small" inputProps={{ min: 0, step: 0.01 }} error={Boolean(errors.taxValue)} helperText={errors.taxValue?.message} slotProps={{ input: { startAdornment: <InputAdornment position="start">{selectedCurrencySymbol}</InputAdornment> } }} {...register('taxValue', { valueAsNumber: true })} />
+              <Stack direction="row" spacing={1}>
+                <TextField label="Valid from" type="date" size="small" slotProps={{ inputLabel: { shrink: true } }} error={Boolean(errors.taxValidFrom)} helperText={errors.taxValidFrom?.message} {...register('taxValidFrom')} sx={{ flex: 1 }} />
+                <TextField label="Valid until" type="date" size="small" slotProps={{ inputLabel: { shrink: true } }} error={Boolean(errors.taxValidUntil)} helperText={errors.taxValidUntil?.message} {...register('taxValidUntil')} sx={{ flex: 1 }} />
+              </Stack>
+              <TextField label="Reference (optional)" size="small" {...register('taxReference')} />
+            </>
+          )}
+
+          {selectedCategory === 'service' && showServiceDetails && (
+            <>
+              <TextField label="Value" type="number" size="small" inputProps={{ min: 0, step: 0.01 }} error={Boolean(errors.serviceValue)} helperText={errors.serviceValue?.message} slotProps={{ input: { startAdornment: <InputAdornment position="start">{selectedCurrencySymbol}</InputAdornment> } }} {...register('serviceValue', { valueAsNumber: true })} />
+              <TextField label="Date" type="date" size="small" slotProps={{ inputLabel: { shrink: true } }} error={Boolean(errors.serviceDate)} helperText={errors.serviceDate?.message} {...register('serviceDate')} />
+              <TextField label="Provider (optional)" size="small" {...register('serviceProvider')} />
+              <TextField label="Service type (optional)" size="small" {...register('serviceType')} />
+              <TextField label="Notes (optional)" size="small" multiline minRows={2} {...register('serviceNotes')} />
+            </>
+          )}
+
+          {selectedCategory === 'mot' && showMotDetails && (
+            <>
+              <TextField label="Value" type="number" size="small" inputProps={{ min: 0, step: 0.01 }} error={Boolean(errors.motValue)} helperText={errors.motValue?.message} slotProps={{ input: { startAdornment: <InputAdornment position="start">{selectedCurrencySymbol}</InputAdornment> } }} {...register('motValue', { valueAsNumber: true })} />
+              <TextField label="Date" type="date" size="small" slotProps={{ inputLabel: { shrink: true } }} error={Boolean(errors.motDate)} helperText={errors.motDate?.message} {...register('motDate')} />
+              <FormControl size="small">
+                <InputLabel id="mot-result-label">Result</InputLabel>
+                <Controller
+                  name="motResult"
+                  control={control}
+                  render={({ field }) => (
+                    <Select {...field} labelId="mot-result-label" label="Result">
+                      {MOT_RESULT_OPTIONS.map(opt => (
+                        <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+                      ))}
+                    </Select>
+                  )}
+                />
+              </FormControl>
+              <TextField label="Provider (optional)" size="small" {...register('motProvider')} />
+              <TextField label="Notes (optional)" size="small" multiline minRows={2} {...register('motNotes')} />
+            </>
+          )}
+
+          {selectedCategory === 'other' && (
+            <>
+              <TextField label="Value" type="number" size="small" inputProps={{ min: 0, step: 0.01 }} error={Boolean(errors.otherValue)} helperText={errors.otherValue?.message} slotProps={{ input: { startAdornment: <InputAdornment position="start">{selectedCurrencySymbol}</InputAdornment> } }} {...register('otherValue', { valueAsNumber: true })} />
+              <TextField label="Date" type="date" size="small" slotProps={{ inputLabel: { shrink: true } }} error={Boolean(errors.otherDate)} helperText={errors.otherDate?.message} {...register('otherDate')} />
+              <FormControl size="small">
+                <InputLabel id="other-direction-label">Direction</InputLabel>
+                <Controller
+                  name="otherDirection"
+                  control={control}
+                  render={({ field }) => (
+                    <Select {...field} labelId="other-direction-label" label="Direction">
+                      <MenuItem value="expense">Expense</MenuItem>
+                      <MenuItem value="income">Income</MenuItem>
+                    </Select>
+                  )}
+                />
+              </FormControl>
+              <TextField label="Description" size="small" error={Boolean(errors.otherDescription)} helperText={errors.otherDescription?.message} {...register('otherDescription')} />
+            </>
+          )}
+
+          {selectedCategory == null && (
             kind !== 'one_time'
               ? (
                   <TextField
@@ -2075,7 +3029,7 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
                 )
           )}
 
-          {selectedCategory !== 'finance_agreement' && kind !== 'one_time' && (
+          {selectedCategory == null && kind !== 'one_time' && (
             <TextField
               label="Recurring end (optional)"
               type="date"
@@ -2087,7 +3041,7 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
             />
           )}
 
-          {kind === 'manual_recurring' && (
+          {kind === 'manual_recurring' && selectedCategory == null && (
             <>
               <Typography variant="caption" color="text.secondary">
                 Amounts for
@@ -2162,6 +3116,14 @@ export function FinancePageView({ locale, assetId, assetName: _assetName, assetT
                 setAddAnchor(null);
                 setAddStep('category');
                 setEditingEntry(null);
+                setShowFinanceAgreementDetails(false);
+                setShowInsuranceDetails(false);
+                setShowGasDetails(false);
+                setShowRepairDetails(false);
+                setShowTaxDetails(false);
+                setShowServiceDetails(false);
+                setShowMotDetails(false);
+                setShowOtherDetails(false);
               }}
               disabled={createFinanceEntry.isPending || updateFinanceEntry.isPending}
             >
